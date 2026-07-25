@@ -66,7 +66,7 @@ config_panel_ui <- function() {
       shiny::tags$ul(
         shiny::tags$li(
           shiny::strong(
-            "src/ -- "
+            "src/ \u2014 "
           ),
           paste(
             "sourced, received or reference data retained",
@@ -76,7 +76,7 @@ config_panel_ui <- function() {
 
         shiny::tags$li(
           shiny::strong(
-            "dev/ -- "
+            "dev/ \u2014 "
           ),
           paste(
             "active development, transformation, analysis",
@@ -86,7 +86,7 @@ config_panel_ui <- function() {
 
         shiny::tags$li(
           shiny::strong(
-            "arc/ -- "
+            "arc/ \u2014 "
           ),
           paste(
             "released, frozen, superseded or audit-retained",
@@ -204,8 +204,8 @@ config_panel_ui <- function() {
         "dataset_parent_dir",
         "Create new dataset folders under",
         choices = c(
-          "dev -- active development and internally produced datasets" = "dev",
-          "src -- sourced or reference datasets" = "src"
+          "dev \u2014 active development and internally produced datasets" = "dev",
+          "src \u2014 sourced or reference datasets" = "src"
         ),
         selected = "dev"
       ),
@@ -775,17 +775,22 @@ ui <- fluidPage(
         margin-bottom: 15px;
       }
 
-      /* Shiny defaults text-input containers to roughly 300px. Let text and
-         textarea controls use the full width provided by their layout column. */
+      /* Shiny defaults several input containers to roughly 300px. Let text,
+         textarea and dropdown controls use their full layout-column width. */
       .shiny-input-container:has(> input[type='text'].form-control),
-      .shiny-input-container:has(> textarea.form-control) {
+      .shiny-input-container:has(> textarea.form-control),
+      .shiny-input-container:has(> select.form-control),
+      .shiny-input-container:has(> .selectize-control) {
         width: 100% !important;
         max-width: none;
       }
 
       .shiny-input-container > input[type='text'].form-control,
-      .shiny-input-container > textarea.form-control {
+      .shiny-input-container > textarea.form-control,
+      .shiny-input-container > select.form-control,
+      .shiny-input-container > .selectize-control {
         width: 100%;
+        max-width: none;
         box-sizing: border-box;
       }
 
@@ -957,7 +962,7 @@ ui <- fluidPage(
     column(
       width = 9,
       id = "main_panel",
-      titlePanel("Data pond -- v0.5"),
+      titlePanel("Data pond \u2014 v0.5"),
       tabsetPanel(
         shiny::tabPanel(
           "Pond overview",
@@ -4799,7 +4804,7 @@ metadata_review_context_data <-
       ),
 
       stat_row(
-        "Source -- src/",
+        "Source \u2014 src/",
         sum(
           overview$stage == "src",
           na.rm = TRUE
@@ -4808,7 +4813,7 @@ metadata_review_context_data <-
       ),
 
       stat_row(
-        "Development -- dev/",
+        "Development \u2014 dev/",
         sum(
           overview$stage == "dev",
           na.rm = TRUE
@@ -4817,7 +4822,7 @@ metadata_review_context_data <-
       ),
 
       stat_row(
-        "Archive -- arc/",
+        "Archive \u2014 arc/",
         sum(
           overview$stage == "arc",
           na.rm = TRUE

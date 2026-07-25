@@ -7,16 +7,16 @@ pond_overview_palette <- function() {
     "Archive" =
       "#B99572",
 
-    "Development -- ready for archive" =
+    "Development \u2014 ready for archive" =
       "#A8C49A",
 
-    "Development -- in progress" =
+    "Development \u2014 in progress" =
       "#D1DDC7",
 
-    "Source -- fully described" =
+    "Source \u2014 fully described" =
       "#C3A35B",
 
-    "Source -- description incomplete" =
+    "Source \u2014 description incomplete" =
       "#E9DFB5",
 
     "Location / lifecycle mismatch" =
@@ -77,17 +77,17 @@ pond_overview_class <- function(
 
     stage == "dev" &
       ready_for_archive,
-    "Development -- ready for archive",
+    "Development \u2014 ready for archive",
 
     stage == "dev",
-    "Development -- in progress",
+    "Development \u2014 in progress",
 
     stage == "src" &
       ready_for_archive,
-    "Source -- fully described",
+    "Source \u2014 fully described",
 
     stage == "src",
-    "Source -- description incomplete",
+    "Source \u2014 description incomplete",
 
     default =
       "Unclassified location"

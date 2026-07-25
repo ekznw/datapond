@@ -507,7 +507,7 @@ mod_data_access_server <- function(id, state) {
           "data_distributor_organisation_id",
           choices = choices,
           selected = selected,
-          server = TRUE
+          server = FALSE
         )
       })
 
@@ -655,7 +655,7 @@ mod_data_access_server <- function(id, state) {
           "data_distributor_organisation_id",
           choices = organisation_choices(),
           selected = character(),
-          server = TRUE
+          server = FALSE
         )
 
         shiny::updateTextAreaInput(
@@ -817,7 +817,7 @@ mod_data_access_server <- function(id, state) {
           } else {
             as.character(selected_id)
           },
-          server = TRUE
+          server = FALSE
         )
 
         shiny::updateTextInput(

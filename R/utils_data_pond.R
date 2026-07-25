@@ -64,7 +64,7 @@ default_pond_config <- function() {
     data_pond = NULL,
     data_pond_id = NULL,
     active_user = NULL,
-    dataset_parent_dir = "src",
+    dataset_parent_dir = "dev",
     attribute_profile = list(
       enabled = FALSE,
       vector = TRUE,
@@ -81,7 +81,7 @@ default_pond_config <- function() {
   )
 }
 
-normalise_dataset_parent_dir <- function(x, default = "src") {
+normalise_dataset_parent_dir <- function(x, default = "dev") {
   if (is.null(x) || length(x) == 0 || is.na(x[1]) || !x[1] %in% c("src", "dev")) {
     return(default)
   }
@@ -168,7 +168,7 @@ write_pond_config <- function(data_pond_path, config) {
 
 save_config <- function(path,
                         active_user_id = NULL,
-                        dataset_parent_dir = "src",
+                        dataset_parent_dir = "dev",
                         attribute_profile_enabled = NULL) {
   if (is.null(path) || length(path) == 0 || is.na(path[1]) || path[1] == "") {
     stop("A data pond path is required to save config.")

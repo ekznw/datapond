@@ -7,15 +7,15 @@ licensing_rights_basis_choices <- c(
   "Select the rights basis" = "",
   "EKZNW-created or EKZNW-owned" =
     "ekznw_owned",
-  "External organisation -- existing licence applies" =
+  "External organisation \u2014 existing licence applies" =
     "external_licence",
-  "External organisation -- written redistribution permission" =
+  "External organisation \u2014 written redistribution permission" =
     "external_permission",
   "Mixed or derived from several rights holders" =
     "mixed_rights",
   "Rights or permission unclear" =
     "rights_unknown",
-  "Existing record -- rights basis needs review" =
+  "Existing record \u2014 rights basis needs review" =
     "review_required"
 )
 
@@ -59,7 +59,7 @@ licensing_sensitivity_choices <- c(
     "none",
   "Sensitive content removed or generalised" =
     "removed_or_generalised",
-  "Sensitive -- approved recipients only" =
+  "Sensitive \u2014 approved recipients only" =
     "approved_recipients_only",
   "Confidential or contractually restricted" =
     "confidential",
@@ -1553,8 +1553,7 @@ mod_licensing_server <- function(
           shiny::updateSelectizeInput(
             session,
             "rights_holder_organisation_id",
-            selected = owner_id,
-            server = TRUE
+            selected = owner_id
           )
         }
 
@@ -1757,7 +1756,7 @@ mod_licensing_server <- function(
           "rights_holder_organisation_id",
           choices = choices,
           selected = current,
-          server = TRUE
+          server = FALSE
         )
       })
 
@@ -2892,7 +2891,7 @@ mod_licensing_server <- function(
               "Sensitive content removed or generalised",
 
             approved_recipients_only =
-              "Sensitive -- approved recipients only",
+              "Sensitive \u2014 approved recipients only",
 
             confidential =
               "Confidential or contractually restricted",

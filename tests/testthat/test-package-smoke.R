@@ -40,6 +40,44 @@ test_that("collapsing configuration allows the main panel to use full width", {
   expect_match(html, "mainPanel.classList.add('col-sm-9')", fixed = TRUE)
 })
 
+test_that("new ponds default dataset creation to the dev folder", {
+  expect_identical(
+    datapond:::default_pond_config()$dataset_parent_dir,
+    "dev"
+  )
+  expect_identical(
+    datapond:::normalise_dataset_parent_dir(NULL),
+    "dev"
+  )
+  expect_identical(
+    datapond:::normalise_dataset_parent_dir("src"),
+    "src"
+  )
+})
+
+test_that("pond organisation selectors use client-side choices", {
+  sources <- c(
+    mod_licensing = paste(
+      deparse(datapond:::mod_licensing_server),
+      collapse = "\n"
+    ),
+    mod_data_access = paste(
+      deparse(datapond:::mod_data_access_server),
+      collapse = "\n"
+    ),
+    mod_dataset_org = paste(
+      deparse(datapond:::mod_dataset_org_server),
+      collapse = "\n"
+    )
+  )
+
+  expect_match(
+    sources[["mod_licensing"]],
+    '"rights_holder_organisation_id",\\s*choices = choices,\\s*selected = current,\\s*server = FALSE'
+  )
+  expect_false(any(grepl("server = TRUE", sources, fixed = TRUE)))
+})
+
 test_that("text and textarea controls use their full layout-column width", {
   html <- as.character(datapond:::ui)
 
@@ -51,6 +89,21 @@ test_that("text and textarea controls use their full layout-column width", {
   expect_match(
     html,
     ".shiny-input-container:has(> textarea.form-control)",
+    fixed = TRUE
+  )
+})
+
+test_that("select and selectize controls use their full layout-column width", {
+  html <- as.character(datapond:::ui)
+
+  expect_match(
+    html,
+    ".shiny-input-container:has(> select.form-control)",
+    fixed = TRUE
+  )
+  expect_match(
+    html,
+    ".shiny-input-container:has(> .selectize-control)",
     fixed = TRUE
   )
 })

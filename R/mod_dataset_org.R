@@ -57,7 +57,7 @@ mod_dataset_org_server <- function(id, state) {
         session,
         "org_select",
         choices = choices,
-        server = TRUE
+        server = FALSE
       )
     })
     # ADD ORGANISATION

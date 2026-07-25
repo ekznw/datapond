@@ -2682,17 +2682,17 @@ seed_license_templates <- function(conn) {
     ),
 
     ui_label = c(
-      "Public reuse -- acknowledgement required (CC BY 4.0)",
-      "Public reuse -- no mandatory acknowledgement (CC0)",
-      "Public reuse -- derivatives must use the same terms",
-      "Public non-commercial reuse -- acknowledgement required",
-      "Open database reuse -- attribution and share-alike",
+      "Public reuse \u2014 acknowledgement required (CC BY 4.0)",
+      "Public reuse \u2014 no mandatory acknowledgement (CC0)",
+      "Public reuse \u2014 derivatives must use the same terms",
+      "Public non-commercial reuse \u2014 acknowledgement required",
+      "Open database reuse \u2014 attribution and share-alike",
       "Use the external provider's licence",
       "Redistribution permitted by written agreement",
-      "Approved partners only -- no onward redistribution",
+      "Approved partners only \u2014 no onward redistribution",
       "EKZNW internal use only",
       "Custom or mixed conditions",
-      "Rights unclear -- do not redistribute"
+      "Rights unclear \u2014 do not redistribute"
     ),
 
     sort_order = c(

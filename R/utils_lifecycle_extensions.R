@@ -4,7 +4,7 @@
 # ---- readiness logic ----
 is_dataset_ready_for_archive <- function(dataset_id, base_path, schema_grouped = NULL) {
   if (is.null(schema_grouped)) {
-    warning("schema_grouped is NULL -- readiness cannot be evaluated")
+    warning("schema_grouped is NULL \u2014 readiness cannot be evaluated")
     return(FALSE)
   }
   status_dt <- get_dataset_completion_status(

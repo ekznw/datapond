@@ -51,10 +51,10 @@ data_files_live_scan_ui <- function(ns) {
         ns("scan_scope"),
         "Scan scope",
         choices = c(
-          "Published outputs -- data/outputs when available" =
+          "Published outputs \u2014 data/outputs when available" =
             "outputs",
 
-          "All managed data -- complete data directory" =
+          "All managed data \u2014 complete data directory" =
             "all"
         ),
         selected = "outputs"
@@ -4041,7 +4041,7 @@ mod_data_files_server <- function(id, state) {
         ) {
           paste0(
             files$file_name,
-            " -- ",
+            " \u2014 ",
             files$data_file_rel_path_full
           )
         } else {
@@ -5627,7 +5627,7 @@ mod_data_files_server <- function(id, state) {
             )
           ) {
             paste0(
-              " -- ",
+              " \u2014 ",
               df$data_file_rel_path_full[i]
             )
           } else {
