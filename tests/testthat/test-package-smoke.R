@@ -126,6 +126,41 @@ test_that("stored party vocabularies seed each new pond idempotently", {
   }
 })
 
+test_that("keyword vocabulary seeds a new pond without an active user", {
+  pond <- tempfile("keyword-pond-")
+  dir.create(pond, recursive = TRUE, showWarnings = FALSE)
+  datapond:::init_db(pond)
+
+  keyword_seed <- data.table::fread(
+    datapond:::datapond_resource("vocab_keywords.csv")
+  )
+
+  expect_no_error(
+    result <- datapond:::seed_keyword_vocab_if_empty(
+      vocab_dt = keyword_seed,
+      base_path = pond,
+      user_id = NULL
+    )
+  )
+  expect_gt(result$inserted, 0L)
+
+  conn <- datapond:::get_conn(pond)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  expect_equal(
+    DBI::dbGetQuery(
+      conn,
+      "
+      SELECT COUNT(*) AS n
+      FROM keyword_vocab_tbl
+      WHERE created_by_user_id IS NOT NULL
+         OR updated_by_user_id IS NOT NULL
+      "
+    )$n,
+    0L
+  )
+})
+
 test_that("legacy duplicate emails do not prevent database startup", {
   pond <- tempfile("duplicate-email-pond-")
   dir.create(pond, recursive = TRUE, showWarnings = FALSE)

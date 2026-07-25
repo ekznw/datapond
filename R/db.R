@@ -8,6 +8,19 @@ get_conn <- function(base_path) {
   conn
 }
 
+normalise_optional_user_id <- function(user_id) {
+  if (
+    is.null(user_id) ||
+    length(user_id) == 0L ||
+    is.na(user_id[1]) ||
+    !nzchar(trimws(as.character(user_id[1])))
+  ) {
+    return(NA_integer_)
+  }
+
+  as.integer(user_id[1])
+}
+
 ensure_keyword_vocab_table <- function(conn) {
   DBI::dbExecute(conn, "
     CREATE TABLE IF NOT EXISTS keyword_vocab_tbl (
@@ -1114,6 +1127,7 @@ prepare_keyword_vocab_seed <- function(vocab_dt) {
 merge_keyword_vocab_seed <- function(vocab_dt, base_path,
                                      user_id = NULL) {
   seed <- prepare_keyword_vocab_seed(vocab_dt)
+  user_id <- normalise_optional_user_id(user_id)
 
   if (nrow(seed) == 0L) {
     return(data.frame(inserted = 0L, updated = 0L, preserved = 0L))
@@ -1239,6 +1253,8 @@ reset_keyword_vocab_seed <- function(
   base_path,
   user_id = NULL
 ) {
+  user_id <- normalise_optional_user_id(user_id)
+
   local({
     conn <- get_conn(base_path)
 

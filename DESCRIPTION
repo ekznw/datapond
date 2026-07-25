@@ -1,6 +1,6 @@
 Package: datapond
 Title: Offline-First Data Lifecycle Management
-Version: 1.0.24
+Version: 1.0.25
 Authors@R:
     person("Paul Gordijn", role = c("aut", "cre"),
            email = "paul.gordijn@kznwildlife.com")
