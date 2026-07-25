@@ -78,17 +78,12 @@ test_that("pond organisation selectors use client-side choices", {
   expect_false(any(grepl("server = TRUE", sources, fixed = TRUE)))
 })
 
-test_that("text and textarea controls use their full layout-column width", {
+test_that("form controls use their full layout-column width", {
   html <- as.character(datapond:::ui)
 
   expect_match(
     html,
-    ".shiny-input-container:has(> input[type='text'].form-control)",
-    fixed = TRUE
-  )
-  expect_match(
-    html,
-    ".shiny-input-container:has(> textarea.form-control)",
+    ".shiny-input-container:not(.shiny-input-container-inline)",
     fixed = TRUE
   )
 })
@@ -98,12 +93,16 @@ test_that("select and selectize controls use their full layout-column width", {
 
   expect_match(
     html,
-    ".shiny-input-container:has(> select.form-control)",
+    ".shiny-input-container .selectize-control",
     fixed = TRUE
   )
+
+  select_html <- as.character(
+    shiny::selectInput("layout_test", "Layout test", choices = NULL)
+  )
   expect_match(
-    html,
-    ".shiny-input-container:has(> .selectize-control)",
+    select_html,
+    'class="shiny-input-select"',
     fixed = TRUE
   )
 })

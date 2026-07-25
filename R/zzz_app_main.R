@@ -775,20 +775,17 @@ ui <- fluidPage(
         margin-bottom: 15px;
       }
 
-      /* Shiny defaults several input containers to roughly 300px. Let text,
-         textarea and dropdown controls use their full layout-column width. */
-      .shiny-input-container:has(> input[type='text'].form-control),
-      .shiny-input-container:has(> textarea.form-control),
-      .shiny-input-container:has(> select.form-control),
-      .shiny-input-container:has(> .selectize-control) {
+      /* Shiny defaults non-inline input containers to roughly 300px. Let form
+         controls use their full layout-column width. */
+      .shiny-input-container:not(.shiny-input-container-inline) {
         width: 100% !important;
         max-width: none;
       }
 
       .shiny-input-container > input[type='text'].form-control,
       .shiny-input-container > textarea.form-control,
-      .shiny-input-container > select.form-control,
-      .shiny-input-container > .selectize-control {
+      .shiny-input-container select.shiny-input-select,
+      .shiny-input-container .selectize-control {
         width: 100%;
         max-width: none;
         box-sizing: border-box;
