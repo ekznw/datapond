@@ -1,0 +1,125 @@
+field_code,option_value,option_label,sort_order
+keyword_object,vegetation,Vegetation,1
+keyword_object,habitat,Habitat,2
+keyword_object,ecosystem,Ecosystem,3
+keyword_object,biodiversity,Biodiversity,4
+keyword_object,species,Species,5
+keyword_object,landcover,Landcover,6
+keyword_object,catchment,Catchment,7
+keyword_object,river,River,8
+keyword_object,wetland,Wetland,9
+keyword_object,waterbody,Waterbody,10
+keyword_object,aquifer,Aquifer,11
+keyword_object,soil,Soil,12
+keyword_object,climate,Climate,13
+keyword_object,terrain,Terrain,14
+keyword_object,topography,Topography,15
+keyword_object,dem,DEM,16
+keyword_object,dsm,DSM,17
+keyword_object,digital_elevation_model,Digital Elevation Model,18
+keyword_object,fire,Fire,19
+keyword_object,erosion,Erosion,20
+keyword_object,boundary,Boundary,21
+keyword_object,cadastre,Cadastre,22
+keyword_object,parcel,Parcel,23
+keyword_object,land_use,Land Use,24
+keyword_object,settlement,Settlement,25
+keyword_object,infrastructure,Infrastructure,26
+keyword_object,road,Road,27
+keyword_object,dam,Dam,28
+keyword_object,protected_area,Protected Area,29
+keyword_object,conservation_area,Conservation Area,30
+keyword_object,grid,Grid,31
+keyword_object,imagery,Imagery,32
+keyword_object,raster,Raster,33
+keyword_object,model_output,Model Output,34
+keyword_object,conservation_plan,Conservation Plan,35
+keyword_object,systematic_conservation_plan,Systematic Conservation Plan,36
+keyword_discipline,ecology,Ecology,1
+keyword_discipline,biodiversity,Biodiversity,2
+keyword_discipline,conservation,Conservation,3
+keyword_discipline,conservation_planning,Conservation Planning,4
+keyword_discipline,environmental_management,Environmental Management,5
+keyword_discipline,geography,Geography,6
+keyword_discipline,gis,GIS,7
+keyword_discipline,remote_sensing,Remote Sensing,8
+keyword_discipline,cartography,Cartography,9
+keyword_discipline,surveying,Surveying,10
+keyword_discipline,cadastre,Cadastre,11
+keyword_discipline,land_administration,Land Administration,12
+keyword_discipline,hydrology,Hydrology,13
+keyword_discipline,hydrogeology,Hydrogeology,14
+keyword_discipline,climatology,Climatology,15
+keyword_discipline,meteorology,Meteorology,16
+keyword_discipline,soil_science,Soil Science,17
+keyword_discipline,geomorphology,Geomorphology,18
+keyword_discipline,geology,Geology,19
+keyword_discipline,forestry,Forestry,20
+keyword_discipline,agriculture,Agriculture,21
+keyword_discipline,urban_planning,Urban Planning,22
+keyword_discipline,spatial_planning,Spatial Planning,23
+keyword_discipline,water_resources,Water Resources,24
+keyword_discipline,disaster_management,Disaster Management,25
+keyword_discipline,environmental_monitoring,Environmental Monitoring,26
+keyword_discipline,statistics,Statistics,27
+keyword_discipline,modelling,Modelling,28
+keyword_discipline,data_science,Data Science,29
+keyword_topic,fire,Fire,1
+keyword_topic,flooding,Flooding,2
+keyword_topic,drought,Drought,3
+keyword_topic,erosion,Erosion,4
+keyword_topic,sedimentation,Sedimentation,5
+keyword_topic,land_degradation,Land Degradation,6
+keyword_topic,deforestation,Deforestation,7
+keyword_topic,habitat_loss,Habitat Loss,8
+keyword_topic,fragmentation,Fragmentation,9
+keyword_topic,restoration,Restoration,10
+keyword_topic,rehabilitation,Rehabilitation,11
+keyword_topic,conservation_management,Conservation Management,12
+keyword_topic,biodiversity_assessment,Biodiversity Assessment,13
+keyword_topic,species_distribution,Species Distribution,14
+keyword_topic,habitat_suitability,Habitat Suitability,15
+keyword_topic,niche_modelling,Niche Modelling,16
+keyword_topic,monitoring,Monitoring,17
+keyword_topic,change_detection,Change Detection,18
+keyword_topic,time_series,Time Series,19
+keyword_topic,trend_analysis,Trend Analysis,20
+keyword_topic,classification,Classification,21
+keyword_topic,mapping,Mapping,22
+keyword_topic,survey,Survey,23
+keyword_topic,inventory,Inventory,24
+keyword_topic,modelling,Modelling,25
+keyword_topic,simulation,Simulation,26
+keyword_topic,risk_assessment,Risk Assessment,27
+keyword_topic,impact_assessment,Impact Assessment,28
+keyword_topic,water_flow,Water Flow,29
+keyword_topic,streamflow,Streamflow,30
+keyword_topic,groundwater_flow,Groundwater Flow,31
+keyword_topic,evapotranspiration,Evapotranspiration,32
+keyword_topic,rainfall_analysis,Rainfall Analysis,33
+keyword_topic,temperature_analysis,Temperature Analysis,34
+keyword_topic,climate_change,Climate Change,35
+keyword_topic,carbon_storage,Carbon Storage,36
+keyword_topic,ecosystem_services,Ecosystem Services,37
+keyword_topic,scenario_planning,Scenario Planning,38
+keyword_topic,systematic_planning,Systematic Planning,39
+keyword_geo,south_africa,South Africa,1
+keyword_geo,southern_africa,Southern Africa,2
+keyword_geo,africa,Africa,3
+keyword_geo,global,Global,4
+keyword_geo,kwazulu_natal,KwaZulu-Natal,5
+keyword_geo,eastern_cape,Eastern Cape,6
+keyword_geo,western_cape,Western Cape,7
+keyword_geo,limpopo,Limpopo,8
+keyword_geo,mpumalanga,Mpumalanga,9
+keyword_geo,free_state,Free State,10
+keyword_geo,gauteng,Gauteng,11
+keyword_geo,north_west,North West,12
+keyword_geo,northern_cape,Northern Cape,13
+keyword_geo,drakensberg,Drakensberg,14
+keyword_geo,ukhahlamba,uKhahlamba,15
+keyword_geo,tugela_catchment,Tugela Catchment,16
+keyword_geo,umgeni_catchment,Umgeni Catchment,17
+keyword_geo,olifants_catchment,Olifants Catchment,18
+keyword_geo,coastal_zone,Coastal Zone,19
+keyword_geo,indian_ocean_coast,Indian Ocean Coast,20

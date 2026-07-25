@@ -1,0 +1,19 @@
+# R session and IDE state
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Package build and check output
+*.tar.gz
+*.Rcheck/
+
+# Local development artefacts
+bundle/
+scratch.R
+combined_code_v1.0.20.txt
+
+# Legacy standalone-app state (package resources live in inst/extdata)
+data/config.rds
+data/last_data_pond_path
+data/.~lock.*

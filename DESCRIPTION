@@ -1,0 +1,36 @@
+Package: datapond
+Title: Offline-First Data Lifecycle Management
+Version: 1.0.24
+Authors@R:
+    person("Paul Gordijn", role = c("aut", "cre"),
+           email = "paul.gordijn@kznwildlife.com")
+Description: Provides a local Shiny application for managing the dataset
+    lifecycle, documenting metadata, maintaining a pond-local SQLite catalogue,
+    organising lifecycle folders, inventorying data files, and extracting
+    spatial metadata. The application is designed for offline and
+    low-connectivity environments.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    data.table,
+    DBI,
+    DT,
+    ekznwr,
+    htmltools,
+    leaflet,
+    readxl,
+    RSQLite,
+    sf,
+    shiny,
+    shinyFiles,
+    terra,
+    uuid
+Suggests:
+    testthat (>= 3.0.0)
+Remotes:
+    ekznw/ekznwr
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0

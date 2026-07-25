@@ -1,0 +1,7 @@
+^\.agents$
+^\.codex$
+^\.git$
+^bundle$
+^combined_code_v1\.0\.20\.txt$
+^metadatapop_.*\.tar\.gz$
+^datapond_.*\.tar\.gz$

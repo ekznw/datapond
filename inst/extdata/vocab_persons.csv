@@ -1,0 +1,13 @@
+name_first,name_last,email,role_title,organisation_code,is_user,is_admin
+Paul,Gordijn,paul.gordijn@kznwildlife.com,GIS Analyst,EKZNW,1,1
+Bimall,Naidoo,bimall.naidoo@kznwildlife.com,GIS Technician,EKZNW,1,1
+Sandile,Nkwanyana,sandile.nkwanyana@kznwildlife.com,GIS Technician,EKZNW,1,1
+Felicity,Elliot,felicity.elliot@kznwildlife.com,GIS Bioregional Planner,EKZNW,1,1
+Shan,Rushworth,shan.rushworth@kznwildlife.com,GIS Data Engineering Scientist,EKZNW,1,1
+David J.,Clark,,Hydrologist,UKZN,0,0
+Mark J. C.,Horan,,Hydrologist,UKZN,0,0
+R. P.,Kunz,,Hydrologist,UKZN,0,0
+Roland E.,Schulze,,Hydrologist,UKZN,0,0
+T.,Xolo,,Hydrologist,UKZN,0,0
+J. C.,Smithers,,Hydrologist,UKZN,0,0
+S,Schütte,,Hydrologist,UKZN,0,0
