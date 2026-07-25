@@ -809,6 +809,24 @@ ui <- fluidPage(
         transition: width 0.2s ease;
       }
 
+      /* Keep the primary title and navigation together on a warm parchment
+         header while leaving the active tab content on white. */
+      #main_panel > h2 {
+        color: #35443A;
+        background-color: #F1E9DA;
+        border: 1px solid #C3A35B;
+        border-bottom: 0;
+        margin: 0;
+        padding: 12px 14px 8px;
+      }
+
+      #main_panel > .tabbable > .nav-tabs {
+        background-color: #F1E9DA;
+        border: 1px solid #C3A35B;
+        border-top: 0;
+        padding: 0 10px 8px;
+      }
+
       /* Earth-toned navigation tabs replace Bootstrap's white/blue defaults. */
       .nav-tabs {
         border-bottom-color: #87966C;
@@ -986,7 +1004,14 @@ ui <- fluidPage(
     column(
       width = 9,
       id = "main_panel",
-      titlePanel("Data pond \u2014 v0.5"),
+      titlePanel(
+        paste0(
+          "Data pond \u2014 v",
+          as.character(
+            utils::packageVersion("datapond")
+          )
+        )
+      ),
       tabsetPanel(
         shiny::tabPanel(
           "Pond overview",

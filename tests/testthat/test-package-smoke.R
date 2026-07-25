@@ -117,6 +117,30 @@ test_that("navigation tabs use the shared earthy colour direction", {
   expect_match(html, "background-color: #526657 !important", fixed = TRUE)
 })
 
+test_that("the primary app header uses a warm off-white background", {
+  html <- as.character(datapond:::ui)
+
+  expect_match(html, "#main_panel > h2", fixed = TRUE)
+  expect_match(
+    html,
+    "#main_panel > .tabbable > .nav-tabs",
+    fixed = TRUE
+  )
+  expect_match(html, "background-color: #F1E9DA", fixed = TRUE)
+  expect_match(html, "border: 1px solid #C3A35B", fixed = TRUE)
+})
+
+test_that("the app header displays the installed package version", {
+  html <- as.character(datapond:::ui)
+  expected <- paste0(
+    "Data pond \u2014 v",
+    as.character(utils::packageVersion("datapond"))
+  )
+
+  expect_match(html, expected, fixed = TRUE)
+  expect_false(grepl("Data pond \u2014 v0.5", html, fixed = TRUE))
+})
+
 test_that("Dataset status legend uses the shared earth palette", {
   html <- as.character(datapond:::mod_dataset_status_ui("status"))
   palette <- datapond:::dataset_status_palette()
