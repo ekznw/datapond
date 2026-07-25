@@ -11,7 +11,7 @@ eventually distribute those datasets.
 
 ## Current status
 
-Data Pond is under active internal development. Version `1.0.27` is the current
+Data Pond is under active internal development. Version `1.0.28` is the current
 test build.
 
 The implemented application supports:
@@ -88,7 +88,7 @@ Build and install a source archive from a terminal:
 
 ```sh
 R CMD build .
-R CMD INSTALL datapond_1.0.27.tar.gz
+R CMD INSTALL datapond_1.0.28.tar.gz
 ```
 
 When installing a tarball directly, install `ekznwr` first if it is not
@@ -389,7 +389,7 @@ Build and check the package:
 
 ```sh
 R CMD build .
-R CMD check --no-manual datapond_1.0.27.tar.gz
+R CMD check --no-manual datapond_1.0.28.tar.gz
 ```
 
 The current package check completes with `Status: OK`.

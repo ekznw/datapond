@@ -809,6 +809,33 @@ ui <- fluidPage(
         transition: width 0.2s ease;
       }
 
+      /* Earth-toned navigation tabs replace Bootstrap's white/blue defaults. */
+      .nav-tabs {
+        border-bottom-color: #87966C;
+      }
+
+      .nav-tabs > li > a {
+        color: #3F5146 !important;
+        background-color: #D1DDC7;
+        border-color: #A8B59D #A8B59D #87966C;
+        margin-right: 4px;
+      }
+
+      .nav-tabs > li > a:hover,
+      .nav-tabs > li > a:focus {
+        color: #FFFFFF !important;
+        background-color: #87966C;
+        border-color: #526657;
+      }
+
+      .nav-tabs > li.active > a,
+      .nav-tabs > li.active > a:hover,
+      .nav-tabs > li.active > a:focus {
+        color: #FFFFFF !important;
+        background-color: #526657 !important;
+        border-color: #526657 #526657 #526657 !important;
+      }
+
       .config-intro {
         color: #555;
         line-height: 1.45;

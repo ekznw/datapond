@@ -107,6 +107,16 @@ test_that("select and selectize controls use their full layout-column width", {
   )
 })
 
+test_that("navigation tabs use the shared earthy colour direction", {
+  html <- as.character(datapond:::ui)
+
+  expect_match(html, ".nav-tabs > li > a", fixed = TRUE)
+  expect_match(html, "color: #3F5146 !important", fixed = TRUE)
+  expect_match(html, "background-color: #D1DDC7", fixed = TRUE)
+  expect_match(html, ".nav-tabs > li.active > a", fixed = TRUE)
+  expect_match(html, "background-color: #526657 !important", fixed = TRUE)
+})
+
 test_that("Dataset status legend uses the shared earth palette", {
   html <- as.character(datapond:::mod_dataset_status_ui("status"))
   palette <- datapond:::dataset_status_palette()
