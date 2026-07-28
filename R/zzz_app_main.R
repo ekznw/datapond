@@ -403,6 +403,62 @@ pond_overview_ui <- function() {
         shiny::actionButton(
           "repair_dataset_location",
           "Repair selected dataset location"
+        ),
+
+        shiny::hr(),
+
+        shiny::h4(
+          "Dataset citation"
+        ),
+
+        shiny::tags$small(
+          style = paste(
+            "color:#666;",
+            "display:block;",
+            "margin-bottom:8px;"
+          ),
+
+          paste(
+            "The bibliography is generated from saved metadata.",
+            "Unsaved form edits are not included."
+          )
+        ),
+
+        shiny::uiOutput(
+          "selected_dataset_citation"
+        ),
+
+        shiny::tags$div(
+          style = paste(
+            "display:flex;",
+            "flex-wrap:wrap;",
+            "gap:6px;",
+            "margin:8px 0;"
+          ),
+
+          shiny::actionButton(
+            "copy_citation_key",
+            "Copy key"
+          ),
+
+          shiny::actionButton(
+            "copy_quarto_citation",
+            "Copy [@key]"
+          ),
+
+          shiny::actionButton(
+            "copy_biblatex_entry",
+            "Copy BibLaTeX entry"
+          )
+        ),
+
+        shiny::actionButton(
+          "refresh_pond_bibliography",
+          "Refresh pond bibliography"
+        ),
+
+        shiny::uiOutput(
+          "pond_bibliography_status"
         )
       )
     ),
@@ -767,6 +823,47 @@ metadata_review_ui <- function() {
 
 # UI layout ----
 ui <- fluidPage(
+  tags$head(
+    tags$script(
+      HTML(
+        "
+        (function () {
+          function fallbackCopy(text) {
+            var area = document.createElement('textarea');
+            area.value = text;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            document.body.removeChild(area);
+          }
+
+          Shiny.addCustomMessageHandler(
+            'datapond-copy-text',
+            function (message) {
+              var text = String(message.text || '');
+
+              if (
+                navigator.clipboard &&
+                window.isSecureContext
+              ) {
+                navigator.clipboard.writeText(text).catch(
+                  function () {
+                    fallbackCopy(text);
+                  }
+                );
+              } else {
+                fallbackCopy(text);
+              }
+            }
+          );
+        })();
+        "
+      )
+    )
+  ),
   actionButton("toggle_config", "Show / hide configuration"),
   tags$style(
     HTML(
@@ -4045,6 +4142,26 @@ metadata_review_context_data <-
         )
     )
 
+    if (isTRUE(is_new_dataset)) {
+      vals$lifecycle_status <- "draft"
+      vals$folder_locked <- 0L
+    } else {
+      lifecycle_record <- get_dataset_lifecycle(
+        dataset_id =
+          as.integer(state$current_dataset_id[1]),
+        base_path =
+          state$data_pond
+      )
+
+      vals$lifecycle_status <-
+        lifecycle_record$lifecycle_status[1] %||%
+          "draft"
+
+      vals$folder_locked <-
+        lifecycle_record$folder_locked[1] %||%
+          0L
+    }
+
 
     review_record <- if (
       isTRUE(
@@ -4483,6 +4600,32 @@ metadata_review_context_data <-
     }
     # trigger refresh
     refresh_dataset_context()
+
+    bibliography_result <- tryCatch(
+      write_pond_bibliography(
+        state$data_pond
+      ),
+      error = function(e) {
+        showNotification(
+          paste(
+            "The dataset was saved, but datapond.bib",
+            "could not be refreshed:",
+            conditionMessage(e)
+          ),
+          type = "warning",
+          duration = 8
+        )
+
+        NULL
+      }
+    )
+
+    if (!is.null(bibliography_result)) {
+      bibliography_refresh(
+        bibliography_result
+      )
+    }
+
     showNotification("Saved successfully", type = "message")
   })
 
@@ -4538,6 +4681,343 @@ metadata_review_context_data <-
       }
     )
   })
+
+  bibliography_refresh <- shiny::reactiveVal(
+    NULL
+  )
+
+  selected_dataset_citation_record <-
+    shiny::reactive({
+      state$refresh_datasets
+      bibliography_refresh()
+
+      dataset_id <- state$current_dataset_id
+
+      if (
+        is.null(dataset_id) ||
+        length(dataset_id) == 0L ||
+        is.na(dataset_id[1])
+      ) {
+        return(NULL)
+      }
+
+      record <- get_dataset_record(
+        dataset_id =
+          as.integer(dataset_id[1]),
+        base_path =
+          state$data_pond
+      )
+
+      if (
+        is.null(record) ||
+        nrow(as.data.frame(record)) == 0L
+      ) {
+        return(NULL)
+      }
+
+      as.data.frame(
+        record,
+        stringsAsFactors = FALSE
+      )[1, , drop = FALSE]
+    })
+
+  selected_dataset_biblatex <-
+    shiny::reactive({
+      record <-
+        selected_dataset_citation_record()
+
+      if (is.null(record)) {
+        return(NULL)
+      }
+
+      tryCatch(
+        dataset_biblatex_entry(
+          dataset_id =
+            as.integer(record$id[1]),
+          base_path =
+            state$data_pond
+        ),
+        error = function(e) {
+          paste(
+            "BibLaTeX preview unavailable:",
+            conditionMessage(e)
+          )
+        }
+      )
+    })
+
+  output$selected_dataset_citation <-
+    shiny::renderUI({
+      record <-
+        selected_dataset_citation_record()
+
+      if (is.null(record)) {
+        return(
+          shiny::tags$div(
+            style = paste(
+              "padding:9px;",
+              "background:#F8F4EA;",
+              "border:1px solid #ccc;",
+              "color:#666;"
+            ),
+            "Select a saved dataset to view its citation."
+          )
+        )
+      }
+
+      key <- biblatex_scalar(
+        record$citation_key,
+        default = "Citation key unavailable"
+      )
+
+      shiny::tags$div(
+        style = paste(
+          "padding:9px;",
+          "background:#F1E9DA;",
+          "border:1px solid #B99572;"
+        ),
+
+        shiny::tags$strong(
+          key
+        ),
+
+        shiny::tags$div(
+          style = paste(
+            "margin-top:6px;",
+            "font-family:monospace;",
+            "font-size:12px;",
+            "white-space:pre-wrap;",
+            "overflow-wrap:anywhere;",
+            "max-height:180px;",
+            "overflow-y:auto;"
+          ),
+          selected_dataset_biblatex()
+        )
+      )
+    })
+
+  output$pond_bibliography_status <-
+    shiny::renderUI({
+      bibliography_refresh()
+      state$refresh_datasets
+
+      base_path <- state$data_pond
+
+      if (
+        is.null(base_path) ||
+        length(base_path) == 0L ||
+        is.na(base_path[1])
+      ) {
+        return(NULL)
+      }
+
+      path <- pond_bibliography_path(
+        base_path
+      )
+
+      if (!file.exists(path)) {
+        return(
+          shiny::tags$small(
+            style = paste(
+              "display:block;",
+              "margin-top:8px;",
+              "color:#666;"
+            ),
+            paste0(
+              "Not generated: ",
+              path
+            )
+          )
+        )
+      }
+
+      info <- file.info(
+        path
+      )
+
+      shiny::tags$small(
+        style = paste(
+          "display:block;",
+          "margin-top:8px;",
+          "color:#526657;",
+          "overflow-wrap:anywhere;"
+        ),
+        paste0(
+          path,
+          " \u2014 refreshed ",
+          format(
+            info$mtime[1],
+            "%Y-%m-%d %H:%M:%S"
+          )
+        )
+      )
+    })
+
+  copy_to_clipboard <- function(
+    text,
+    label
+  ) {
+    if (
+      is.null(text) ||
+      length(text) == 0L ||
+      is.na(text[1]) ||
+      !nzchar(as.character(text[1]))
+    ) {
+      showNotification(
+        paste(
+          label,
+          "is unavailable."
+        ),
+        type = "warning"
+      )
+
+      return(
+        invisible(FALSE)
+      )
+    }
+
+    session$sendCustomMessage(
+      type = "datapond-copy-text",
+      message = list(
+        text = as.character(text[1])
+      )
+    )
+
+    showNotification(
+      paste(
+        label,
+        "copied."
+      ),
+      type = "message",
+      duration = 3
+    )
+
+    invisible(TRUE)
+  }
+
+  shiny::observeEvent(
+    input$copy_citation_key,
+    {
+      record <-
+        selected_dataset_citation_record()
+
+      copy_to_clipboard(
+        if (is.null(record)) {
+          NULL
+        } else {
+          record$citation_key
+        },
+        "Citation key"
+      )
+    }
+  )
+
+  shiny::observeEvent(
+    input$copy_quarto_citation,
+    {
+      record <-
+        selected_dataset_citation_record()
+
+      key <- if (is.null(record)) {
+        ""
+      } else {
+        biblatex_scalar(
+          record$citation_key,
+          default = ""
+        )
+      }
+
+      copy_to_clipboard(
+        if (nzchar(key)) {
+          paste0(
+            "[@",
+            key,
+            "]"
+          )
+        } else {
+          NULL
+        },
+        "Quarto citation"
+      )
+    }
+  )
+
+  shiny::observeEvent(
+    input$copy_biblatex_entry,
+    {
+      copy_to_clipboard(
+        selected_dataset_biblatex(),
+        "BibLaTeX entry"
+      )
+    }
+  )
+
+  shiny::observeEvent(
+    input$refresh_pond_bibliography,
+    {
+      tryCatch(
+        {
+          result <- write_pond_bibliography(
+            state$data_pond
+          )
+
+          bibliography_refresh(
+            result
+          )
+
+          if (
+            !is.null(state$current_dataset_id) &&
+            length(state$current_dataset_id) > 0L &&
+            !is.na(state$current_dataset_id[1])
+          ) {
+            refreshed_record <- get_dataset_record(
+              dataset_id =
+                as.integer(
+                  state$current_dataset_id[1]
+                ),
+              base_path =
+                state$data_pond
+            )
+
+            if (
+              !is.null(refreshed_record) &&
+              nrow(as.data.frame(refreshed_record)) > 0L
+            ) {
+              state$current_citation_key <-
+                refreshed_record$citation_key[1]
+            }
+          }
+
+          refresh_dataset_context(
+            datasets = TRUE
+          )
+
+          showNotification(
+            paste0(
+              "Pond bibliography refreshed: ",
+              result$entries,
+              " dataset entr",
+              if (result$entries == 1L) {
+                "y"
+              } else {
+                "ies"
+              },
+              "."
+            ),
+            type = "message",
+            duration = 5
+          )
+        },
+        error = function(e) {
+          showNotification(
+            conditionMessage(e),
+            type = "error",
+            duration = 8
+          )
+        }
+      )
+    }
+  )
 
   pond_overview_data <- shiny::reactive({
     state$refresh_datasets

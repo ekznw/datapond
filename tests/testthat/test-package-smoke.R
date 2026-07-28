@@ -32,6 +32,35 @@ test_that("the packaged Shiny application can be constructed", {
   )
 })
 
+test_that("Pond overview exposes bibliography and citation controls", {
+  html <- as.character(datapond:::ui)
+
+  for (id in c(
+    "copy_citation_key",
+    "copy_quarto_citation",
+    "copy_biblatex_entry",
+    "refresh_pond_bibliography"
+  )) {
+    expect_match(
+      html,
+      paste0(
+        'id="',
+        id,
+        '"'
+      ),
+      fixed = TRUE
+    )
+  }
+
+  expect_match(
+    htmltools::renderTags(
+      datapond:::ui
+    )$head,
+    "datapond-copy-text",
+    fixed = TRUE
+  )
+})
+
 test_that("collapsing configuration allows the main panel to use full width", {
   html <- as.character(datapond:::ui)
 

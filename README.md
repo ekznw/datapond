@@ -11,8 +11,9 @@ eventually distribute those datasets.
 
 ## Current status
 
-Data Pond is under active internal development. Version `1.0.29` is the current
-test build.
+Data Pond is under active internal development. Version `1.1.0.9000` is the
+current build on the `develop` branch. The `main` branch remains the stable
+colleague-facing build.
 
 The implemented application supports:
 
@@ -20,6 +21,7 @@ The implemented application supports:
 - pond-local SQLite metadata catalogues;
 - structured dataset metadata generated from an XLSX schema;
 - dataset citation and folder-key generation;
+- a pond-level BibLaTeX bibliography with Quarto-ready citation keys;
 - source, development, and archive lifecycle locations;
 - organisations, people, users, authors, and points of contact;
 - controlled keyword vocabularies and keyword administration;
@@ -64,6 +66,24 @@ remotes::install_github(
 The GitHub installation resolves the `ekznwr` dependency from the
 [`ekznw/ekznwr`](https://github.com/ekznw/ekznwr) repository.
 
+To test features that have not yet been promoted to the stable `main` branch,
+install the development branch explicitly:
+
+```r
+pak::pak("ekznw/datapond@develop")
+```
+
+or:
+
+```r
+remotes::install_github(
+  "ekznw/datapond",
+  ref = "develop",
+  dependencies = TRUE,
+  upgrade = "never"
+)
+```
+
 After installation, start the application with:
 
 ```r
@@ -88,7 +108,7 @@ Build and install a source archive from a terminal:
 
 ```sh
 R CMD build .
-R CMD INSTALL datapond_1.0.29.tar.gz
+R CMD INSTALL datapond_1.1.0.9000.tar.gz
 ```
 
 When installing a tarball directly, install `ekznwr` first if it is not
@@ -321,6 +341,42 @@ packaged CSV remains the baseline seed rather than the live editable store.
 records and their related parties, licences, reviews, lineage, inventories,
 attributes, and spatial summaries.
 
+### Pond bibliography and Quarto
+
+Data Pond can generate `datapond.bib` in the root of the active pond. The file
+is derived from the saved records in `metadata.db` and contains one BibLaTeX
+`@dataset` entry per dataset. Refreshing the bibliography rebuilds the complete
+file in citation-key order and retains the previous file as
+`datapond.bib.bak`.
+
+The Pond overview displays the selected dataset's key and generated BibLaTeX
+entry. It provides buttons to copy the key, copy Quarto citation markup such as
+`[@ekznw_202607_vegetation_a2b3]`, copy the complete entry, or refresh the pond
+bibliography. A successful dataset save also refreshes the bibliography.
+
+Citation keys are stable after creation. Unlocked working datasets omit the
+version suffix so evolving metadata and versions do not break citations in
+development reports. Locking a dataset adds its current version suffix; released
+and archived datasets are always locked.
+
+A Quarto document inside a managed dataset can refer to the pond bibliography
+using an appropriate relative path:
+
+```yaml
+---
+title: "Dataset development report"
+bibliography: ../../datapond.bib
+---
+```
+
+The exact number of `../` path components depends on where the `.qmd` file is
+stored. Citations then use standard Quarto syntax:
+
+```markdown
+The analysis uses the current vegetation dataset
+[@ekznw_202607_vegetation_a2b3].
+```
+
 Pond-specific configuration is stored in `.metadata_pond/`. The pointer to the
 last opened pond is stored in the user's R configuration directory rather than
 inside the installed package.
@@ -389,7 +445,7 @@ Build and check the package:
 
 ```sh
 R CMD build .
-R CMD check --no-manual datapond_1.0.29.tar.gz
+R CMD check --no-manual datapond_1.1.0.9000.tar.gz
 ```
 
 The current package check completes with `Status: OK`.

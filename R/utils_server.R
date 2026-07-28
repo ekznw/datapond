@@ -126,10 +126,14 @@ extract_rand_part_from_citation_key <- function(citation_key) {
 
   citation_key <- as.character(citation_key[1])
 
-  # Expected ending pattern:
+  # Supported endings:
+  # _abcd
   # _abcd_v0_1_0
   # where abcd is the stable 4-character random disambiguator.
-  m <- regexec("_([a-z0-9]{4})_v[0-9_]+$", citation_key)
+  m <- regexec(
+    "_([a-z0-9]{4})(?:_v[0-9][0-9A-Za-z_]*)?$",
+    citation_key
+  )
   hit <- regmatches(citation_key, m)[[1]]
 
   if (length(hit) >= 2) {
@@ -137,6 +141,89 @@ extract_rand_part_from_citation_key <- function(citation_key) {
   }
 
   NULL
+}
+
+citation_key_base <- function(citation_key) {
+  key <- first_non_empty(
+    citation_key,
+    default = NULL
+  )
+
+  if (is.null(key)) {
+    return(NULL)
+  }
+
+  sub(
+    "_v[0-9][0-9A-Za-z_]*$",
+    "",
+    as.character(key[1])
+  )
+}
+
+citation_key_frozen_state <- function(vals) {
+  if (is.null(vals)) {
+    return(NA)
+  }
+
+  locked <- vals$folder_locked
+
+  if (
+    !is.null(locked) &&
+    length(locked) > 0L &&
+    !is.na(locked[1])
+  ) {
+    return(
+      suppressWarnings(
+        as.integer(locked[1])
+      ) == 1L
+    )
+  }
+
+  status <- first_non_empty(
+    vals$lifecycle_status,
+    default = NULL
+  )
+
+  if (!is.null(status)) {
+    return(
+      tolower(as.character(status[1])) %in%
+        c("released", "archived")
+    )
+  }
+
+  NA
+}
+
+format_citation_key_version <- function(version) {
+  version_value <- first_non_empty(
+    version,
+    default = NULL
+  )
+
+  if (is.null(version_value)) {
+    version_value <- "0.1.0"
+  }
+
+  version_clean <- gsub(
+    "\\.",
+    "_",
+    as.character(version_value[1])
+  )
+
+  version_clean <- gsub(
+    "[^A-Za-z0-9_]",
+    "",
+    version_clean
+  )
+
+  if (!nzchar(version_clean)) {
+    version_clean <- "0_1_0"
+  }
+
+  paste0(
+    "v",
+    version_clean
+  )
 }
 
 extract_citation_key_from_folder_name <- function(dataset_path) {
@@ -776,6 +863,46 @@ generate_citation_key <- function(vals,
     vals <- list()
   }
 
+  frozen <- citation_key_frozen_state(
+    vals
+  )
+
+  existing_key <- first_non_empty(
+    existing_key,
+    default = NULL
+  )
+
+  # Existing keys are stable dataset identifiers. Metadata edits must
+  # not silently change the descriptive portion used by Quarto.
+  if (
+    !isTRUE(regenerate_random) &&
+    !is.null(existing_key)
+  ) {
+    if (is.na(frozen)) {
+      return(
+        as.character(existing_key[1])
+      )
+    }
+
+    base_key <- citation_key_base(
+      existing_key
+    )
+
+    if (!isTRUE(frozen)) {
+      return(base_key)
+    }
+
+    return(
+      paste0(
+        base_key,
+        "_",
+        format_citation_key_version(
+          vals$version
+        )
+      )
+    )
+  }
+
   # ORG ----
   org_part <- "org"
 
@@ -846,29 +973,26 @@ generate_citation_key <- function(vals,
     rand_part <- generate_rand_part()
   }
 
-  # VERSION ----
-  version_part <- "v0_1_0"
-
-  version_value <- first_non_empty(vals$version, default = NULL)
-
-  if (!is.null(version_value)) {
-    version_clean <- gsub("\\.", "_", version_value)
-    version_clean <- gsub("[^A-Za-z0-9_]", "", version_clean)
-
-    if (!is.na(version_clean) && version_clean != "") {
-      version_part <- paste0("v", version_clean)
-    }
-  }
-
-  paste(
+  base_key <- paste(
     org_part,
     date_part,
     object_part,
     title_part,
     rand_part,
-    version_part,
     sep = "_"
   )
+
+  if (isTRUE(frozen)) {
+    paste0(
+      base_key,
+      "_",
+      format_citation_key_version(
+        vals$version
+      )
+    )
+  } else {
+    base_key
+  }
 }
 
 # dataset folder keys ----

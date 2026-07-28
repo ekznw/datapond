@@ -1780,6 +1780,23 @@ mod_dataset_lifecycle_server <- function(
                 user_person_id = user_person_id
               )
 
+              tryCatch(
+                write_pond_bibliography(
+                  context$base_path
+                ),
+                error = function(e) {
+                  shiny::showNotification(
+                    paste(
+                      "Lifecycle status was saved, but datapond.bib",
+                      "could not be refreshed:",
+                      conditionMessage(e)
+                    ),
+                    type = "warning",
+                    duration = 8
+                  )
+                }
+              )
+
               refresh_selected_state()
 
               stage <- current_stage()
