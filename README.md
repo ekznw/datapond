@@ -11,7 +11,7 @@ eventually distribute those datasets.
 
 ## Current status
 
-Data Pond is under active internal development. Version `1.1.0.9000` is the
+Data Pond is under active internal development. Version `1.1.5.000` is the
 current build on the `develop` branch. The `main` branch remains the stable
 colleague-facing build.
 
@@ -42,6 +42,8 @@ exports are planned but are not yet implemented.
 Data Pond requires R 4.1 or later. It also requires the packages declared in
 [`DESCRIPTION`](DESCRIPTION), including the project-specific `ekznwr` package
 used for local file inventory.
+
+**Windows users** will need to install [RTools](https://cran.r-project.org/bin/windows/Rtools/) before following the installation instructions below.
 
 ### Install from GitHub
 
@@ -108,7 +110,7 @@ Build and install a source archive from a terminal:
 
 ```sh
 R CMD build .
-R CMD INSTALL datapond_1.1.0.9000.tar.gz
+R CMD INSTALL datapond_1.1.5.0000.tar.gz
 ```
 
 When installing a tarball directly, install `ekznwr` first if it is not
@@ -440,15 +442,27 @@ Run the test suite:
 ```r
 devtools::test()
 ```
+## Local build & installation using devtools
+
+Check then build package.
+
+```r
+devtools::check()
+devtools::build()
+devtools::install()
+```
 
 Build and check the package:
 
 ```sh
-R CMD build .
-R CMD check --no-manual datapond_1.1.0.9000.tar.gz
+./build-package.sh
 ```
 
-The current package check completes with `Status: OK`.
+The script writes the source archive and check results to `dist/`. Pass a
+directory as the first argument to use a different output location. It returns
+a non-zero exit status when the package check reports warnings or errors.
+
+A successful run finishes with `Status: OK`.
 
 The tests cover package resources, dynamic XLSX schema generation, application
 construction, responsive layout behavior, earth-palette status rendering,

@@ -87,6 +87,8 @@ test_that("BibLaTeX dataset entries preserve corporate authors", {
       "Ezemvelo KZN Wildlife",
     organisation_name_short =
       "EKZNW",
+    organisation_department =
+      "Biodiversity Research and Assessment",
     organisation_address =
       "Pietermaritzburg",
     stringsAsFactors = FALSE
@@ -116,6 +118,52 @@ test_that("BibLaTeX dataset entries preserve corporate authors", {
     entry,
     "doi = {10.1234/example}",
     fixed = TRUE
+  )
+  expect_match(
+    entry,
+    paste0(
+      "organization = {Ezemvelo KZN Wildlife, ",
+      "Biodiversity Research and Assessment}"
+    ),
+    fixed = TRUE
+  )
+  expect_match(
+    entry,
+    paste0(
+      "location = {Ezemvelo KZN Wildlife, ",
+      "Biodiversity Research and Assessment, Pietermaritzburg}"
+    ),
+    fixed = TRUE
+  )
+})
+
+
+test_that("suggested citations include the full organisation affiliation", {
+  citation <- datapond:::generate_citation(
+    vals = list(
+      title = "Vegetation map",
+      citation_date = "2026-08-17",
+      version = "1.0.0"
+    ),
+    authors_df = data.frame(),
+    org_df = data.frame(
+      name = "Ezemvelo KwaZulu-Natal Wildlife",
+      short = "Ezemvelo KZN Wildlife",
+      department = "Biodiversity Research and Assessment",
+      address = "Pietermaritzburg, South Africa",
+      stringsAsFactors = FALSE
+    ),
+    style = "organisation"
+  )
+
+  expect_identical(
+    citation,
+    paste0(
+      "Ezemvelo KZN Wildlife (2026). Vegetation map (Version 1.0.0). ",
+      "Ezemvelo KwaZulu-Natal Wildlife, ",
+      "Biodiversity Research and Assessment, ",
+      "Pietermaritzburg, South Africa."
+    )
   )
 })
 

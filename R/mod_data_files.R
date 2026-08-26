@@ -138,7 +138,8 @@ data_files_live_scan_ui <- function(ns) {
 
     shiny::actionButton(
       ns("refresh_scan"),
-      "Run live scan / refresh files"
+      "Run live scan / refresh files",
+      class = "datapond-requires-active-user"
     ),
 
     shiny::br(),
@@ -146,7 +147,8 @@ data_files_live_scan_ui <- function(ns) {
 
     shiny::actionButton(
       ns("save_file_scan"),
-      "Save live scan to database"
+      "Save live scan to database",
+      class = "datapond-requires-active-user"
     ),
 
     shiny::br(),
@@ -406,6 +408,7 @@ data_files_review_ui <- function(ns) {
             "File content / role",
             choices = c(
               "unknown",
+              "original data",
               "raw data",
               "derived output",
               "input data",
@@ -416,6 +419,20 @@ data_files_review_ui <- function(ns) {
               "not data-bearing"
             ),
             selected = "unknown"
+          ),
+
+          shiny::tags$small(
+            style = paste(
+              "color:#666;",
+              "display:block;",
+              "margin-top:-8px;",
+              "margin-bottom:10px;"
+            ),
+            paste(
+              "Original data is the unchanged file received from its source.",
+              "Raw data contains direct, unprocessed observations or measurements;",
+              "input data may already have been prepared for a workflow."
+            )
           ),
 
           shiny::selectInput(
@@ -438,7 +455,8 @@ data_files_review_ui <- function(ns) {
 
           shiny::actionButton(
             ns("save_file_review"),
-            "Save file review"
+            "Save file review",
+            class = "datapond-requires-active-user"
           )
         )
       )
@@ -449,6 +467,85 @@ data_files_review_ui <- function(ns) {
 # Attribute profiling and data dictionary UI ----
 data_files_attributes_ui <- function(ns) {
   shiny::tagList(
+    shiny::tags$style(
+      shiny::HTML(
+        "
+        .datapond-attribute-workspace {
+          display: grid;
+          grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
+          gap: 12px;
+          height: clamp(520px, 68vh, 780px);
+          min-height: 420px;
+          max-height: calc(100vh - 80px);
+          overflow: hidden;
+          resize: vertical;
+          align-items: stretch;
+        }
+
+        .datapond-attribute-pane {
+          min-width: 0;
+          min-height: 0;
+          overflow: auto;
+          overscroll-behavior: contain;
+          scrollbar-gutter: stable;
+          box-sizing: border-box;
+          padding: 12px;
+          border: 1px solid #ddd;
+          background: #fff;
+        }
+
+        .datapond-attribute-editor-pane {
+          background: #fafafa;
+        }
+
+        .datapond-attribute-pane > h4 {
+          position: sticky;
+          top: -12px;
+          z-index: 3;
+          margin: -12px -12px 12px -12px;
+          padding: 12px;
+          border-bottom: 1px solid #ddd;
+          background: inherit;
+        }
+
+        .datapond-attribute-editor-actions {
+          position: sticky;
+          bottom: -12px;
+          z-index: 3;
+          margin: 8px -12px -12px -12px;
+          padding: 10px 12px 12px 12px;
+          border-top: 1px solid #ddd;
+          background: #fafafa;
+        }
+
+        .datapond-attribute-scroll-help {
+          color: #666;
+          display: block;
+          margin: -3px 0 8px 0;
+        }
+
+        @media (max-width: 991px) {
+          .datapond-attribute-workspace {
+            grid-template-columns: minmax(0, 1fr);
+            height: auto;
+            min-height: 0;
+            max-height: none;
+            overflow: visible;
+            resize: none;
+          }
+
+          .datapond-attribute-pane {
+            max-height: 58vh;
+          }
+
+          .datapond-attribute-editor-pane {
+            max-height: 68vh;
+          }
+        }
+        "
+      )
+    ),
+
     shiny::h3(
       "Attribute profile / data dictionary"
     ),
@@ -490,7 +587,8 @@ data_files_attributes_ui <- function(ns) {
 
       shiny::actionButton(
         ns("profile_selected_file"),
-        "Profile selected file attributes / raster layers"
+        "Profile selected file attributes / raster layers",
+        class = "datapond-requires-active-user"
       ),
 
       shiny::tags$small(
@@ -507,9 +605,25 @@ data_files_attributes_ui <- function(ns) {
       )
     ),
 
-    shiny::fluidRow(
-      shiny::column(
-        width = 7,
+    shiny::tags$small(
+      class = "datapond-attribute-scroll-help",
+      paste(
+        "The table and editor scroll independently.",
+        "On larger screens, drag the workspace's lower edge to adjust its height."
+      )
+    ),
+
+    shiny::tags$div(
+      class = "datapond-attribute-workspace",
+
+      shiny::tags$div(
+        class = paste(
+          "datapond-attribute-pane",
+          "datapond-attribute-table-pane"
+        ),
+        role = "region",
+        `aria-label` = "Saved attribute profile table",
+        tabindex = "0",
 
         shiny::h4(
           "Saved attribute profile"
@@ -520,61 +634,63 @@ data_files_attributes_ui <- function(ns) {
         )
       ),
 
-      shiny::column(
-        width = 5,
+      shiny::tags$div(
+        class = paste(
+          "datapond-attribute-pane",
+          "datapond-attribute-editor-pane"
+        ),
+        role = "region",
+        `aria-label` = "Selected attribute editor",
+        tabindex = "0",
+
+        shiny::h4(
+          "Selected attribute"
+        ),
+
+        shiny::selectInput(
+          ns("attribute_select"),
+          "Attribute or raster layer",
+          choices = NULL
+        ),
+
+        shiny::textInput(
+          ns("data_field_alias"),
+          "Field alias"
+        ),
+
+        shiny::textAreaInput(
+          ns("data_field_desc"),
+          "Field description",
+          rows = 4
+        ),
+
+        shiny::textInput(
+          ns("data_field_units"),
+          "Units"
+        ),
+
+        shiny::checkboxInput(
+          ns("legend_field"),
+          "Use for legend",
+          value = FALSE
+        ),
+
+        shiny::textAreaInput(
+          ns("legend_field_notes"),
+          "Legend notes",
+          placeholder = paste(
+            "Identify the authoritative legend resource,",
+            "classification scheme or interpretation notes."
+          ),
+          rows = 4
+        ),
 
         shiny::tags$div(
-          style = paste(
-            "padding:12px;",
-            "background:#fafafa;",
-            "border:1px solid #ddd;"
-          ),
-
-          shiny::h4(
-            "Selected attribute"
-          ),
-
-          shiny::selectInput(
-            ns("attribute_select"),
-            "Attribute or raster layer",
-            choices = NULL
-          ),
-
-          shiny::textInput(
-            ns("data_field_alias"),
-            "Field alias"
-          ),
-
-          shiny::textAreaInput(
-            ns("data_field_desc"),
-            "Field description",
-            rows = 4
-          ),
-
-          shiny::textInput(
-            ns("data_field_units"),
-            "Units"
-          ),
-
-          shiny::checkboxInput(
-            ns("legend_field"),
-            "Use for legend",
-            value = FALSE
-          ),
-
-          shiny::textAreaInput(
-            ns("legend_field_notes"),
-            "Legend notes",
-            placeholder = paste(
-              "Identify the authoritative legend resource,",
-              "classification scheme or interpretation notes."
-            ),
-            rows = 4
-          ),
-
+          class = "datapond-attribute-editor-actions",
           shiny::actionButton(
             ns("save_attribute_note"),
-            "Save attribute note"
+            "Save attribute note",
+            class = "datapond-requires-active-user"
           )
         )
       )
@@ -626,7 +742,8 @@ data_files_spatial_overview_ui <- function(ns) {
 
         shiny::actionButton(
           ns("extract_spatial"),
-          "Extract or refresh spatial metadata"
+          "Extract or refresh spatial metadata",
+          class = "datapond-requires-active-user"
         )
       ),
 
@@ -978,12 +1095,14 @@ data_files_spatial_manual_extents_ui <- function(ns) {
 
         shiny::actionButton(
           ns("manual_extent_save"),
-          "Save extent"
+          "Save extent",
+          class = "datapond-requires-active-user"
         ),
 
         shiny::actionButton(
           ns("manual_extent_deactivate"),
-          "Deactivate selected"
+          "Deactivate selected",
+          class = "datapond-requires-active-user"
         )
       )
     ),
@@ -1077,7 +1196,8 @@ data_files_spatial_record_review_ui <- function(ns) {
 
         shiny::actionButton(
           ns("save_spatial_notes"),
-          "Save review notes"
+          "Save review notes",
+          class = "datapond-requires-active-user"
         )
       ),
 
@@ -2518,6 +2638,13 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$refresh_scan,
       {
+        if (!require_active_user_for_write(
+          state,
+          "scanning data files"
+        )) {
+          return()
+        }
+
         scope_info <- scan_scope_info()
 
         scan_root <- scope_info$scan_root
@@ -4345,6 +4472,13 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_save,
       {
+        if (!require_active_user_for_write(
+          state,
+          "saving a manual spatial extent"
+        )) {
+          return()
+        }
+
         dataset_id <- state$current_dataset_id
 
         if (
@@ -4461,6 +4595,13 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_deactivate,
       {
+        if (!require_active_user_for_write(
+          state,
+          "deactivating a manual spatial extent"
+        )) {
+          return()
+        }
+
         extent_id <- suppressWarnings(
           as.integer(
             input$manual_extent_select
@@ -5371,7 +5512,8 @@ mod_data_files_server <- function(id, state) {
           session$ns(
             "save_bbox_inclusion"
           ),
-          "Save bbox inclusion"
+          "Save bbox inclusion",
+          class = "datapond-requires-active-user"
         )
       )
     })
@@ -5379,6 +5521,13 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$save_bbox_inclusion,
       {
+        if (!require_active_user_for_write(
+          state,
+          "saving bounding-box inclusion"
+        )) {
+          return()
+        }
+
         record <- selected_spatial_record()
         preview <- selected_spatial_preview()
 
@@ -5505,6 +5654,13 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$save_spatial_notes, {
+      if (!require_active_user_for_write(
+        state,
+        "saving spatial review notes"
+      )) {
+        return()
+      }
+
       selected_id <- input$spatial_record_select
 
       if (
@@ -5808,6 +5964,13 @@ mod_data_files_server <- function(id, state) {
     observeEvent(input$save_file_review, {
       req(input$saved_file_select)
 
+      if (!require_active_user_for_write(
+        state,
+        "saving the file review"
+      )) {
+        return()
+      }
+
       update_data_file_review(
         data_file_id =
           as.integer(input$saved_file_select),
@@ -5840,6 +6003,13 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$profile_selected_file, {
+      if (!require_active_user_for_write(
+        state,
+        "profiling file attributes"
+      )) {
+        return()
+      }
+
       req(input$saved_file_select)
 
       cfg <- state$pond_config %||% default_pond_config()
@@ -6250,6 +6420,13 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$save_attribute_note, {
+      if (!require_active_user_for_write(
+        state,
+        "saving the attribute note"
+      )) {
+        return()
+      }
+
       req(input$attribute_select)
       update_dataset_attribute_note(
         attribute_id = as.integer(input$attribute_select),
@@ -6401,6 +6578,13 @@ mod_data_files_server <- function(id, state) {
 
     # input: extract_spatial ----
     observeEvent(input$extract_spatial, {
+      if (!require_active_user_for_write(
+        state,
+        "extracting spatial metadata"
+      )) {
+        return()
+      }
+
       dataset_id <- state$current_dataset_id
       base_path <- state$data_pond
 
@@ -7395,6 +7579,13 @@ mod_data_files_server <- function(id, state) {
     )
 
     observeEvent(input$save_file_scan, {
+      if (!require_active_user_for_write(
+        state,
+        "saving the data-file scan"
+      )) {
+        return()
+      }
+
       df <- files()
       if ("message" %in% names(df)) {
         file_scan_save_summary(data.table::data.table(

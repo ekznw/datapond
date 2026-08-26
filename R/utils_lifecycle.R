@@ -11,6 +11,333 @@ lifecycle_status_label <- function(x) {
   labels[[x]] %||% x %||% "draft"
 }
 
+
+dataset_marker_filename <- function() {
+  ".pond-dataset.json"
+}
+
+
+dataset_marker_path <- function(dataset_path) {
+  file.path(dataset_path, dataset_marker_filename())
+}
+
+
+write_dataset_marker <- function(dataset_path, dataset_uuid, data_pond_id) {
+  if (!dir.exists(dataset_path)) {
+    stop("Dataset root does not exist: ", dataset_path)
+  }
+  values <- trimws(as.character(c(dataset_uuid, data_pond_id)))
+  if (length(values) != 2L || any(is.na(values) | !nzchar(values))) {
+    stop("dataset_uuid and data_pond_id are required for the dataset marker.")
+  }
+  if (any(grepl('["\\\\\r\n]', values))) {
+    stop("Dataset marker identifiers contain unsupported characters.")
+  }
+
+  writeLines(
+    c(
+      "{",
+      paste0('  "dataset_uuid": "', values[1], '",'),
+      paste0('  "data_pond_id": "', values[2], '"'),
+      "}"
+    ),
+    dataset_marker_path(dataset_path),
+    useBytes = TRUE
+  )
+  invisible(dataset_marker_path(dataset_path))
+}
+
+
+read_dataset_marker <- function(dataset_path) {
+  path <- dataset_marker_path(dataset_path)
+  if (!file.exists(path)) {
+    return(list(dataset_uuid = NA_character_, data_pond_id = NA_character_))
+  }
+  text <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  value <- function(field) {
+    match <- regexec(
+      paste0('"', field, '"\\s*:\\s*"([^"]+)"'),
+      text,
+      perl = TRUE
+    )
+    parts <- regmatches(text, match)[[1L]]
+    if (length(parts) < 2L) NA_character_ else parts[2L]
+  }
+  list(
+    dataset_uuid = value("dataset_uuid"),
+    data_pond_id = value("data_pond_id")
+  )
+}
+
+
+extract_dataset_uuid_from_folder_name <- function(path) {
+  folder <- basename(sub("/+$", "", as.character(path[1])))
+  if (!grepl("__", folder, fixed = TRUE)) {
+    return(NA_character_)
+  }
+  uuid <- sub("^.*__", "", folder)
+  if (!grepl("^[A-Za-z0-9][A-Za-z0-9._-]{5,79}$", uuid)) {
+    return(NA_character_)
+  }
+  uuid
+}
+
+
+dataset_lifecycle_stage <- function(path, base_path) {
+  path <- normalizePath(path, mustWork = FALSE, winslash = "/")
+  base_path <- normalizePath(base_path, mustWork = FALSE, winslash = "/")
+  for (stage in c("src", "dev", "arc")) {
+    root <- normalizePath(
+      file.path(base_path, stage),
+      mustWork = FALSE,
+      winslash = "/"
+    )
+    if (identical(path, root) || startsWith(path, paste0(root, "/"))) {
+      return(stage)
+    }
+  }
+  NA_character_
+}
+
+
+empty_dataset_root_inventory <- function() {
+  data.table::data.table(
+    dataset_path = character(),
+    lifecycle_stage = character(),
+    folder_uuid = character(),
+    marker_uuid = character(),
+    marker_data_pond_id = character(),
+    location_status = character()
+  )
+}
+
+
+discover_dataset_roots <- function(base_path) {
+  base_path <- normalizePath(base_path, mustWork = FALSE, winslash = "/")
+  rows <- list()
+
+  for (stage in c("src", "dev", "arc")) {
+    root <- file.path(base_path, stage)
+    if (!dir.exists(root)) {
+      next
+    }
+    pending <- root
+    visited <- character()
+
+    while (length(pending) > 0L) {
+      current <- pending[[1L]]
+      pending <- pending[-1L]
+      key <- normalizePath(current, mustWork = FALSE, winslash = "/")
+      if (key %in% visited) {
+        next
+      }
+      visited <- c(visited, key)
+
+      children <- list.dirs(current, full.names = TRUE, recursive = FALSE)
+      children <- children[children != current]
+      if (length(children) == 0L) {
+        next
+      }
+
+      for (child in children) {
+        folder_uuid <- extract_dataset_uuid_from_folder_name(child)
+        has_marker <- file.exists(dataset_marker_path(child))
+        if (!is.na(folder_uuid) || has_marker) {
+          marker <- read_dataset_marker(child)
+          status <- "candidate"
+          if (
+            !is.na(folder_uuid) && !is.na(marker$dataset_uuid) &&
+              !identical(tolower(folder_uuid), tolower(marker$dataset_uuid))
+          ) {
+            status <- "uuid_marker_conflict"
+          }
+          rows[[length(rows) + 1L]] <- data.table::data.table(
+            dataset_path = normalizePath(
+              child,
+              mustWork = FALSE,
+              winslash = "/"
+            ),
+            lifecycle_stage = stage,
+            folder_uuid = folder_uuid,
+            marker_uuid = marker$dataset_uuid,
+            marker_data_pond_id = marker$data_pond_id,
+            location_status = status
+          )
+        } else {
+          pending <- c(pending, child)
+        }
+      }
+    }
+  }
+
+  if (length(rows) == 0L) {
+    return(empty_dataset_root_inventory())
+  }
+
+  found <- data.table::rbindlist(rows, fill = TRUE)
+  claimed <- unique(data.table::rbindlist(list(
+    found[!is.na(folder_uuid), .(dataset_path, uuid = tolower(folder_uuid))],
+    found[!is.na(marker_uuid), .(dataset_path, uuid = tolower(marker_uuid))]
+  )))
+  duplicates <- claimed[, .N, by = uuid][N > 1L, uuid]
+  found[
+    tolower(folder_uuid) %in% duplicates |
+      tolower(marker_uuid) %in% duplicates,
+    location_status := "duplicate_uuid"
+  ]
+  found[]
+}
+
+
+reconcile_dataset_locations <- function(
+  base_path,
+  dataset_ids = NULL
+) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lifecycle_columns(conn)
+  record_sql <-
+    "SELECT id, uuid, dataset_path, data_pond_id FROM entry_tbl"
+
+  record_params <- list()
+
+  if (!is.null(dataset_ids)) {
+    dataset_ids <- unique(
+      suppressWarnings(
+        as.integer(dataset_ids)
+      )
+    )
+    dataset_ids <- dataset_ids[!is.na(dataset_ids)]
+
+    if (length(dataset_ids) == 0L) {
+      return(data.table::data.table())
+    }
+
+    record_sql <- paste0(
+      record_sql,
+      " WHERE id IN (",
+      paste(rep("?", length(dataset_ids)), collapse = ", "),
+      ")"
+    )
+    record_params <- as.list(dataset_ids)
+  }
+
+  records <- if (length(record_params) > 0L) {
+    DBI::dbGetQuery(
+      conn,
+      record_sql,
+      params = record_params
+    )
+  } else {
+    DBI::dbGetQuery(
+      conn,
+      record_sql
+    )
+  }
+
+  records <- data.table::as.data.table(records)
+  if (nrow(records) == 0L) {
+    return(data.table::data.table())
+  }
+
+  pond_id <- ensure_data_pond_id(base_path, conn = conn)
+  roots <- discover_dataset_roots(base_path)
+  reports <- lapply(seq_len(nrow(records)), function(i) {
+    record <- records[i]
+    uuid <- trimws(as.character(record$uuid))
+    valid_uuid <- length(uuid) == 1L && !is.na(uuid) && nzchar(uuid)
+    stored_path <- normalizePath(
+      as.character(record$dataset_path),
+      mustWork = FALSE,
+      winslash = "/"
+    )
+    stored_stage <- dataset_lifecycle_stage(stored_path, base_path)
+    matches <- if (isTRUE(valid_uuid)) {
+      roots[
+        tolower(folder_uuid) == tolower(uuid) |
+          tolower(marker_uuid) == tolower(uuid)
+      ]
+    } else {
+      roots[0]
+    }
+
+    status <- if (isTRUE(valid_uuid)) "missing" else "missing_uuid"
+    detected_path <- NA_character_
+    detected_stage <- NA_character_
+
+    if (nrow(matches) > 1L || any(matches$location_status == "duplicate_uuid")) {
+      status <- "duplicate_uuid"
+    } else if (nrow(matches) == 1L) {
+      detected_path <- matches$dataset_path[1]
+      detected_stage <- matches$lifecycle_stage[1]
+      if (matches$location_status[1] == "uuid_marker_conflict") {
+        status <- "uuid_marker_conflict"
+      } else if (
+        !is.na(matches$marker_data_pond_id[1]) &&
+          !identical(matches$marker_data_pond_id[1], pond_id)
+      ) {
+        status <- "data_pond_marker_conflict"
+      } else if (identical(stored_path, detected_path)) {
+        status <- "ok"
+      } else if (dir.exists(stored_path)) {
+        status <- "stored_path_conflict"
+      } else if (
+        is.na(stored_stage) || is.na(detected_stage) ||
+          !identical(stored_stage, detected_stage)
+      ) {
+        status <- "lifecycle_location_conflict"
+      } else {
+        new_data_path <- file.path(detected_path, "data")
+        DBI::dbExecute(
+          conn,
+          "UPDATE entry_tbl SET dataset_path = ?, data_path = ? WHERE id = ?",
+          params = list(detected_path, new_data_path, as.integer(record$id))
+        )
+        repair_cached_absolute_paths_after_dataset_move(
+          dataset_id = record$id,
+          base_path = base_path,
+          dataset_path = detected_path,
+          data_path = new_data_path
+        )
+        stored_path <- detected_path
+        status <- "repaired_within_lifecycle_root"
+      }
+
+      if (
+        status %in% c("ok", "repaired_within_lifecycle_root") &&
+          !file.exists(dataset_marker_path(detected_path))
+      ) {
+        write_dataset_marker(detected_path, uuid, pond_id)
+      }
+    }
+
+    data.table::data.table(
+      id = as.integer(record$id),
+      stored_dataset_path = stored_path,
+      detected_dataset_path = detected_path,
+      stored_stage = stored_stage,
+      detected_stage = detected_stage,
+      location_status = status,
+      lifecycle_location_conflict = status %in% c(
+        "lifecycle_location_conflict",
+        "duplicate_uuid",
+        "uuid_marker_conflict",
+        "data_pond_marker_conflict",
+        "stored_path_conflict",
+        "missing_uuid"
+      )
+    )
+  })
+
+  data.table::rbindlist(reports, fill = TRUE)
+}
+
+
+backfill_dataset_markers <- function(base_path) {
+  report <- reconcile_dataset_locations(base_path)
+  invisible(report)
+}
+
 lifecycle_is_draft_unlocked <- function(lifecycle_row) {
   if (is.null(lifecycle_row) || nrow(lifecycle_row) == 0) {
     return(FALSE)

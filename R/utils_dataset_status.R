@@ -558,7 +558,7 @@ get_dataset_completion_status <- function(dataset_id, base_path, schema_grouped)
     FROM supporting_document_tbl
     WHERE dataset_id = ?
       AND active = 1
-      AND document_type_user_set = 1
+      AND reviewed_at IS NOT NULL
     ",
     list(dataset_id)
   )
@@ -576,12 +576,12 @@ get_dataset_completion_status <- function(dataset_id, base_path, schema_grouped)
     status = supp_status,
     status_label = status_label(supp_status),
     required_missing = if (supp_status == "complete") 0L else max(n_supporting - reviewed_supporting, 0L),
-    missing_fields = if (supp_status == "complete") "" else "Unreviewed document classifications",
+    missing_fields = if (supp_status == "complete") "" else "Unreviewed supporting documents",
     saved_records = n_supporting,
     next_action = if (supp_status == "complete") {
       "Review supporting documents if needed."
     } else {
-      "Scan or classify supporting documents."
+      "Review the detected document types or accept the defaults."
     }
   )))
 
@@ -635,16 +635,83 @@ get_dataset_completion_status <- function(dataset_id, base_path, schema_grouped)
     )
   ))
 
-  # Spatial metadata is currently extracted in-memory in the data files module.
-  # There is no dedicated saved spatial metadata table in the attached schema yet.
+  # Extracted records require an explicit notes or bbox-inclusion review.
+  # A valid active manual extent is reviewed by virtue of its explicit save.
+  n_spatial_records <- count_query(
+    conn,
+    "
+    SELECT COUNT(*) AS n
+    FROM data_file_spatial_metadata_tbl
+    WHERE dataset_id = ?
+    ",
+    list(dataset_id)
+  )
+
+  reviewed_spatial_records <- count_query(
+    conn,
+    "
+    SELECT COUNT(*) AS n
+    FROM data_file_spatial_metadata_tbl
+    WHERE dataset_id = ?
+      AND (
+        notes_updated_at IS NOT NULL
+        OR bbox_inclusion_updated_at IS NOT NULL
+      )
+    ",
+    list(dataset_id)
+  )
+
+  n_manual_extents <- count_query(
+    conn,
+    "
+    SELECT COUNT(*) AS n
+    FROM dataset_manual_spatial_extent_tbl
+    WHERE dataset_id = ?
+      AND COALESCE(active, 1) = 1
+      AND LOWER(COALESCE(bbox_status, '')) = 'valid'
+    ",
+    list(dataset_id)
+  )
+
+  n_spatial_saved <-
+    n_spatial_records + n_manual_extents
+
+  n_spatial_reviewed <-
+    reviewed_spatial_records + n_manual_extents
+
+  spatial_status <- if (n_spatial_saved == 0L) {
+    "not_started"
+  } else if (n_spatial_reviewed >= n_spatial_saved) {
+    "complete"
+  } else if (n_spatial_reviewed == 0L) {
+    "needs_review"
+  } else {
+    "partial"
+  }
+
+  spatial_missing <- max(
+    n_spatial_saved - n_spatial_reviewed,
+    0L
+  )
+
   out <- c(out, list(data.table(
     section = "Spatial metadata",
-    status = "not_started",
-    status_label = status_label("not_started"),
-    required_missing = NA_integer_,
-    missing_fields = "No saved spatial metadata table yet",
-    saved_records = 0L,
-    next_action = "Run spatial extraction in Data files. Add persistence later if required."
+    status = spatial_status,
+    status_label = status_label(spatial_status),
+    required_missing = spatial_missing,
+    missing_fields = if (spatial_missing == 0L) {
+      ""
+    } else {
+      "Unreviewed extracted spatial records"
+    },
+    saved_records = n_spatial_saved,
+    next_action = switch(
+      spatial_status,
+      complete = "Review spatial records or extents if circumstances change.",
+      partial = "Review the remaining extracted spatial records.",
+      needs_review = "Review extracted spatial records and bbox inclusion.",
+      "Extract spatial metadata or save a manual extent."
+    )
   )))
 
   data.table::rbindlist(out, fill = TRUE)

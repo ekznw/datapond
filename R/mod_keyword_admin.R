@@ -112,8 +112,16 @@ mod_keyword_admin_server <- function(
             width = 4,
             shiny::br(),
             shiny::actionButton(ns("new_term"), "New term"),
-            shiny::actionButton(ns("save_term"), "Save term"),
-            shiny::actionButton(ns("deactivate_term"), "Deactivate")
+            shiny::actionButton(
+              ns("save_term"),
+              "Save term",
+              class = "datapond-requires-active-user"
+            ),
+            shiny::actionButton(
+              ns("deactivate_term"),
+              "Deactivate",
+              class = "datapond-requires-active-user"
+            )
           )
         ),
 
@@ -122,7 +130,8 @@ mod_keyword_admin_server <- function(
 
         shiny::actionButton(
           ns("merge_seed"),
-          "Merge missing terms from CSV"
+          "Merge missing terms from CSV",
+          class = "datapond-requires-active-user"
         ),
 
         shiny::checkboxInput(
@@ -136,7 +145,8 @@ mod_keyword_admin_server <- function(
 
         shiny::actionButton(
           ns("reset_seed"),
-          "Reset CSV-managed terms"
+          "Reset CSV-managed terms",
+          class = "datapond-requires-active-user"
         )
       )
     })
@@ -251,6 +261,13 @@ mod_keyword_admin_server <- function(
     })
 
     shiny::observeEvent(input$save_term, {
+      if (!require_active_user_for_write(
+        state,
+        "saving a keyword term"
+      )) {
+        return()
+      }
+
       shiny::req(current_user_is_admin())
 
       tryCatch({
@@ -282,6 +299,13 @@ mod_keyword_admin_server <- function(
     })
 
     shiny::observeEvent(input$deactivate_term, {
+      if (!require_active_user_for_write(
+        state,
+        "deactivating a keyword term"
+      )) {
+        return()
+      }
+
       shiny::req(current_user_is_admin(), selected_id())
 
       set_keyword_vocab_active(
@@ -300,6 +324,13 @@ mod_keyword_admin_server <- function(
     })
 
     shiny::observeEvent(input$merge_seed, {
+      if (!require_active_user_for_write(
+        state,
+        "merging keyword seed data"
+      )) {
+        return()
+      }
+
       shiny::req(current_user_is_admin())
 
       result <- merge_keyword_vocab_seed(
@@ -326,6 +357,13 @@ mod_keyword_admin_server <- function(
     })
 
     shiny::observeEvent(input$reset_seed, {
+      if (!require_active_user_for_write(
+        state,
+        "resetting keyword seed data"
+      )) {
+        return()
+      }
+
       shiny::req(current_user_is_admin())
 
       if (!isTRUE(input$confirm_reset)) {

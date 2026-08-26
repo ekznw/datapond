@@ -106,35 +106,73 @@ profile_vector_attributes <- function(path, layer = NULL, config = list(), forma
     data.table::rbindlist(out, fill = TRUE)
   }
 
-  if (identical(format_label, "esri_file_geodatabase") || grepl("\\.gdb$", path, ignore.case = TRUE)) {
-    layers <- character()
+  if (!is.null(layer) && length(layer) > 0L && !is.na(layer) && nzchar(layer)) {
+    return(profile_one_layer(path, layer_i = layer))
+  }
 
-    if (requireNamespace("sf", quietly = TRUE)) {
-      layers <- tryCatch(
-        as.character(sf::st_layers(path)$name),
-        error = function(e) character()
-      )
-    }
+  layer_info <- vector_container_layers(path)
+  layers <- layer_info$layers
+  known_container <- is_known_multilayer_vector_container(
+    path,
+    format_label
+  )
 
-    if (length(layers) > 0) {
-      out <- data.table::rbindlist(
-        lapply(layers, function(layer_i) {
-          profile_one_layer(path, layer_i = layer_i)
-        }),
-        fill = TRUE
-      )
-
-      if ("message" %in% names(out) && !"data_field_name" %in% names(out)) {
-        return(out)
-      }
-
-      return(out)
-    }
-
+  if (!known_container && length(layers) <= 1L) {
     return(profile_one_layer(path, layer_i = NULL))
   }
 
-  profile_one_layer(path, layer_i = layer)
+  if (length(layers) == 0L) {
+    details <- paste(layer_info$messages, collapse = " | ")
+    msg <- paste0(
+      "No readable vector layers found for attribute profiling: ",
+      path,
+      if (nzchar(details)) paste0(" (", details, ")") else ""
+    )
+    warning(msg, call. = FALSE)
+    return(data.table::data.table(message = msg))
+  }
+
+  results <- lapply(layers, function(layer_i) {
+    result <- profile_one_layer(path, layer_i = layer_i)
+    readable <- "data_field_name" %in% names(result) &&
+      any(!is.na(result$data_field_name) & nzchar(result$data_field_name))
+
+    if (!readable) {
+      detail <- if ("message" %in% names(result)) {
+        paste(unique(result$message), collapse = " | ")
+      } else {
+        "No attribute fields were returned."
+      }
+      warning(
+        paste0(
+          "Could not profile layer '",
+          layer_i,
+          "' in ",
+          path,
+          ": ",
+          detail
+        ),
+        call. = FALSE
+      )
+    }
+
+    list(readable = readable, data = result)
+  })
+
+  readable_results <- lapply(
+    results[vapply(results, `[[`, logical(1), "readable")],
+    `[[`,
+    "data"
+  )
+
+  if (length(readable_results) == 0L) {
+    return(data.table::rbindlist(
+      lapply(results, `[[`, "data"),
+      fill = TRUE
+    ))
+  }
+
+  data.table::rbindlist(readable_results, fill = TRUE)
 }
 
 profile_raster_attributes <- function(
@@ -1315,7 +1353,7 @@ update_data_file_review <- function(
   content_hint = NULL,
   review_status = NULL,
   include_in_attribute_scan = NULL,
-  user_id = NA_integer_
+  user_id
 ) {
   if (
     is.null(data_file_id) ||
@@ -1323,6 +1361,13 @@ update_data_file_review <- function(
     is.na(data_file_id)
   ) {
     stop("data_file_id is required.")
+  }
+
+  if (
+    missing(user_id) ||
+    !has_active_user_id(user_id)
+  ) {
+    stop("user_id is required to save a data file review.")
   }
 
   conn <- get_conn(base_path)
@@ -1363,7 +1408,7 @@ update_data_file_review <- function(
           isTRUE(include_in_attribute_scan)
         )
       },
-      user_id,
+      as.integer(user_id[1]),
       now,
       as.integer(data_file_id)
     )

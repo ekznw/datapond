@@ -251,6 +251,51 @@ biblatex_organisation_names <- function(org_df) {
 }
 
 
+biblatex_organisation_units <- function(org_df) {
+  if (
+    is.null(org_df) ||
+    nrow(as.data.frame(org_df)) == 0L
+  ) {
+    return(character())
+  }
+
+  org_df <- as.data.frame(
+    org_df,
+    stringsAsFactors = FALSE
+  )
+
+  units <- vapply(
+    seq_len(nrow(org_df)),
+    function(i) {
+      row <- org_df[i, , drop = FALSE]
+      organisation <- organisation_field_value(
+        row,
+        c(
+          "organisation_name_full",
+          "name",
+          "organisation_name_short",
+          "short"
+        )
+      )
+      department <- organisation_field_value(
+        row,
+        c("organisation_department", "department")
+      )
+
+      paste(
+        c(organisation, department)[
+          nzchar(c(organisation, department))
+        ],
+        collapse = ", "
+      )
+    },
+    character(1)
+  )
+
+  unique(units[nzchar(units)])
+}
+
+
 biblatex_corporate_author <- function(org_names) {
   if (length(org_names) == 0L) {
     return("")
@@ -383,6 +428,9 @@ format_biblatex_dataset <- function(
   organisations <- biblatex_organisation_names(
     org_df
   )
+  organisation_units <- biblatex_organisation_units(
+    org_df
+  )
 
   primary_org <- if (
     length(organisations) > 0L
@@ -392,19 +440,9 @@ format_biblatex_dataset <- function(
     ""
   }
 
-  location <- ""
-
-  if (
-    !is.null(org_df) &&
-    nrow(as.data.frame(org_df)) > 0L &&
-    "organisation_address" %in%
-      names(org_df)
-  ) {
-    location <- biblatex_scalar(
-      org_df$organisation_address,
-      default = ""
-    )
-  }
+  location <- organisation_citation_affiliation(
+    org_df
+  )
 
   fields <- Filter(
     Negate(is.null),
@@ -434,7 +472,7 @@ format_biblatex_dataset <- function(
       biblatex_field(
         "organization",
         paste(
-          organisations,
+          organisation_units,
           collapse = " and "
         )
       ),

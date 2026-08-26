@@ -261,6 +261,49 @@ mod_dataset_lifecycle_ui <- function(id) {
       ns("current_lifecycle_summary")
     ),
 
+    shiny::tags$div(
+      style = paste(
+        "padding:10px 12px;",
+        paste0("background:", unname(earth[["cream"]]), ";"),
+        paste0("border:1px solid ", unname(earth[["stone"]]), ";"),
+        "border-radius:4px;",
+        "margin-bottom:14px;"
+      ),
+
+      shiny::h3(
+        style = "margin:0 0 5px 0;",
+        "Dataset folder verification"
+      ),
+
+      shiny::tags$small(
+        style = "display:block; color:#625C52; margin-bottom:8px;",
+        paste(
+          "Run the same UUID-marker and lifecycle-root location check",
+          "used when the pond is opened. Safe same-root path repairs are applied automatically."
+        )
+      ),
+
+      shiny::tags$div(
+        style = "display:flex; flex-wrap:wrap; gap:7px;",
+
+        shiny::actionButton(
+          ns("verify_selected_folder"),
+          "Verify selected dataset folder",
+          class = "datapond-requires-active-user"
+        ),
+
+        shiny::actionButton(
+          ns("verify_all_folders"),
+          "Verify all pond dataset folders",
+          class = "datapond-requires-active-user"
+        )
+      ),
+
+      shiny::uiOutput(
+        ns("folder_verification_result")
+      )
+    ),
+
     shiny::fluidRow(
       shiny::column(
         width = 7,
@@ -330,7 +373,8 @@ mod_dataset_lifecycle_ui <- function(id) {
 
           shiny::actionButton(
             ns("save_lifecycle"),
-            "Save lifecycle status"
+            "Save lifecycle status",
+            class = "datapond-requires-active-user"
           ),
 
           shiny::hr(),
@@ -348,7 +392,8 @@ mod_dataset_lifecycle_ui <- function(id) {
 
           shiny::actionButton(
             ns("move_folder"),
-            "Move draft folder"
+            "Move draft folder",
+            class = "datapond-requires-active-user"
           ),
 
           shiny::br(),
@@ -356,7 +401,8 @@ mod_dataset_lifecycle_ui <- function(id) {
 
           shiny::actionButton(
             ns("rename_folder"),
-            "Apply proposed draft-folder name"
+            "Apply proposed draft-folder name",
+            class = "datapond-requires-active-user"
           ),
 
           shiny::tags$small(
@@ -429,6 +475,7 @@ mod_dataset_lifecycle_server <- function(
     id,
     function(input, output, session) {
       refresh_token <- shiny::reactiveVal(0L)
+      folder_verification_result <- shiny::reactiveVal(NULL)
 
 
       valid_dataset_context <- shiny::reactive({
@@ -939,6 +986,221 @@ mod_dataset_lifecycle_server <- function(
 
         invisible(TRUE)
       }
+
+
+      folder_location_status_label <- function(status) {
+        labels <- c(
+          ok = "Location verified",
+          repaired_within_lifecycle_root = "Path repaired within lifecycle root",
+          missing = "Dataset folder not found",
+          missing_uuid = "Dataset UUID is missing",
+          duplicate_uuid = "Duplicate dataset UUID",
+          uuid_marker_conflict = "Folder and marker UUID conflict",
+          data_pond_marker_conflict = "Data-pond marker conflict",
+          stored_path_conflict = "Stored path conflicts with detected folder",
+          lifecycle_location_conflict = "Detected folder is in another lifecycle root"
+        )
+
+        status <- lifecycle_clean_text(
+          status,
+          default = "unknown"
+        )
+
+        label <- unname(labels[status])
+
+        if (length(label) == 0L || is.na(label)) {
+          status
+        } else {
+          label
+        }
+      }
+
+
+      output$folder_verification_result <- shiny::renderUI({
+        result <- folder_verification_result()
+
+        if (is.null(result)) {
+          return(NULL)
+        }
+
+        earth <- app_earth_palette()
+
+        shiny::tags$div(
+          style = paste(
+            "margin-top:9px;",
+            "padding:7px 9px;",
+            paste0(
+              "background:",
+              if (isTRUE(result$ok)) {
+                unname(earth[["pale_sage"]])
+              } else {
+                unname(earth[["sand"]])
+              },
+              ";"
+            ),
+            paste0("border:1px solid ", unname(earth[["tan"]]), ";"),
+            "font-size:12px;"
+          ),
+          result$message
+        )
+      })
+
+
+      shiny::observeEvent(
+        input$verify_selected_folder,
+        {
+          if (!require_active_user_for_write(
+            state,
+            "verifying the selected dataset folder"
+          )) {
+            return()
+          }
+
+          context <- valid_dataset_context()
+
+          if (!isTRUE(context$valid)) {
+            shiny::showNotification(
+              "Select a saved dataset before verifying its folder.",
+              type = "warning"
+            )
+            return()
+          }
+
+          tryCatch(
+            {
+              report <- reconcile_dataset_locations(
+                base_path = context$base_path,
+                dataset_ids = context$dataset_id
+              )
+
+              if (nrow(report) != 1L) {
+                stop("No folder-verification result was returned.")
+              }
+
+              status <- report$location_status[1]
+              ok <- status %in% c(
+                "ok",
+                "repaired_within_lifecycle_root"
+              )
+
+              folder_verification_result(list(
+                ok = ok,
+                message = paste(
+                  "Selected dataset:",
+                  folder_location_status_label(status)
+                )
+              ))
+
+              refresh_selected_state()
+
+              shiny::showNotification(
+                folder_location_status_label(status),
+                type = if (isTRUE(ok)) "message" else "warning",
+                duration = 7
+              )
+            },
+            error = function(e) {
+              folder_verification_result(list(
+                ok = FALSE,
+                message = paste(
+                  "Verification failed:",
+                  conditionMessage(e)
+                )
+              ))
+              shiny::showNotification(
+                conditionMessage(e),
+                type = "error",
+                duration = 8
+              )
+            }
+          )
+        }
+      )
+
+
+      shiny::observeEvent(
+        input$verify_all_folders,
+        {
+          if (!require_active_user_for_write(
+            state,
+            "verifying all pond dataset folders"
+          )) {
+            return()
+          }
+
+          base_path <- lifecycle_clean_text(
+            state$data_pond,
+            default = ""
+          )
+
+          if (!nzchar(base_path)) {
+            shiny::showNotification(
+              "No data pond is selected.",
+              type = "warning"
+            )
+            return()
+          }
+
+          tryCatch(
+            {
+              report <- reconcile_dataset_locations(base_path)
+              total <- nrow(report)
+              verified <- sum(
+                report$location_status %in% c(
+                  "ok",
+                  "repaired_within_lifecycle_root"
+                ),
+                na.rm = TRUE
+              )
+              repaired <- sum(
+                report$location_status ==
+                  "repaired_within_lifecycle_root",
+                na.rm = TRUE
+              )
+              attention <- total - verified
+
+              message <- paste0(
+                "Checked ", total, " dataset folder",
+                if (total == 1L) "" else "s",
+                ": ", verified, " verified",
+                if (repaired > 0L) {
+                  paste0(" (", repaired, " repaired)")
+                } else {
+                  ""
+                },
+                ", ", attention, " requiring attention."
+              )
+
+              folder_verification_result(list(
+                ok = attention == 0L,
+                message = message
+              ))
+
+              refresh_selected_state()
+
+              shiny::showNotification(
+                message,
+                type = if (attention == 0L) "message" else "warning",
+                duration = 8
+              )
+            },
+            error = function(e) {
+              folder_verification_result(list(
+                ok = FALSE,
+                message = paste(
+                  "Verification failed:",
+                  conditionMessage(e)
+                )
+              ))
+              shiny::showNotification(
+                conditionMessage(e),
+                type = "error",
+                duration = 8
+              )
+            }
+          )
+        }
+      )
 
 
       output$current_lifecycle_summary <- shiny::renderUI({
@@ -1718,6 +1980,13 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$save_lifecycle,
         {
+          if (!require_active_user_for_write(
+            state,
+            "saving lifecycle status"
+          )) {
+            return()
+          }
+
           context <- valid_dataset_context()
 
           if (!isTRUE(context$valid)) {
@@ -1842,6 +2111,13 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$move_folder,
         {
+          if (!require_active_user_for_write(
+            state,
+            "moving the dataset folder"
+          )) {
+            return()
+          }
+
           context <- valid_dataset_context()
 
           if (!isTRUE(context$valid)) {
@@ -1932,6 +2208,13 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$rename_folder,
         {
+          if (!require_active_user_for_write(
+            state,
+            "renaming the dataset folder"
+          )) {
+            return()
+          }
+
           context <- valid_dataset_context()
 
           if (!isTRUE(context$valid)) {

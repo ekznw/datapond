@@ -9,11 +9,11 @@
 An offline-first Shiny application for documenting dataset metadata.
 }
 \author{
-\strong{Maintainer}: Data Pond Contributors \email{data-pond@example.org}
+\strong{Maintainer}: Paul Gordijn \email{paul.gordijn@kznwildlife.com}
 
 Authors:
 \itemize{
-  \item Data Pond Contributors \email{data-pond@example.org}
+  \item Paul Gordijn \email{paul.gordijn@kznwildlife.com}
 }
 
 }

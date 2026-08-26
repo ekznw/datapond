@@ -38,6 +38,7 @@ empty_lifecycle_dashboard <- function() {
     lifecycle_label = character(),
     stage = character(),
     next_action = character(),
+    location_status = character(),
     lifecycle_stage_mismatch = logical()
   )
 }
@@ -47,6 +48,13 @@ get_lifecycle_dashboard <- function(
   base_path,
   schema_grouped
 ) {
+  location_report <- tryCatch(
+    reconcile_dataset_locations(base_path),
+    error = function(e) {
+      warning("Dataset location scan failed: ", conditionMessage(e))
+      data.table::data.table()
+    }
+  )
   conn <- get_conn(base_path)
 
   on.exit(
@@ -103,6 +111,29 @@ get_lifecycle_dashboard <- function(
 
   dt <- data.table::as.data.table(datasets)
 
+  if (nrow(location_report) > 0L) {
+    dt <- merge(
+      dt,
+      location_report[, .(
+        id,
+        location_status,
+        detected_dataset_path,
+        detected_stage,
+        lifecycle_location_conflict
+      )],
+      by = "id",
+      all.x = TRUE,
+      sort = FALSE
+    )
+  }
+
+  if (!"location_status" %in% names(dt)) {
+    dt[, location_status := "not_scanned"]
+  }
+  if (!"lifecycle_location_conflict" %in% names(dt)) {
+    dt[, lifecycle_location_conflict := FALSE]
+  }
+
   dt[, ready_for_archive := vapply(
     id,
     function(dataset_id) {
@@ -135,11 +166,11 @@ get_lifecycle_dashboard <- function(
 
   dt[
     ,
-    stage := ifelse(
-      is.na(dataset_path) |
-        dataset_path == "",
-      NA_character_,
-      basename(dirname(dataset_path))
+    stage := vapply(
+      dataset_path,
+      dataset_lifecycle_stage,
+      character(1),
+      base_path = base_path
     )
   ]
 
@@ -161,7 +192,7 @@ get_lifecycle_dashboard <- function(
     )
   ]
 
-  dt[, lifecycle_stage_mismatch := FALSE]
+  dt[, lifecycle_stage_mismatch := lifecycle_location_conflict %in% TRUE]
 
   dt[
     (
@@ -197,8 +228,27 @@ move_dataset_folder <- function(dataset_id, base_path, target_stage, user_person
   if (!dir.exists(old_path)) {
     stop("Source folder does not exist")
   }
-  parent_root <- dirname(dirname(old_path))  # /src or /dev -> root
-  new_path <- file.path(parent_root, target_stage, basename(old_path))
+  old_stage <- dataset_lifecycle_stage(old_path, base_path)
+  if (is.na(old_stage)) {
+    stop("Source folder is not beneath src/, dev/ or arc/")
+  }
+  old_root <- normalizePath(
+    file.path(base_path, old_stage),
+    mustWork = FALSE,
+    winslash = "/"
+  )
+  old_parent <- dirname(old_path)
+  relative_parent <- if (identical(old_parent, old_root)) {
+    ""
+  } else {
+    substring(old_parent, nchar(old_root) + 2L)
+  }
+  new_path <- file.path(
+    base_path,
+    target_stage,
+    relative_parent,
+    basename(old_path)
+  )
   # ---- ensure target dir ----
   dir.create(dirname(new_path), recursive = TRUE, showWarnings = FALSE)
   if (dir.exists(new_path)) {

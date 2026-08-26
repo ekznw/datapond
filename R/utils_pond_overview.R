@@ -208,10 +208,12 @@ get_dataset_overview_bbox <- function(
 
 build_pond_overview_data <- function(
   base_path,
-  schema_grouped
+  schema_grouped,
+  include_hidden = FALSE
 ) {
   datasets <- get_datasets_with_authors(
-    base_path
+    base_path,
+    include_hidden = include_hidden
   )
 
   if (
@@ -268,7 +270,13 @@ build_pond_overview_data <- function(
     stage = NA_character_,
     ready_for_archive = FALSE,
     next_action = "Complete metadata",
-    lifecycle_stage_mismatch = FALSE
+    lifecycle_stage_mismatch = FALSE,
+    organisations = NA_character_,
+    poc = NA_character_,
+    record_owner = NA_character_,
+    is_hidden = 0L,
+    deleted_at = NA_character_,
+    location_status = "not_scanned"
   )
 
   for (field in names(required_columns)) {
@@ -369,10 +377,82 @@ build_pond_overview_data <- function(
       )
   ]
 
+  overview[
+    ,
+    record_visibility := data.table::fcase(
+      !is.na(deleted_at) & nzchar(trimws(as.character(deleted_at))),
+      "Deleted (recoverable)",
+      as.integer(is_hidden) == 1L,
+      "Hidden",
+      default = "Visible"
+    )
+  ]
+
   data.table::setorder(
     overview,
     -id
   )
 
   overview[]
+}
+
+
+filter_pond_overview_data <- function(overview, search_text = NULL) {
+  if (is.null(overview) || nrow(as.data.frame(overview)) == 0L) {
+    return(data.table::as.data.table(overview))
+  }
+  search_text <- trimws(as.character(search_text[1] %||% ""))
+  if (!nzchar(search_text)) {
+    return(data.table::as.data.table(overview))
+  }
+
+  dt <- data.table::as.data.table(data.table::copy(overview))
+  fields <- intersect(
+    c(
+      "display_title", "authors", "organisations", "poc",
+      "citation_key", "pond_location", "lifecycle_label",
+      "metadata_readiness", "next_action", "dataset_path",
+      "record_owner", "record_visibility", "location_status"
+    ),
+    names(dt)
+  )
+  haystack <- apply(
+    as.data.frame(dt[, ..fields]),
+    1L,
+    function(row) paste(row[!is.na(row)], collapse = " ")
+  )
+  terms <- strsplit(tolower(search_text), "\\s+")[[1L]]
+  keep <- vapply(
+    terms,
+    function(term) grepl(term, tolower(haystack), fixed = TRUE),
+    logical(length(haystack))
+  )
+  if (is.null(dim(keep))) {
+    keep <- matrix(keep, ncol = 1L)
+  }
+  dt[apply(keep, 1L, all)]
+}
+
+
+pond_overview_inventory_display <- function(overview) {
+  overview <- data.table::as.data.table(
+    data.table::copy(overview)
+  )
+
+  overview[
+    ,
+    .(
+      `Dataset ID` = id,
+      `Overview class` = overview_class,
+      Title = display_title,
+      Authors = authors,
+      `Lifecycle status` = lifecycle_label,
+      `Metadata readiness` = metadata_readiness,
+      `Next action` = next_action,
+      `Spatial extent` = spatial_extent,
+      Version = version,
+      `Citation date` = citation_date,
+      Organisations = organisations
+    )
+  ]
 }

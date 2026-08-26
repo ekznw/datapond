@@ -181,6 +181,159 @@ ensure_keyword_vocab_table <- function(conn) {
   invisible(TRUE)
 }
 
+ensure_organisation_code_not_unique <- function(conn) {
+  indexes <- DBI::dbGetQuery(
+    conn,
+    "PRAGMA index_list('organisation_tbl')"
+  )
+
+  unique_indexes <- indexes[
+    as.integer(indexes[["unique"]]) == 1L,
+    ,
+    drop = FALSE
+  ]
+  code_is_unique <- any(vapply(
+    unique_indexes$name,
+    function(index_name) {
+      index_fields <- DBI::dbGetQuery(
+        conn,
+        paste0(
+          "PRAGMA index_info(",
+          DBI::dbQuoteString(conn, index_name),
+          ")"
+        )
+      )
+      identical(
+        as.character(index_fields$name),
+        "organisation_code"
+      )
+    },
+    logical(1)
+  ))
+
+  if (!code_is_unique) {
+    return(invisible(FALSE))
+  }
+
+  DBI::dbExecute(conn, "PRAGMA foreign_keys = OFF")
+  on.exit(
+    DBI::dbExecute(conn, "PRAGMA foreign_keys = ON"),
+    add = TRUE
+  )
+
+  DBI::dbWithTransaction(
+    conn,
+    {
+      DBI::dbExecute(
+        conn,
+        "
+        CREATE TABLE organisation_tbl_rebuild (
+          id INTEGER PRIMARY KEY,
+          organisation_name_full TEXT,
+          organisation_name_short TEXT,
+          organisation_code TEXT NOT NULL,
+          organisation_department TEXT,
+          organisation_address TEXT
+        )
+        "
+      )
+      DBI::dbExecute(
+        conn,
+        "
+        INSERT INTO organisation_tbl_rebuild (
+          id,
+          organisation_name_full,
+          organisation_name_short,
+          organisation_code,
+          organisation_department,
+          organisation_address
+        )
+        SELECT
+          id,
+          organisation_name_full,
+          organisation_name_short,
+          organisation_code,
+          organisation_department,
+          organisation_address
+        FROM organisation_tbl
+        "
+      )
+      DBI::dbExecute(conn, "DROP TABLE organisation_tbl")
+      DBI::dbExecute(
+        conn,
+        "ALTER TABLE organisation_tbl_rebuild RENAME TO organisation_tbl"
+      )
+    }
+  )
+
+  invisible(TRUE)
+}
+
+
+ensure_dataset_organisation_role_schema <- function(conn) {
+  if (!DBI::dbExistsTable(conn, "dataset_organisation_tbl")) {
+    return(invisible(FALSE))
+  }
+
+  # Preserve distinct legacy roles while removing only exact duplicates.
+  DBI::dbExecute(
+    conn,
+    "
+    DELETE FROM dataset_organisation_tbl
+    WHERE id NOT IN (
+      SELECT MIN(id)
+      FROM dataset_organisation_tbl
+      GROUP BY dataset_id, organisation_id, LOWER(TRIM(role))
+    )
+    "
+  )
+  DBI::dbExecute(
+    conn,
+    "
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_dataset_org_role
+    ON dataset_organisation_tbl(
+      dataset_id,
+      organisation_id,
+      LOWER(TRIM(role))
+    )
+    "
+  )
+
+  invisible(TRUE)
+}
+
+
+ensure_dataset_record_control_columns <- function(conn) {
+  ensure_columns(
+    conn,
+    "entry_tbl",
+    fields = c(
+      "created_by_user_id",
+      "is_hidden",
+      "hidden_at",
+      "hidden_by_user_id",
+      "deleted_at",
+      "deleted_by_user_id"
+    ),
+    types = c(
+      created_by_user_id = "INTEGER",
+      is_hidden = "INTEGER DEFAULT 0",
+      hidden_at = "TEXT",
+      hidden_by_user_id = "INTEGER",
+      deleted_at = "TEXT",
+      deleted_by_user_id = "INTEGER"
+    )
+  )
+
+  DBI::dbExecute(
+    conn,
+    "UPDATE entry_tbl SET is_hidden = 0 WHERE is_hidden IS NULL"
+  )
+
+  invisible(TRUE)
+}
+
+
 init_db <- function(base_path) {
   #  Create folder if it doesn't exist
   if (!dir.exists(base_path)) {
@@ -206,10 +359,25 @@ init_db <- function(base_path) {
       id INTEGER PRIMARY KEY,
       organisation_name_full TEXT,
       organisation_name_short TEXT,
-      organisation_code TEXT UNIQUE NOT NULL,
+      organisation_code TEXT NOT NULL,
+      organisation_department TEXT,
       organisation_address TEXT
     )
   ")
+  ensure_columns(
+    conn = conn,
+    table = "organisation_tbl",
+    fields = "organisation_department",
+    types = c(organisation_department = "TEXT")
+  )
+  ensure_organisation_code_not_unique(conn)
+  DBI::dbExecute(
+    conn,
+    "
+    CREATE INDEX IF NOT EXISTS idx_organisation_code
+    ON organisation_tbl(organisation_code)
+    "
+  )
   # persons table
   DBI::dbExecute(
     conn,
@@ -220,6 +388,7 @@ init_db <- function(base_path) {
       name_last TEXT,
       email TEXT,
       role_title TEXT,
+      phone_number TEXT,
       organisation_id INTEGER,
 
       FOREIGN KEY (organisation_id)
@@ -232,11 +401,13 @@ init_db <- function(base_path) {
     table = "persons_tbl",
     fields = c(
       "email",
-      "role_title"
+      "role_title",
+      "phone_number"
     ),
     types = c(
       email = "TEXT",
-      role_title = "TEXT"
+      role_title = "TEXT",
+      phone_number = "TEXT"
     )
   )
   ensure_person_unique_indexes(conn)
@@ -277,24 +448,34 @@ init_db <- function(base_path) {
       FOREIGN KEY (organisation_id) REFERENCES organisation_tbl(id)
     )
   ")
+  ensure_dataset_organisation_role_schema(conn)
   # generate point of contact table
   dbExecute(conn, "
     CREATE TABLE IF NOT EXISTS poc_tbl (
       id INTEGER PRIMARY KEY,
       dataset_id INTEGER,
       person_id INTEGER,
+      organisation_id INTEGER,
       role TEXT,
 
       FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
-      FOREIGN KEY (person_id) REFERENCES persons_tbl(id)
+      FOREIGN KEY (person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (organisation_id) REFERENCES organisation_tbl(id)
     )
   ")
+  ensure_columns(
+    conn,
+    "poc_tbl",
+    fields = "organisation_id",
+    types = c(organisation_id = "INTEGER")
+  )
   # keyword table generate
   ensure_keyword_vocab_table(conn)
 
   ensure_data_pond_tables(conn)
   ensure_dataset_citation_key_column(conn)
   ensure_dataset_lifecycle_columns(conn)
+  ensure_dataset_record_control_columns(conn)
   ensure_entry_creation_scale_columns_conn(conn)
 
   ensure_data_pond_id(base_path, conn = conn)
@@ -609,23 +790,54 @@ get_persons_by_ids <- function(
   people
 }
 
-get_datasets <- function(base_path) {
+get_datasets <- function(
+  base_path,
+  include_hidden = TRUE,
+  include_deleted = FALSE
+) {
   conn <- get_conn(base_path)
-  res <- dbGetQuery(conn, "SELECT * FROM entry_tbl")
-  dbDisconnect(conn)
+  on.exit(dbDisconnect(conn), add = TRUE)
+  ensure_dataset_record_control_columns(conn)
+  conditions <- character()
+  if (!isTRUE(include_hidden)) {
+    conditions <- c(conditions, "COALESCE(is_hidden, 0) = 0")
+  }
+  if (!isTRUE(include_deleted)) {
+    conditions <- c(conditions, "deleted_at IS NULL")
+  }
+  where <- if (length(conditions) == 0L) "" else paste(
+    "WHERE",
+    paste(conditions, collapse = " AND ")
+  )
+  res <- dbGetQuery(
+    conn,
+    paste("SELECT * FROM entry_tbl", where, "ORDER BY id DESC")
+  )
   res
 }
 
-get_datasets_with_authors <- function(base_path) {
+get_datasets_with_authors <- function(base_path, include_hidden = FALSE) {
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
-  dbGetQuery(conn, "
+  ensure_dataset_record_control_columns(conn)
+  where <- if (isTRUE(include_hidden)) {
+    ""
+  } else {
+    "WHERE COALESCE(e.is_hidden, 0) = 0 AND e.deleted_at IS NULL"
+  }
+  dbGetQuery(conn, paste0("
     SELECT 
       e.id,
       e.title,
       e.citation_date,
       e.version,
       e.abstract,
+      e.created_by_user_id,
+      COALESCE(e.is_hidden, 0) AS is_hidden,
+      e.hidden_at,
+      e.deleted_at,
+
+      owner_p.name_first || ' ' || owner_p.name_last AS record_owner,
 
       (
         SELECT GROUP_CONCAT(author_name, ', ')
@@ -648,9 +860,28 @@ get_datasets_with_authors <- function(base_path) {
         WHERE poc.dataset_id = e.id
       ) AS poc
 
+      ,(
+        SELECT GROUP_CONCAT(org_name, ', ')
+        FROM (
+          SELECT DISTINCT
+            COALESCE(o.organisation_name_short, o.organisation_name_full) ||
+              CASE
+                WHEN dorg.role IS NULL OR TRIM(dorg.role) = '' THEN ''
+                ELSE ' (' || dorg.role || ')'
+              END AS org_name
+          FROM dataset_organisation_tbl dorg
+          LEFT JOIN organisation_tbl o ON dorg.organisation_id = o.id
+          WHERE dorg.dataset_id = e.id
+          ORDER BY org_name
+        )
+      ) AS organisations
+
     FROM entry_tbl e
+    LEFT JOIN user_tbl owner_u ON owner_u.id = e.created_by_user_id
+    LEFT JOIN persons_tbl owner_p ON owner_p.id = owner_u.person_id
+    ", where, "
     ORDER BY e.id DESC
-  ")
+  "))
 }
 
 get_organisations <- function(base_path) {
@@ -662,30 +893,56 @@ get_organisations <- function(base_path) {
 
 insert_organisation <- function(data, base_path) {
   conn <- get_conn(base_path)
-  tryCatch({
-    dbExecute(conn, "
-      INSERT INTO organisation_tbl (
-        organisation_name_full,
-        organisation_name_short,
-        organisation_code,
-        organisation_address
-      )
-      VALUES (?, ?, ?, ?)
-    ", params = list(
+  on.exit(dbDisconnect(conn), add = TRUE)
+  dbExecute(conn, "
+    INSERT INTO organisation_tbl (
+      organisation_name_full,
+      organisation_name_short,
+      organisation_code,
+      organisation_department,
+      organisation_address
+    )
+    VALUES (?, ?, ?, ?, ?)
+  ", params = list(
       data$full,
       data$short,
       data$code,
+      data$department %||% NA_character_,
       data$address
-    ))
-    dbDisconnect(conn)
-    TRUE
-  }, error = function(e) {
-    dbDisconnect(conn)
-    if (grepl("UNIQUE constraint failed", e$message)) {
-      return("duplicate_code")
-    }
-    stop(e)
-  })
+  ))
+  TRUE
+}
+
+update_organisation <- function(
+  organisation_id,
+  data,
+  base_path
+) {
+  conn <- get_conn(base_path)
+  on.exit(dbDisconnect(conn), add = TRUE)
+
+  dbExecute(
+    conn,
+    "
+    UPDATE organisation_tbl
+    SET
+      organisation_name_full = ?,
+      organisation_name_short = ?,
+      organisation_code = ?,
+      organisation_department = ?,
+      organisation_address = ?
+    WHERE id = ?
+    ",
+    params = list(
+      data$full,
+      data$short,
+      data$code,
+      data$department %||% NA_character_,
+      data$address,
+      as.integer(organisation_id)
+    )
+  )
+  TRUE
 }
 
 ensure_person_unique_indexes <- function(conn) {
@@ -752,23 +1009,72 @@ sync_persons_to_db <- function(person_dt, base_path) {
     role_title <- as.character(
       person_dt$role_title[i] %||% NA_character_
     )
+    phone_number <- as.character(
+      person_dt$phone_number[i] %||% NA_character_
+    )
     organisation_code <- trimws(
       as.character(
         person_dt$organisation_code[i] %||% ""
       )
     )
+    organisation_department <- if (
+      "organisation_department" %in% names(person_dt)
+    ) {
+      person_dt$organisation_department[i]
+    } else if (
+      "department" %in% names(person_dt)
+    ) {
+      person_dt$department[i]
+    } else {
+      NA_character_
+    }
+    organisation_department <- trimws(
+      as.character(organisation_department)
+    )
+    if (
+      length(organisation_department) == 0L ||
+      is.na(organisation_department)
+    ) {
+      organisation_department <- ""
+    }
     org_id <- NA_integer_
     if (nzchar(organisation_code)) {
-      org_result <- DBI::dbGetQuery(
-        conn,
-        "
-        SELECT id
-        FROM organisation_tbl
-        WHERE organisation_code = ?
-        LIMIT 1
-        ",
-        params = list(organisation_code)
-      )
+      if (nzchar(organisation_department)) {
+        org_result <- DBI::dbGetQuery(
+          conn,
+          "
+          SELECT id
+          FROM organisation_tbl
+          WHERE organisation_code = ?
+            AND TRIM(COALESCE(organisation_department, '')) = ?
+          ORDER BY id
+          LIMIT 1
+          ",
+          params = list(
+            organisation_code,
+            organisation_department
+          )
+        )
+      } else {
+        org_result <- DBI::dbGetQuery(
+          conn,
+          "
+          SELECT id
+          FROM organisation_tbl
+          WHERE organisation_code = ?
+          ORDER BY
+            CASE
+              WHEN organisation_department IS NULL
+                OR TRIM(organisation_department) = ''
+              THEN 0
+              ELSE 1
+            END,
+            id
+          LIMIT 1
+          ",
+          params = list(organisation_code)
+        )
+      }
       if (nrow(org_result) > 0) {
         org_id <- as.integer(org_result$id[1])
       }
@@ -815,6 +1121,7 @@ sync_persons_to_db <- function(person_dt, base_path) {
           name_last = ?,
           email = ?,
           role_title = ?,
+          phone_number = ?,
           organisation_id = ?
         WHERE id = ?
         ",
@@ -823,6 +1130,7 @@ sync_persons_to_db <- function(person_dt, base_path) {
           last_name,
           if (nzchar(email)) email else NA_character_,
           role_title,
+          phone_number,
           org_id,
           person_id
         )
@@ -836,15 +1144,17 @@ sync_persons_to_db <- function(person_dt, base_path) {
           name_last,
           email,
           role_title,
+          phone_number,
           organisation_id
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         ",
         params = list(
           first_name,
           last_name,
           if (nzchar(email)) email else NA_character_,
           role_title,
+          phone_number,
           org_id
         )
       )
@@ -897,10 +1207,14 @@ get_persons <- function(base_path) {
       p.id,
       p.name_first,
       p.name_last,
+      p.email,
+      p.role_title,
+      p.phone_number,
       p.organisation_id,
       o.organisation_name_full,
       o.organisation_name_short,
-      o.organisation_code
+      o.organisation_code,
+      o.organisation_department AS department
     FROM persons_tbl p
     LEFT JOIN organisation_tbl o ON p.organisation_id = o.id
     ORDER BY p.name_last, p.name_first
@@ -910,11 +1224,19 @@ get_persons <- function(base_path) {
 insert_person <- function(data, base_path) {
   conn <- get_conn(base_path)
   dbExecute(conn, "
-    INSERT INTO persons_tbl (name_first, name_last, organisation_id)
-    VALUES (?, ?, ?)
+    INSERT INTO persons_tbl (
+      name_first,
+      name_last,
+      email,
+      phone_number,
+      organisation_id
+    )
+    VALUES (?, ?, ?, ?, ?)
   ", params = list(
     data$first,
     data$last,
+    data$email %||% NA_character_,
+    data$phone_number %||% NA_character_,
     data$org_id
   ))
   id <- dbGetQuery(conn, "SELECT last_insert_rowid() as id")$id
@@ -927,11 +1249,18 @@ update_person <- function(person_id, data, base_path) {
   on.exit(dbDisconnect(conn), add = TRUE)
   dbExecute(conn, "
     UPDATE persons_tbl
-    SET name_first = ?, name_last = ?, organisation_id = ?
+    SET
+      name_first = ?,
+      name_last = ?,
+      email = ?,
+      phone_number = ?,
+      organisation_id = ?
     WHERE id = ?
   ", params = list(
     data$first,
     data$last,
+    data$email %||% NA_character_,
+    data$phone_number %||% NA_character_,
     data$org_id,
     person_id
   ))
@@ -1020,21 +1349,35 @@ get_person_choices <- function(base_path) {
 
 
 # insert the point of contact into the database
-insert_poc <- function(dataset_id, person_id, role, base_path) {
+insert_poc <- function(
+  dataset_id,
+  person_id,
+  role,
+  base_path,
+  organisation_id = NA_integer_
+) {
   conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_columns(
+    conn,
+    "poc_tbl",
+    fields = "organisation_id",
+    types = c(organisation_id = "INTEGER")
+  )
   dbExecute(conn, "
-    INSERT INTO poc_tbl (dataset_id, person_id, role)
-    VALUES (?, ?, ?)
+    INSERT INTO poc_tbl (dataset_id, person_id, organisation_id, role)
+    VALUES (?, ?, ?, ?)
   ", params = list(
     dataset_id,
     person_id,
+    organisation_id,
     role
   ))
-  dbDisconnect(conn)
 }
 
 insert_dataset_org <- function(dataset_id, org_id, role, base_path) {
   conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
   dbExecute(conn, "
     INSERT INTO dataset_organisation_tbl (dataset_id, organisation_id, role)
     VALUES (?, ?, ?)
@@ -1043,7 +1386,6 @@ insert_dataset_org <- function(dataset_id, org_id, role, base_path) {
     org_id,
     role
   ))
-  dbDisconnect(conn)
 }
 
 # function to add missing columns to existing tables
@@ -1332,35 +1674,82 @@ sync_organisations_to_db <- function(
     conn,
     {
       for (i in seq_len(nrow(org_dt))) {
-        DBI::dbExecute(
+        department <- if (
+          "department" %in% names(org_dt)
+        ) {
+          org_dt$department[i]
+        } else if (
+          "organisation_department" %in% names(org_dt)
+        ) {
+          org_dt$organisation_department[i]
+        } else {
+          NA_character_
+        }
+        department <- trimws(
+          as.character(department)
+        )
+        if (length(department) == 0L || is.na(department)) {
+          department <- ""
+        }
+
+        existing <- DBI::dbGetQuery(
           conn,
           "
-          INSERT INTO organisation_tbl (
-            organisation_name_full,
-            organisation_name_short,
-            organisation_code,
-            organisation_address
-          )
-          VALUES (?, ?, ?, ?)
-
-          ON CONFLICT(organisation_code)
-          DO UPDATE SET
-            organisation_name_full =
-              excluded.organisation_name_full,
-
-            organisation_name_short =
-              excluded.organisation_name_short,
-
-            organisation_address =
-              excluded.organisation_address
+          SELECT id
+          FROM organisation_tbl
+          WHERE organisation_code = ?
+            AND COALESCE(TRIM(organisation_department), '') = ?
+          ORDER BY id
+          LIMIT 1
           ",
           params = list(
-            org_dt$full[i],
-            org_dt$short[i],
             org_dt$code[i],
-            org_dt$address[i]
+            department
           )
         )
+
+        if (nrow(existing) > 0L) {
+          DBI::dbExecute(
+            conn,
+            "
+            UPDATE organisation_tbl
+            SET
+              organisation_name_full = ?,
+              organisation_name_short = ?,
+              organisation_department = COALESCE(NULLIF(?, ''), organisation_department),
+              organisation_address = ?
+            WHERE id = ?
+            ",
+            params = list(
+              org_dt$full[i],
+              org_dt$short[i],
+              department,
+              org_dt$address[i],
+              existing$id[1]
+            )
+          )
+        } else {
+          DBI::dbExecute(
+            conn,
+            "
+            INSERT INTO organisation_tbl (
+              organisation_name_full,
+              organisation_name_short,
+              organisation_code,
+              organisation_department,
+              organisation_address
+            )
+            VALUES (?, ?, ?, ?, ?)
+            ",
+            params = list(
+              org_dt$full[i],
+              org_dt$short[i],
+              org_dt$code[i],
+              if (nzchar(department)) department else NA_character_,
+              org_dt$address[i]
+            )
+          )
+        }
       }
     }
   )
@@ -1435,6 +1824,164 @@ assert_admin_user <- function(user_id, base_path) {
   if (!is_user_admin(user_id, base_path)) {
     stop("Administrator privileges are required.")
   }
+
+  invisible(TRUE)
+}
+
+
+dataset_record_permissions <- function(dataset_id, user_id, base_path) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_record_control_columns(conn)
+
+  record <- DBI::dbGetQuery(
+    conn,
+    "
+    SELECT created_by_user_id, COALESCE(is_hidden, 0) AS is_hidden,
+           deleted_at
+    FROM entry_tbl
+    WHERE id = ?
+    LIMIT 1
+    ",
+    params = list(as.integer(dataset_id))
+  )
+  if (nrow(record) == 0L) {
+    return(list(exists = FALSE, is_owner = FALSE, is_admin = FALSE,
+                can_manage = FALSE))
+  }
+
+  user_id <- suppressWarnings(as.integer(user_id[1] %||% NA_integer_))
+  admin <- is_user_admin(user_id, base_path)
+  owner <- !is.na(user_id) &&
+    !is.na(record$created_by_user_id[1]) &&
+    identical(user_id, as.integer(record$created_by_user_id[1]))
+
+  list(
+    exists = TRUE,
+    is_owner = owner,
+    is_admin = admin,
+    can_manage = owner || admin,
+    is_hidden = identical(as.integer(record$is_hidden[1]), 1L),
+    is_deleted = !is.na(record$deleted_at[1]) &&
+      nzchar(trimws(as.character(record$deleted_at[1])))
+  )
+}
+
+
+assert_dataset_record_manager <- function(dataset_id, user_id, base_path) {
+  permissions <- dataset_record_permissions(dataset_id, user_id, base_path)
+  if (!isTRUE(permissions$exists)) {
+    stop("Dataset record not found.")
+  }
+  if (!isTRUE(permissions$can_manage)) {
+    stop("Only the record owner or an administrator may perform this action.")
+  }
+  invisible(permissions)
+}
+
+
+set_dataset_hidden <- function(dataset_id, hidden, user_id, base_path) {
+  assert_dataset_record_manager(dataset_id, user_id, base_path)
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_record_control_columns(conn)
+
+  DBI::dbExecute(
+    conn,
+    "
+    UPDATE entry_tbl
+    SET is_hidden = ?,
+        hidden_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END,
+        hidden_by_user_id = CASE WHEN ? = 1 THEN ? ELSE NULL END
+    WHERE id = ?
+    ",
+    params = list(
+      as.integer(isTRUE(hidden)),
+      as.integer(isTRUE(hidden)),
+      as.integer(isTRUE(hidden)),
+      as.integer(user_id),
+      as.integer(dataset_id)
+    )
+  )
+  invisible(TRUE)
+}
+
+
+soft_delete_dataset_record <- function(dataset_id, user_id, base_path) {
+  assert_dataset_record_manager(dataset_id, user_id, base_path)
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_record_control_columns(conn)
+  DBI::dbExecute(
+    conn,
+    "
+    UPDATE entry_tbl
+    SET deleted_at = CURRENT_TIMESTAMP,
+        deleted_by_user_id = ?,
+        is_hidden = 1
+    WHERE id = ?
+    ",
+    params = list(as.integer(user_id), as.integer(dataset_id))
+  )
+  invisible(TRUE)
+}
+
+
+restore_dataset_record <- function(dataset_id, user_id, base_path) {
+  assert_dataset_record_manager(dataset_id, user_id, base_path)
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  DBI::dbExecute(
+    conn,
+    "
+    UPDATE entry_tbl
+    SET deleted_at = NULL,
+        deleted_by_user_id = NULL,
+        is_hidden = 0,
+        hidden_at = NULL,
+        hidden_by_user_id = NULL
+    WHERE id = ?
+    ",
+    params = list(as.integer(dataset_id))
+  )
+  invisible(TRUE)
+}
+
+
+hard_delete_dataset_record <- function(dataset_id, user_id, base_path) {
+  assert_admin_user(user_id, base_path)
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(conn, "PRAGMA defer_foreign_keys = ON")
+
+    for (table in setdiff(DBI::dbListTables(conn), "entry_tbl")) {
+      fields <- DBI::dbListFields(conn, table)
+      if (!"dataset_id" %in% fields) {
+        next
+      }
+      sql <- paste(
+        "DELETE FROM",
+        DBI::dbQuoteIdentifier(conn, table),
+        "WHERE dataset_id = ?"
+      )
+      DBI::dbExecute(conn, sql, params = list(as.integer(dataset_id)))
+    }
+
+    if ("source_dataset_id" %in% DBI::dbListFields(conn, "entry_tbl")) {
+      DBI::dbExecute(
+        conn,
+        "UPDATE entry_tbl SET source_dataset_id = NULL WHERE source_dataset_id = ?",
+        params = list(as.integer(dataset_id))
+      )
+    }
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM entry_tbl WHERE id = ?",
+      params = list(as.integer(dataset_id))
+    )
+  })
 
   invisible(TRUE)
 }
@@ -3356,10 +3903,52 @@ ensure_supporting_document_table <- function(conn) {
       missing_since TEXT,
       classified_at TEXT,
       classified_by_person_id INTEGER,
+      reviewed_at TEXT,
+      reviewed_by_person_id INTEGER,
       FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
-      FOREIGN KEY (classified_by_person_id) REFERENCES persons_tbl(id)
+      FOREIGN KEY (classified_by_person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (reviewed_by_person_id) REFERENCES persons_tbl(id)
     )
   ")
+
+  ensure_columns(
+    conn,
+    "supporting_document_tbl",
+    fields = c(
+      "document_type_user_set",
+      "classified_at",
+      "classified_by_person_id",
+      "reviewed_at",
+      "reviewed_by_person_id"
+    ),
+    types = c(
+      document_type_user_set = "INTEGER DEFAULT 0",
+      classified_at = "TEXT",
+      classified_by_person_id = "INTEGER",
+      reviewed_at = "TEXT",
+      reviewed_by_person_id = "INTEGER"
+    )
+  )
+
+  # A legacy user override was necessarily an explicit review. Automatic
+  # classifications are deliberately left unreviewed for one-pass approval.
+  DBI::dbExecute(
+    conn,
+    "
+    UPDATE supporting_document_tbl
+    SET
+      reviewed_at = COALESCE(
+        classified_at,
+        last_seen_at,
+        first_seen_at,
+        datetime('now')
+      ),
+      reviewed_by_person_id = classified_by_person_id
+    WHERE document_type_user_set = 1
+      AND reviewed_at IS NULL
+    "
+  )
+
   dbExecute(conn, "
     CREATE UNIQUE INDEX IF NOT EXISTS idx_supporting_doc_dataset_relpath
     ON supporting_document_tbl(dataset_id, document_rel_path)
@@ -3406,7 +3995,9 @@ update_supporting_document <- function(
       include_in_metadata = ?,
       notes = ?,
       classified_at = ?,
-      classified_by_person_id = ?
+      classified_by_person_id = ?,
+      reviewed_at = ?,
+      reviewed_by_person_id = ?
     WHERE id = ?
     ",
     params = list(
@@ -3425,11 +4016,53 @@ update_supporting_document <- function(
       data$notes,
       now,
       user_person_id,
+      now,
+      user_person_id,
       as.integer(doc_id)
     )
   )
 
   invisible(TRUE)
+}
+
+accept_supporting_document_defaults <- function(
+  dataset_id,
+  base_path,
+  user_person_id = NA_integer_
+) {
+  if (
+    is.null(dataset_id) ||
+    length(dataset_id) == 0L ||
+    is.na(dataset_id[1])
+  ) {
+    stop("dataset_id is required.")
+  }
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+
+  reviewed <- DBI::dbExecute(
+    conn,
+    "
+    UPDATE supporting_document_tbl
+    SET
+      reviewed_at = ?,
+      reviewed_by_person_id = ?
+    WHERE dataset_id = ?
+      AND active = 1
+      AND COALESCE(document_type_user_set, 0) = 0
+      AND reviewed_at IS NULL
+    ",
+    params = list(
+      now,
+      user_person_id,
+      as.integer(dataset_id[1])
+    )
+  )
+
+  as.integer(reviewed)
 }
 
 supporting_document_type_choices <- c(
@@ -3482,14 +4115,17 @@ upsert_supporting_document <- function(dataset_id, row, class, base_path, user_p
       last_seen_at,
       missing_since,
       classified_at,
-      classified_by_person_id
+      classified_by_person_id,
+      reviewed_at,
+      reviewed_by_person_id
     )
     VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
       0, NULL,
       ?, ?, ?,
-      ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?,
+      NULL, NULL
     )
     ON CONFLICT(dataset_id, document_rel_path)
     DO UPDATE SET
@@ -3527,6 +4163,24 @@ upsert_supporting_document <- function(dataset_id, row, class, base_path, user_p
         WHEN supporting_document_tbl.document_type_user_set = 1
         THEN supporting_document_tbl.classified_by_person_id
         ELSE excluded.classified_by_person_id
+      END,
+
+      reviewed_at = CASE
+        WHEN supporting_document_tbl.document_type_user_set = 1
+        THEN supporting_document_tbl.reviewed_at
+        WHEN COALESCE(supporting_document_tbl.document_type_auto_code, '') <>
+             COALESCE(excluded.document_type_auto_code, '')
+        THEN NULL
+        ELSE supporting_document_tbl.reviewed_at
+      END,
+
+      reviewed_by_person_id = CASE
+        WHEN supporting_document_tbl.document_type_user_set = 1
+        THEN supporting_document_tbl.reviewed_by_person_id
+        WHEN COALESCE(supporting_document_tbl.document_type_auto_code, '') <>
+             COALESCE(excluded.document_type_auto_code, '')
+        THEN NULL
+        ELSE supporting_document_tbl.reviewed_by_person_id
       END
   ", params = list(
     dataset_id,
@@ -3623,9 +4277,11 @@ get_supporting_documents <- function(dataset_id, base_path, active_only = TRUE) 
   sql <- paste0("
     SELECT
       sd.*,
-      p.name_first || ' ' || p.name_last AS classified_by_name
+      p.name_first || ' ' || p.name_last AS classified_by_name,
+      reviewer.name_first || ' ' || reviewer.name_last AS reviewed_by_name
     FROM supporting_document_tbl sd
     LEFT JOIN persons_tbl p ON sd.classified_by_person_id = p.id
+    LEFT JOIN persons_tbl reviewer ON sd.reviewed_by_person_id = reviewer.id
     WHERE sd.dataset_id = ?
       ", where_active, "
     ORDER BY
@@ -3889,17 +4545,28 @@ get_dataset_poc_links <- function(dataset_id, base_path) {
 
   conn <- get_conn(base_path)
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_columns(
+    conn,
+    "poc_tbl",
+    fields = "organisation_id",
+    types = c(organisation_id = "INTEGER")
+  )
 
   DBI::dbGetQuery(conn, "
     SELECT
       poc.dataset_id,
       poc.person_id,
+      poc.organisation_id,
       poc.role,
       p.name_first,
       p.name_last,
-      p.name_first || ' ' || p.name_last AS name
+      p.name_first || ' ' || p.name_last AS name,
+      o.organisation_name_full,
+      o.organisation_name_short,
+      o.organisation_department
     FROM poc_tbl poc
     LEFT JOIN persons_tbl p ON poc.person_id = p.id
+    LEFT JOIN organisation_tbl o ON poc.organisation_id = o.id
     WHERE poc.dataset_id = ?
     ORDER BY poc.id
   ", params = list(dataset_id))
@@ -3921,6 +4588,7 @@ get_dataset_org_links <- function(dataset_id, base_path) {
       o.organisation_name_full,
       o.organisation_name_short,
       o.organisation_code,
+      o.organisation_department,
       o.organisation_address
     FROM dataset_organisation_tbl dorg
     LEFT JOIN organisation_tbl o ON dorg.organisation_id = o.id

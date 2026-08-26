@@ -5,12 +5,27 @@ mod_poc_ui <- function(id) {
     selectInput(
       ns("poc_person"),
       "Select Contact Person",
-      choices = NULL
+      choices = c("No individual contact" = "")
+    ),
+    selectizeInput(
+      ns("poc_organisation"),
+      "Point of contact organisation",
+      choices = c("No organisation contact" = ""),
+      options = list(
+        placeholder = "Select an owning organisation..."
+      )
+    ),
+    tags$small(
+      style = "display:block; color:#666; margin-bottom:10px;",
+      paste(
+        "Organisation choices come from the owning organisations in Dataset Intro.",
+        "The organisation contact is stored independently of the person contact."
+      )
     ),
     selectInput(
       ns("poc_role"),
       "Role",
-      choices = c("custodian", "owner", "distributor", "author")
+      choices = dataset_organisation_role_choices()
     ),
     actionButton(ns("add_poc"), "Add POC"),
     actionButton(ns("remove_poc"), "Remove last"),
@@ -18,11 +33,13 @@ mod_poc_ui <- function(id) {
   )
 }
 
-mod_poc_server <- function(id, state) {
+mod_poc_server <- function(id, state, organisation_rows = NULL) {
   moduleServer(id, function(input, output, session) {
     poc_list <- reactiveVal(data.frame(
       id = integer(),
       name = character(),
+      organisation_id = integer(),
+      organisation = character(),
       role = character(),
       stringsAsFactors = FALSE
     ))
@@ -42,17 +59,80 @@ mod_poc_server <- function(id, state) {
       updateSelectInput(
         session,
         "poc_person",
-        choices = persons_choices()
+        choices = c(
+          "No individual contact" = "",
+          persons_choices()
+        )
+      )
+    })
+
+    owning_org_choices <- reactive({
+      if (is.null(organisation_rows)) {
+        return(character())
+      }
+      df <- organisation_rows()
+      if (is.null(df) || nrow(df) == 0L) {
+        return(character())
+      }
+      labels <- ifelse(
+        !is.na(df$short) & nzchar(df$short),
+        df$short,
+        df$name
+      )
+      department <- trimws(as.character(df$department))
+      labels[!is.na(department) & nzchar(department)] <- paste0(
+        labels[!is.na(department) & nzchar(department)],
+        " \u2014 ",
+        department[!is.na(department) & nzchar(department)]
+      )
+      setNames(as.character(df$id), labels)
+    })
+
+    observe({
+      updateSelectizeInput(
+        session,
+        "poc_organisation",
+        choices = c(
+          "No organisation contact" = "",
+          owning_org_choices()
+        ),
+        server = FALSE
       )
     })
 
     # add POC
     observeEvent(input$add_poc, {
-      req(input$poc_person, input$poc_role)
+      req(input$poc_role)
+      optional_integer <- function(x) {
+        if (is.null(x) || length(x) == 0L || is.na(x[1]) || !nzchar(x[1])) {
+          return(NA_integer_)
+        }
+        suppressWarnings(as.integer(x[1]))
+      }
+      person_id <- optional_integer(input$poc_person)
+      organisation_id <- optional_integer(input$poc_organisation)
+      if (is.na(person_id) && is.na(organisation_id)) {
+        showNotification(
+          "Select a contact person, an owning organisation, or both.",
+          type = "warning"
+        )
+        return()
+      }
       choices <- persons_choices()
+      org_choices <- owning_org_choices()
       new <- data.frame(
-        id = as.integer(input$poc_person),
-        name = names(choices)[choices == input$poc_person],
+        id = person_id,
+        name = if (is.na(person_id)) {
+          ""
+        } else {
+          names(choices)[choices == input$poc_person][1]
+        },
+        organisation_id = organisation_id,
+        organisation = if (is.na(organisation_id)) {
+          ""
+        } else {
+          names(org_choices)[org_choices == input$poc_organisation][1]
+        },
         role = input$poc_role,
         stringsAsFactors = FALSE
       )
@@ -70,13 +150,15 @@ mod_poc_server <- function(id, state) {
     output$poc_table <- renderTable({
       df <- poc_list()
       if (nrow(df) == 0) return(NULL)
-      df[, c("name", "role")]
+      df[, c("name", "organisation", "role")]
     })
     # expose to main app
     clear_poc <- function() {
       poc_list(data.frame(
         id = integer(),
         name = character(),
+        organisation_id = integer(),
+        organisation = character(),
         role = character(),
         stringsAsFactors = FALSE
       ))
@@ -95,7 +177,22 @@ mod_poc_server <- function(id, state) {
       }
       poc_list(data.frame(
         id = as.integer(df$person_id),
-        name = df$name,
+        name = ifelse(is.na(df$name), "", df$name),
+        organisation_id = as.integer(df$organisation_id),
+        organisation = ifelse(
+          is.na(df$organisation_name_short),
+          "",
+          ifelse(
+            is.na(df$organisation_department) |
+              !nzchar(df$organisation_department),
+            df$organisation_name_short,
+            paste0(
+              df$organisation_name_short,
+              " \u2014 ",
+              df$organisation_department
+            )
+          )
+        ),
         role = df$role,
         stringsAsFactors = FALSE
       ))

@@ -55,7 +55,11 @@ mod_lineage_ui <- function(id) {
       ),
       selected = "draft"
     ),
-    actionButton(ns("save_lineage"), "Save lineage"),
+    actionButton(
+      ns("save_lineage"),
+      "Save lineage",
+      class = "datapond-requires-active-user"
+    ),
     br(),
     br(),
     h4("Current saved lineage"),
@@ -127,6 +131,13 @@ mod_lineage_server <- function(id, state) {
     }, ignoreInit = FALSE)
 
     observeEvent(input$save_lineage, {
+      if (!require_active_user_for_write(
+        state,
+        "saving dataset lineage"
+      )) {
+        return()
+      }
+
       req(state$current_dataset_id)
 
       if (is.null(input$lineage_statement) ||

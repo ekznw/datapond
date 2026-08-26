@@ -622,7 +622,8 @@ mod_licensing_ui <- function(id) {
 
         shiny::actionButton(
           ns("save_licensing"),
-          "Save sharing assessment"
+          "Save sharing assessment",
+          class = "datapond-requires-active-user"
         ),
 
         shiny::tags$small(
@@ -3583,6 +3584,13 @@ mod_licensing_server <- function(
       shiny::observeEvent(
         input$save_licensing,
         {
+          if (!require_active_user_for_write(
+            state,
+            "saving the sharing assessment"
+          )) {
+            return()
+          }
+
           tryCatch(
             {
               result <- save(

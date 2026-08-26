@@ -1,43 +1,47 @@
-full,short,address,code
-Ezemvelo KwaZulu-Natal Wildlife,Ezemvelo KZN Wildlife,Pietermaritzburg ZA,EKZNW
-Endangered Wildlife Trust,Endangered Wildlife Trust,Johannesburg ZA,EWT
-South African Environmental Observation Network,SAEON,Pretoria ZA,SAEON
-South African National Biodiversity Institute,SANBI,Pretoria ZA,SANBI
-South African National Parks,SANParks,Pretoria ZA,SANParks
-iSimangaliso Wetland Park Authority,iSimangaliso,St Lucia ZA,ISIMANGALISO
-Department of Forestry Fisheries and the Environment,DFFE,Pretoria ZA,DFFE
-Department of Agriculture Land Reform and Rural Development,DALRRD,Pretoria ZA,DALRRD
-Department of Water and Sanitation,DWS,Pretoria ZA,DWS
-Chief Directorate National Geo-Spatial Information,NGI,Mowbray Cape Town ZA,NGI
-South African Spatial Data Infrastructure,SASDI,Pretoria ZA,SASDI
-Council for Scientific and Industrial Research,CSIR,Pretoria ZA,CSIR
-South African National Space Agency,SANSA,Pretoria ZA,SANSA
-South African Institute for Aquatic Biodiversity,SAIAB,Makhanda ZA,SAIAB
-Council for Geoscience,CGS,Pretoria ZA,CGS
-Agricultural Research Council,ARC,Pretoria ZA,ARC
-KwaZulu-Natal Department of Economic Development Tourism and Environmental Affairs,KZN EDTEA,Pietermaritzburg ZA,KZNEDTEA
-Eastern Cape Parks and Tourism Agency,ECPTA,East London ZA,ECPTA
-Mpumalanga Tourism and Parks Agency,MTPA,Nelspruit ZA,MTPA
-Limpopo Department of Economic Development Environment and Tourism,LEDET,Polokwane ZA,LEDET
-Western Cape Nature Conservation Board,CapeNature,Cape Town ZA,CAPENATURE
-Free State Department of Economic Small Business Development Tourism and Environmental Affairs,Free State DESTEA,Bloemfontein ZA,DESTEA
-Northern Cape Department of Environment and Nature Conservation,Northern Cape DENC,Kimberley ZA,NCDENC
-North West Department of Economic Development Environment Conservation and Tourism,North West DEDECT,Mahikeng ZA,NWDEDECT
-Gauteng Department of Agriculture and Rural Development,Gauteng DARD,Johannesburg ZA,GDARD
-eThekwini Metropolitan Municipality,eThekwini Municipality,Durban ZA,ETHEKWINI
-City of Cape Town,City of Cape Town,Cape Town ZA,COCT
-BirdLife South Africa,BirdLife South Africa,Johannesburg ZA,BIRDLIFE
-World Wide Fund for Nature South Africa,WWF South Africa,Cape Town ZA,WWF
-Wildlife and Environment Society of South Africa,WESSA,Johannesburg ZA,WESSA
-Peace Parks Foundation,Peace Parks Foundation,Stellenbosch ZA,PPF
-African Parks Network,African Parks,Johannesburg ZA,APN
-Conservation South Africa,Conservation South Africa,South Africa,CSA
-The Nature Conservancy,The Nature Conservancy,International,TNC
-GeoTerra Image Proprietary Limited,GeoTerra,Cape Town ZA,GEOTERRA
-Environmental Systems Research Institute South Africa,Esri South Africa,Midrand ZA,ESRI
-AfriGIS Proprietary Limited,AfriGIS,Pretoria ZA,AFRIGIS
-Institute of Natural Resources,Institute of Natural Resources,Hilton ZA,INR
-Ground Truth Consulting (Proprietary) Limited,Ground Truth,Durban ZA,GROUNDTRUTH
-Ecopulse Proprietary Limited,Ecopulse,Hilton ZA,ECOPULSE
-University of KwaZulu-Natal,University of KwaZulu-Natal,Pietermaritzburg ZA,UKZN
-Water Research Commission,Water Research Commission, Pretoria ZA,WRC
+full,short,department,address,code
+African Parks Network,African Parks,,Johannesburg ZA,APN
+AfriGIS Proprietary Limited,AfriGIS,,Pretoria ZA,AFRIGIS
+Agricultural Research Council,ARC,,Pretoria ZA,ARC
+BirdLife South Africa,BirdLife South Africa,,Johannesburg ZA,BIRDLIFE
+Chief Directorate National Geo-Spatial Information,NGI,,Mowbray Cape Town ZA,NGI
+City of Cape Town,City of Cape Town,,Cape Town ZA,COCT
+Conservation South Africa,Conservation South Africa,,South Africa,CSA
+Council for Geoscience,CGS,,Pretoria ZA,CGS
+Council for Scientific and Industrial Research,CSIR,,Pretoria ZA,CSIR
+Department of Agriculture Land Reform and Rural Development,DALRRD,,Pretoria ZA,DALRRD
+Department of Forestry Fisheries and the Environment,DFFE,,Pretoria ZA,DFFE
+Department of Water and Sanitation,DWS,,Pretoria ZA,DWS
+Eastern Cape Parks and Tourism Agency,ECPTA,,East London ZA,ECPTA
+Ecopulse Proprietary Limited,Ecopulse,,Hilton ZA,ECOPULSE
+Endangered Wildlife Trust,Endangered Wildlife Trust,,Johannesburg ZA,EWT
+Environmental Systems Research Institute South Africa,Esri South Africa,,Midrand ZA,ESRI
+Ezemvelo KwaZulu-Natal Wildlife,Ezemvelo KZN Wildlife,,Pietermaritzburg ZA,EKZNW
+Freshwater Consultancy Group,FCG,,Cape Town ZA,FCG
+Free State Department of Economic Small Business Development Tourism and Environmental Affairs,Free State DESTEA,,Bloemfontein ZA,DESTEA
+GeoTerra Image Proprietary Limited,GeoTerra,,Cape Town ZA,GEOTERRA
+Gauteng Department of Agriculture and Rural Development,Gauteng DARD,,Johannesburg ZA,GDARD
+Ground Truth Consulting (Proprietary) Limited,Ground Truth,,Durban ZA,GROUNDTRUTH
+Institute of Natural Resources,Institute of Natural Resources,,Hilton ZA,INR
+Inland Waters,Inland Waters,,Durban ZA,INLANDWATERS
+Limpopo Department of Economic Development Environment and Tourism,LEDET,,Polokwane ZA,LEDET
+Mpumalanga Tourism and Parks Agency,MTPA,,Nelspruit ZA,MTPA
+North West Department of Economic Development Environment Conservation and Tourism,North West DEDECT,,Mahikeng ZA,NWDEDECT
+Northern Cape Department of Environment and Nature Conservation,Northern Cape DENC,,Kimberley ZA,NCDENC
+Peace Parks Foundation,Peace Parks Foundation,,Stellenbosch ZA,PPF
+Scherman Environmental cc.,Scherman Environmental cc.,,Makhanda ZA,SCHERMANENV
+South African Environmental Observation Network,SAEON,,Pretoria ZA,SAEON
+South African Institute for Aquatic Biodiversity,SAIAB,,Makhanda ZA,SAIAB
+South African National Biodiversity Institute,SANBI,,Pretoria ZA,SANBI
+South African National Parks,SANParks,,Pretoria ZA,SANParks
+South African National Space Agency,SANSA,,Pretoria ZA,SANSA
+South African Spatial Data Infrastructure,SASDI,,Pretoria ZA,SASDI
+Stellenbosch University,Stellenbosch University,,Stellenbosch ZA,SU
+The Nature Conservancy,The Nature Conservancy,,International,TNC
+University of KwaZulu-Natal,University of KwaZulu-Natal,,Pietermaritzburg ZA,UKZN
+University of the Western Cape,University of the Western Cape,,Cape Town ZA,UWC
+Water Research Commission,Water Research Commission,,Pretoria ZA,WRC
+Western Cape Nature Conservation Board,CapeNature,,Cape Town ZA,CAPENATURE
+Wildlife and Environment Society of South Africa,WESSA,,Johannesburg ZA,WESSA
+World Wide Fund for Nature South Africa,WWF South Africa,,Cape Town ZA,WWF
+eThekwini Metropolitan Municipality,eThekwini Municipality,,Durban ZA,ETHEKWINI
+iSimangaliso Wetland Park Authority,iSimangaliso,,St Lucia ZA,ISIMANGALISO

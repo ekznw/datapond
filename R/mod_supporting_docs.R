@@ -8,11 +8,25 @@ mod_supporting_documents_ui <- function(id) {
       "Scans the dataset folder outside data/. Documents in docs/, scripts/ and the dataset root can be listed and classified."
     ),
     br(),
-    actionButton(ns("scan_docs"), "Scan supporting documents"),
+    actionButton(
+      ns("scan_docs"),
+      "Scan supporting documents",
+      class = "datapond-requires-active-user"
+    ),
     br(),
     br(),
     h4("Detected supporting documents"),
     DT::DTOutput(ns("tbl_documents")),
+    actionButton(
+      ns("accept_default_types"),
+      "Accept all default document types",
+      class = "datapond-requires-active-user"
+    ),
+    tags$small(
+      style = "color:#666; display:block; margin-top:5px;",
+      "Marks all active, automatically classified documents as reviewed. Notes and individual overrides can still be saved below."
+    ),
+    br(),
     h4("Edit document classification"),
     selectInput(ns("doc_select"), "Select document", choices = NULL),
     selectInput(
@@ -24,7 +38,11 @@ mod_supporting_documents_ui <- function(id) {
     checkboxInput(ns("include_in_lineage"), "Include in lineage", value = FALSE),
     checkboxInput(ns("include_in_metadata"), "Include in metadata record", value = TRUE),
     textAreaInput(ns("notes"), "Notes"),
-    actionButton(ns("save_doc_edit"), "Save document classification & notes")
+    actionButton(
+      ns("save_doc_edit"),
+      "Save document classification & notes",
+      class = "datapond-requires-active-user"
+    )
   )
 }
 
@@ -53,7 +71,9 @@ mod_supporting_documents_server <- function(id, state) {
         include_in_metadata = 0L,
         notes = NA_character_,
         active = 1L,
-        classified_by_name = NA_character_
+        classified_by_name = NA_character_,
+        reviewed_at = NA_character_,
+        reviewed_by_name = NA_character_
       )
 
       for (column_name in names(required_columns)) {
@@ -101,6 +121,23 @@ mod_supporting_documents_server <- function(id, state) {
         ,
         classified_by_name :=
           clean_text(classified_by_name)
+      ]
+
+      docs[
+        ,
+        reviewed_by_name :=
+          clean_text(reviewed_by_name)
+      ]
+
+      docs[
+        ,
+        review_status :=
+          data.table::fifelse(
+            !is.na(reviewed_at) &
+              nzchar(trimws(as.character(reviewed_at))),
+            "Reviewed",
+            "Needs review"
+          )
       ]
 
       docs[
@@ -162,6 +199,7 @@ mod_supporting_documents_server <- function(id, state) {
           document_type = document_type_label,
           automatic_classification =
             document_type_auto_text,
+          review_status,
           classification_source,
           override_reason,
           notes,
@@ -170,13 +208,20 @@ mod_supporting_documents_server <- function(id, state) {
           include_in_metadata =
             include_in_metadata_label,
           status = active_label,
-          classified_by =
-            classified_by_name
+          reviewed_by =
+            reviewed_by_name
         )
       ]
     }
 
     observeEvent(input$scan_docs, {
+      if (!require_active_user_for_write(
+        state,
+        "scanning supporting documents"
+      )) {
+        return()
+      }
+
       if (is.null(state$current_dataset_id) ||
           length(state$current_dataset_id) == 0 ||
           is.na(state$current_dataset_id)) {
@@ -272,6 +317,54 @@ mod_supporting_documents_server <- function(id, state) {
       }
     })
 
+    observeEvent(input$accept_default_types, {
+      if (!require_active_user_for_write(
+        state,
+        "reviewing supporting-document defaults"
+      )) {
+        return()
+      }
+
+      req(state$current_dataset_id)
+      req(state$data_pond)
+
+      users <- get_users(state$data_pond)
+      user <- users[
+        as.character(users$id) == as.character(state$active_user_id),
+        ,
+        drop = FALSE
+      ]
+      user_person_id <- if (nrow(user) > 0L) {
+        as.integer(user$person_id[1])
+      } else {
+        NA_integer_
+      }
+
+      reviewed <- accept_supporting_document_defaults(
+        dataset_id = state$current_dataset_id,
+        base_path = state$data_pond,
+        user_person_id = user_person_id
+      )
+
+      state$refresh_supporting_docs <-
+        state$refresh_supporting_docs + 1L
+
+      showNotification(
+        if (reviewed == 0L) {
+          "All default document types were already reviewed."
+        } else if (reviewed == 1L) {
+          "Accepted the default type for 1 supporting document."
+        } else {
+          paste(
+            "Accepted the default types for",
+            reviewed,
+            "supporting documents."
+          )
+        },
+        type = "message"
+      )
+    })
+
     observe({
       df <- docs()
       if (is.null(df) || nrow(df) == 0) {
@@ -361,6 +454,13 @@ mod_supporting_documents_server <- function(id, state) {
     }, ignoreInit = TRUE)
 
     observeEvent(input$save_doc_edit, {
+      if (!require_active_user_for_write(
+        state,
+        "saving supporting-document metadata"
+      )) {
+        return()
+      }
+
       req(input$doc_select)
       req(state$data_pond)
 
@@ -629,13 +729,29 @@ mod_supporting_documents_server <- function(id, state) {
           "Relative path",
           "Document type",
           "Automatic classification",
+          "Review",
           "Classification",
           "Override reason",
           "Notes",
           "Lineage",
           "Metadata",
           "Status",
-          "Classified by"
+          "Reviewed by"
+        )
+      )
+
+      tbl <- DT::formatStyle(
+        tbl,
+        columns = "review_status",
+        backgroundColor = DT::styleEqual(
+          c(
+            "Reviewed",
+            "Needs review"
+          ),
+          c(
+            "#D1DDC7",
+            "#E9DFB5"
+          )
         )
       )
 

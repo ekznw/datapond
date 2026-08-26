@@ -18,6 +18,12 @@ friendly_field_labels <- function() {
     authors = "Authors",
     author_names = "Authors",
     organisation_name = "Organisation",
+    organisation_name_short = "Organisation",
+    organisation_code = "Organisation code",
+    organisation_department = "Department",
+    department = "Department",
+    email = "Email",
+    phone_number = "Phone number",
 
     dataset_path = "Dataset folder",
     data_path = "Data folder",

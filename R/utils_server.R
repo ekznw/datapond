@@ -56,6 +56,48 @@ validate_required <- function(dt, input) {
   missing
 }
 
+
+has_active_user_id <- function(user_id) {
+  !is.null(user_id) &&
+    length(user_id) == 1L &&
+    !is.na(user_id[1]) &&
+    nzchar(trimws(as.character(user_id[1])))
+}
+
+
+require_active_user_for_write <- function(
+  state,
+  action = "making changes"
+) {
+  if (has_active_user_id(state$active_user_id)) {
+    return(TRUE)
+  }
+
+  shiny::showNotification(
+    paste(
+      "Select an active application user in the configuration panel before",
+      paste0(action, ".")
+    ),
+    type = "warning",
+    duration = 8
+  )
+
+  FALSE
+}
+
+
+default_metadata_reviewer_user_id <- function(users, active_user_id = NULL) {
+  if (
+    is.null(users) || nrow(as.data.frame(users)) == 0L ||
+      is.null(active_user_id) || length(active_user_id) == 0L ||
+      is.na(active_user_id[1]) ||
+      !as.character(active_user_id[1]) %in% as.character(users$id)
+  ) {
+    return("")
+  }
+  as.character(active_user_id[1])
+}
+
 # helper functions for citation and citation key generator
 extract_first_keyword <- function(x) {
   if (is.null(x) || x == "") return(NULL)
@@ -456,6 +498,90 @@ citation_text_value <- function(x, default = "") {
   x[1]
 }
 
+
+organisation_field_value <- function(
+  org_df,
+  fields,
+  default = ""
+) {
+  if (
+    is.null(org_df) ||
+    nrow(as.data.frame(org_df)) == 0L
+  ) {
+    return(default)
+  }
+
+  org_df <- as.data.frame(
+    org_df,
+    stringsAsFactors = FALSE
+  )
+
+  for (field in fields) {
+    if (field %in% names(org_df)) {
+      value <- citation_text_value(
+        org_df[[field]],
+        default = ""
+      )
+
+      if (nzchar(value)) {
+        return(value)
+      }
+    }
+  }
+
+  default
+}
+
+
+organisation_citation_affiliation <- function(org_df) {
+  if (
+    is.null(org_df) ||
+    nrow(as.data.frame(org_df)) == 0L
+  ) {
+    return("")
+  }
+
+  org_df <- as.data.frame(
+    org_df,
+    stringsAsFactors = FALSE
+  )[1, , drop = FALSE]
+
+  organisation <- organisation_field_value(
+    org_df,
+    c(
+      "name",
+      "organisation_name_full",
+      "organisation_name",
+      "short",
+      "organisation_name_short"
+    )
+  )
+  department <- organisation_field_value(
+    org_df,
+    c("department", "organisation_department")
+  )
+  address <- organisation_field_value(
+    org_df,
+    c("address", "organisation_address")
+  )
+
+  # Do not repeat the organisation name unless an affiliation or address
+  # component is available to add to the citation.
+  if (!nzchar(department) && !nzchar(address)) {
+    return("")
+  }
+
+  parts <- c(
+    organisation,
+    department,
+    address
+  )
+  parts <- parts[nzchar(parts)]
+  parts <- parts[!duplicated(tolower(parts))]
+
+  paste(parts, collapse = ", ")
+}
+
 format_citation_person <- function(
   first_name,
   last_name
@@ -829,25 +955,18 @@ generate_citation <- function(
     "."
   )
 
-  # Primary organisation address ----
-  if (
-    !is.null(org_df) &&
-    nrow(org_df) > 0L &&
-    "address" %in% names(org_df)
-  ) {
-    primary_address <- citation_text_value(
-      org_df$address,
-      default = ""
-    )
+  # Primary organisation, department and address ----
+  affiliation <- organisation_citation_affiliation(
+    org_df
+  )
 
-    if (nzchar(primary_address)) {
-      citation <- paste0(
-        citation,
-        " ",
-        primary_address,
-        "."
-      )
-    }
+  if (nzchar(affiliation)) {
+    citation <- paste0(
+      citation,
+      " ",
+      affiliation,
+      "."
+    )
   }
 
   citation
@@ -1523,7 +1642,8 @@ create_dataset_folder_structure <- function(
     "docs",
     "scripts"
   ),
-  citation_key = NULL
+  citation_key = NULL,
+  data_pond_id = NULL
 ) {
   base_path <- folder_key_text(
     base_path,
@@ -1606,6 +1726,16 @@ create_dataset_folder_structure <- function(
       showWarnings = FALSE
     )
   }
+
+  data_pond_id <- folder_key_text(
+    data_pond_id,
+    default = ensure_data_pond_id(base_path)
+  )
+  write_dataset_marker(
+    dataset_path = dataset_path,
+    dataset_uuid = uuid,
+    data_pond_id = data_pond_id
+  )
 
   list(
     folder_key = folder_key,

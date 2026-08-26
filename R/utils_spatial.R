@@ -1674,172 +1674,198 @@ normalise_spatial_note <- function(x) {
   txt
 }
 
-extract_gdb_metadata <- function(path, format_label) {
-  path <- normalizePath(path, mustWork = FALSE, winslash = "/")
-  if (!dir.exists(path) && !file.exists(path)) {
-    return(data.table::data.table(
-      file_path = path,
-      data_file_format = format_label,
-      spatial_status = "no_layers_readable",
-      spatial_type = "vector_container",
-      layer_name = NA_character_,
-      crs_authority = NA_character_,
-      crs_code = NA_character_,
-      crs_auth_code = NA_character_,
-      epsg_code = NA_character_,
-      crs_name = NA_character_,
-      crs_input = NA_character_,
-      bbox_native = NA_character_,
-      bbox_order = "xmin; ymin; xmax; ymax",
-      geometry_type = NA_character_,
-      feature_count = NA_integer_,
-      raster_nrow = NA_integer_,
-      raster_ncol = NA_integer_,
-      raster_nlyr = NA_integer_,
-      raster_res_x = NA_real_,
-      raster_res_y = NA_real_,
-      spatial_note = "No readable layers found in file geodatabase."
-    ))
+normalise_vector_layer_names <- function(x) {
+  if (is.null(x)) {
+    return(character())
   }
-  # First try to list layers.
+
+  if (is.data.frame(x)) {
+    name_column <- intersect(
+      c("name", "layer_name", "layer"),
+      names(x)
+    )
+    if (length(name_column) == 0L) {
+      return(character())
+    }
+    x <- x[[name_column[[1L]]]]
+  } else if (is.list(x) && !is.null(x$name)) {
+    x <- x$name
+  }
+
+  x <- trimws(as.character(x))
+  unique(x[!is.na(x) & nzchar(x)])
+}
+
+
+vector_container_layers <- function(path) {
+  messages <- character()
   layers <- character()
-  if (requireNamespace("sf", quietly = TRUE)) {
+
+  if (
+    requireNamespace("terra", quietly = TRUE) &&
+      "vector_layers" %in% getNamespaceExports("terra")
+  ) {
     layers <- tryCatch(
-      {
-        x <- sf::st_layers(path)
-        as.character(x$name)
-      },
-      error = function(e) character()
+      normalise_vector_layer_names(
+        terra::vector_layers(path)
+      ),
+      error = function(e) {
+        messages <<- c(
+          messages,
+          paste("terra::vector_layers:", conditionMessage(e))
+        )
+        character()
+      }
     )
   }
-  # If no layer list is available, try terra::vect(path) directly.
-  # This matches your known working pattern.
-  if (length(layers) == 0) {
-    terra_res <- tryCatch(
-      {
-        extract_vector_metadata_terra(
-          path = path,
-          format_label = format_label,
-          layer = NULL
+
+  if (length(layers) == 0L && requireNamespace("sf", quietly = TRUE)) {
+    layers <- tryCatch(
+      normalise_vector_layer_names(sf::st_layers(path)),
+      error = function(e) {
+        messages <<- c(
+          messages,
+          paste("sf::st_layers:", conditionMessage(e))
         )
-      },
-      error = function(e) NULL
+        character()
+      }
     )
-    if (!is.null(terra_res)) {
-      terra_res[, spatial_note := paste(
-        spatial_note %||% "",
-        "Read file geodatabase directly with terra::vect(path)."
-      )]
-      return(terra_res[])
-    }
-    sf_res <- tryCatch(
-      {
-        extract_vector_metadata_sf(
-          path = path,
-          format_label = format_label,
-          layer = NULL
-        )
-      },
-      error = function(e) NULL
-    )
-    if (!is.null(sf_res)) {
-      sf_res[, spatial_note := paste(
-        spatial_note %||% "",
-        "Read file geodatabase directly with sf::st_read(path)."
-      )]
-      return(sf_res[])
-    }
-    return(data.table::data.table(
-      file_path = path,
-      data_file_format = format_label,
-      spatial_status = "no_layers_readable",
-      spatial_type = "vector_container",
-      layer_name = NA_character_,
-      crs_authority = NA_character_,
-      crs_code = NA_character_,
-      crs_auth_code = NA_character_,
-      epsg_code = NA_character_,
-      crs_name = NA_character_,
-      crs_input = NA_character_,
-      bbox_native = NA_character_,
-      bbox_order = "xmin; ymin; xmax; ymax",
-      geometry_type = NA_character_,
-      feature_count = NA_integer_,
-      raster_nrow = NA_integer_,
-      raster_ncol = NA_integer_,
-      raster_nlyr = NA_integer_,
-      raster_res_x = NA_real_,
-      raster_res_y = NA_real_,
-      spatial_note = "No readable layers found in file geodatabase."
+  }
+
+  list(
+    layers = layers,
+    messages = unique(messages)
+  )
+}
+
+
+is_known_multilayer_vector_container <- function(path, format_label = NULL) {
+  identical(format_label, "esri_file_geodatabase") ||
+    grepl("\\.(gdb|gpkg)$", path, ignore.case = TRUE)
+}
+
+
+vector_container_status_row <- function(
+  path,
+  format_label,
+  status,
+  note,
+  layer = NA_character_
+) {
+  data.table::data.table(
+    file_path = path,
+    data_file_format = format_label,
+    spatial_status = status,
+    spatial_type = "vector_container",
+    layer_name = layer,
+    crs_authority = NA_character_,
+    crs_code = NA_character_,
+    crs_auth_code = NA_character_,
+    epsg_code = NA_character_,
+    crs_name = NA_character_,
+    crs_input = NA_character_,
+    bbox_native = NA_character_,
+    bbox_order = "xmin; ymin; xmax; ymax",
+    geometry_type = NA_character_,
+    feature_count = NA_integer_,
+    raster_nrow = NA_integer_,
+    raster_ncol = NA_integer_,
+    raster_nlyr = NA_integer_,
+    raster_res_x = NA_real_,
+    raster_res_y = NA_real_,
+    spatial_note = note
+  )
+}
+
+
+extract_vector_container_metadata <- function(path, format_label) {
+  path <- normalizePath(path, mustWork = FALSE, winslash = "/")
+  known_container <- is_known_multilayer_vector_container(
+    path,
+    format_label
+  )
+
+  if (!dir.exists(path) && !file.exists(path)) {
+    msg <- paste("Vector data path does not exist:", path)
+    warning(msg, call. = FALSE)
+    return(vector_container_status_row(
+      path,
+      format_label,
+      "no_layers_readable",
+      msg
     ))
   }
-  # Read each layer and extract real CRS/geometry metadata.
-  out <- data.table::rbindlist(
-    lapply(layers, function(layer_i) {
-      terra_res <- tryCatch(
-        {
-          extract_vector_metadata_terra(
-            path = path,
-            format_label = format_label,
-            layer = layer_i
-          )
-        },
-        error = function(e) NULL
-      )
-      if (!is.null(terra_res) &&
-          "spatial_status" %in% names(terra_res) &&
-          any(terra_res$spatial_status == "ok", na.rm = TRUE)) {
-        terra_res[, layer_name := layer_i]
-        terra_res[, spatial_note := paste(
-          spatial_note %||% "",
-          "Layer read with terra::vect(path, layer = layer)."
-        )]
-        return(terra_res[])
+
+  layer_info <- vector_container_layers(path)
+  layers <- layer_info$layers
+
+  # Keep the established direct-read path for ordinary, single-layer files.
+  # Known containers and any source exposing multiple layers are always read
+  # one named layer at a time.
+  if (!known_container && length(layers) <= 1L) {
+    return(extract_vector_metadata(path, format_label, layer = NULL))
+  }
+
+  if (length(layers) == 0L) {
+    details <- paste(layer_info$messages, collapse = " | ")
+    msg <- paste0(
+      "No readable vector layers found in container: ",
+      path,
+      if (nzchar(details)) paste0(" (", details, ")") else ""
+    )
+    warning(msg, call. = FALSE)
+    return(vector_container_status_row(
+      path,
+      format_label,
+      "no_layers_readable",
+      msg
+    ))
+  }
+
+  out <- lapply(layers, function(layer_i) {
+    result <- tryCatch(
+      extract_vector_metadata(
+        path = path,
+        format_label = format_label,
+        layer = layer_i
+      ),
+      error = function(e) {
+        vector_container_status_row(
+          path,
+          format_label,
+          paste("error:", conditionMessage(e)),
+          paste("Could not read vector layer:", layer_i),
+          layer = layer_i
+        )
       }
-      sf_res <- tryCatch(
-        {
-          extract_vector_metadata_sf(
-            path = path,
-            format_label = format_label,
-            layer = layer_i
-          )
-        },
-        error = function(e) {
-          data.table::data.table(
-            file_path = path,
-            data_file_format = format_label,
-            spatial_status = paste("error:", conditionMessage(e)),
-            spatial_type = "vector_container",
-            layer_name = layer_i,
-            crs_authority = NA_character_,
-            crs_code = NA_character_,
-            crs_auth_code = NA_character_,
-            epsg_code = NA_character_,
-            crs_name = NA_character_,
-            crs_input = NA_character_,
-            bbox_native = NA_character_,
-            bbox_order = "xmin; ymin; xmax; ymax",
-            geometry_type = NA_character_,
-            feature_count = NA_integer_,
-            raster_nrow = NA_integer_,
-            raster_ncol = NA_integer_,
-            raster_nlyr = NA_integer_,
-            raster_res_x = NA_real_,
-            raster_res_y = NA_real_,
-            spatial_note = paste("Could not read layer:", layer_i)
-          )
-        }
+    )
+
+    result[, layer_name := layer_i]
+    readable <- "spatial_status" %in% names(result) &&
+      any(result$spatial_status == "ok", na.rm = TRUE)
+
+    if (!readable) {
+      warning(
+        paste0(
+          "Could not extract spatial metadata for layer '",
+          layer_i,
+          "' in ",
+          path,
+          "."
+        ),
+        call. = FALSE
       )
-      sf_res[, layer_name := layer_i]
-      sf_res[, spatial_note := paste(
-        spatial_note %||% "",
-        "Layer read with sf::st_read(path, layer = layer) fallback."
-      )]
-      sf_res[]
-    }),
-    fill = TRUE
-  )
-  out[]
+    }
+
+    result[]
+  })
+
+  data.table::rbindlist(out, fill = TRUE)
+}
+
+
+extract_gdb_metadata <- function(path, format_label) {
+  extract_vector_container_metadata(path, format_label)
 }
 
 read_terra_vector_safely <- function(path, layer = NULL) {
@@ -1874,7 +1900,7 @@ extract_spatial_metadata_one <- function(file_path, data_file_format) {
       return(extract_raster_metadata(file_path, data_file_format))
     }
     if (data_file_format == "vector") {
-      return(extract_vector_metadata(file_path, data_file_format))
+      return(extract_vector_container_metadata(file_path, data_file_format))
     }
     if (data_file_format == "esri_file_geodatabase") {
       return(extract_gdb_metadata(file_path, data_file_format))

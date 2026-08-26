@@ -604,6 +604,113 @@ attach_inventory_scan_metadata <- function(
   inventory
 }
 
+
+is_atomic_inventory_container <- function(path) {
+  grepl(
+    "\\.gdb$",
+    sub("/+$", "", as.character(path)),
+    ignore.case = TRUE
+  )
+}
+
+
+list_inventory_paths_atomic <- function(scan_root) {
+  scan_root <- normalise_inventory_path(scan_root)
+
+  if (is.na(scan_root) || !dir.exists(scan_root)) {
+    return(character())
+  }
+
+  # A directory-backed GDAL dataset is one inventory item, including when
+  # the selected scan root is itself the container.
+  if (is_atomic_inventory_container(scan_root)) {
+    return(scan_root)
+  }
+
+  pending <- scan_root
+  visited <- character()
+  found <- character()
+
+  while (length(pending) > 0L) {
+    current <- pending[[1L]]
+    pending <- pending[-1L]
+    current_key <- normalizePath(
+      current,
+      winslash = "/",
+      mustWork = FALSE
+    )
+
+    if (current_key %in% visited) {
+      next
+    }
+    visited <- c(visited, current_key)
+
+    children <- list.files(
+      current,
+      full.names = TRUE,
+      recursive = FALSE,
+      all.files = FALSE,
+      no.. = TRUE
+    )
+
+    if (length(children) == 0L) {
+      next
+    }
+
+    child_info <- file.info(children)
+    usable <- !is.na(child_info$isdir)
+    children <- children[usable]
+    child_info <- child_info[usable, , drop = FALSE]
+
+    atomic_dirs <- child_info$isdir &
+      is_atomic_inventory_container(children)
+    ordinary_dirs <- child_info$isdir & !atomic_dirs
+
+    found <- c(
+      found,
+      children[!child_info$isdir | atomic_dirs]
+    )
+    pending <- c(pending, children[ordinary_dirs])
+  }
+
+  unique(found)
+}
+
+
+inventory_scan_local_atomic <- function(scan_root) {
+  scan_root <- normalise_inventory_path(scan_root)
+  paths <- list_inventory_paths_atomic(scan_root)
+
+  if (length(paths) == 0L) {
+    return(data.table::data.table())
+  }
+
+  # When the selected root is a .gdb, use its parent as the inventory mount
+  # so that the container still has a meaningful relative path.
+  mount <- if (
+    length(paths) == 1L &&
+      identical(paths[[1L]], scan_root) &&
+      is_atomic_inventory_container(scan_root)
+  ) {
+    dirname(scan_root)
+  } else {
+    scan_root
+  }
+
+  info <- file.info(paths)
+  raw <- data.table::data.table(
+    mount = mount,
+    path = inventory_relative_path(paths, mount),
+    name = basename(paths),
+    size = as.numeric(info$size),
+    modtime = info$mtime,
+    isdir = as.logical(info$isdir)
+  )
+
+  classified <- ekznwr::inventory_classify(raw)
+  ekznwr::inventory_enrich_groups(classified)
+}
+
 scan_dataset_files <- function(
   data_dir,
   excluded_dir_names =
@@ -698,10 +805,7 @@ scan_dataset_files <- function(
 
   raw_inventory <- tryCatch(
     {
-      ekznwr::inventory_scan_local(
-        scan_root,
-        enrich = TRUE
-      )
+      inventory_scan_local_atomic(scan_root)
     },
     error = function(e) {
       data.table::data.table(
