@@ -30,19 +30,21 @@ organisation_select_choices <- function(df) {
 
 dataset_organisation_role_choices <- function() {
   c(
-    "Owner" = "owner",
-    "Custodian" = "custodian",
-    "Publisher" = "publisher",
-    "Distributor" = "distributor"
+    "Owner \u2014 accountable for the dataset and decisions about its use" = "owner",
+    "Custodian \u2014 manages, maintains and safeguards the working data" = "custodian",
+    "Publisher \u2014 formally issues or releases the dataset or version" = "publisher",
+    "Distributor \u2014 provides access, delivery or copies to users" = "distributor"
   )
 }
 
 
 dataset_organisation_role_descriptor <- function() {
   paste(
-    "Owner: accountable owner; Custodian: manages and maintains the data;",
-    "Publisher: formally issues the dataset; Distributor: provides access",
-    "or copies. These roles describe data responsibilities, not app permissions."
+    "Choose every role that applies to the organisation.",
+    "Owner is accountable for the dataset and use decisions; Custodian handles",
+    "day-to-day maintenance and safeguarding; Publisher formally releases a",
+    "dataset or version; Distributor supplies access or copies.",
+    "These are data-responsibility roles, not app permissions."
   )
 }
 

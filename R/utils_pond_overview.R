@@ -434,6 +434,26 @@ filter_pond_overview_data <- function(overview, search_text = NULL) {
 }
 
 
+pond_overview_author_label <- function(authors) {
+  vapply(
+    authors,
+    function(value) {
+      if (is.null(value) || length(value) == 0L || is.na(value[1])) {
+        return(NA_character_)
+      }
+      value <- trimws(as.character(value[1]))
+      if (!nzchar(value)) return(NA_character_)
+      names <- trimws(strsplit(value, ",", fixed = TRUE)[[1]])
+      names <- names[nzchar(names)]
+      if (length(names) == 0L) return(NA_character_)
+      if (length(names) == 1L) names[1] else paste(names[1], "et al.")
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
+
 pond_overview_inventory_display <- function(overview) {
   overview <- data.table::as.data.table(
     data.table::copy(overview)
@@ -445,7 +465,7 @@ pond_overview_inventory_display <- function(overview) {
       `Dataset ID` = id,
       `Overview class` = overview_class,
       Title = display_title,
-      Authors = authors,
+      Authors = pond_overview_author_label(authors),
       `Lifecycle status` = lifecycle_label,
       `Metadata readiness` = metadata_readiness,
       `Next action` = next_action,
@@ -455,4 +475,56 @@ pond_overview_inventory_display <- function(overview) {
       Organisations = organisations
     )
   ]
+}
+
+
+pond_overview_responsive_column_defs <- function() {
+  list(
+    list(
+      visible = FALSE,
+      targets = c(0L, 1L)
+    ),
+    list(
+      className = "all",
+      responsivePriority = 1L,
+      width = "300px",
+      targets = 2L
+    ),
+    list(
+      className = "all",
+      responsivePriority = 2L,
+      width = "190px",
+      targets = 3L
+    ),
+    list(
+      className = "all",
+      responsivePriority = 3L,
+      width = "110px",
+      targets = 9L
+    ),
+    list(responsivePriority = 4L, targets = 4L),
+    list(responsivePriority = 5L, targets = 5L),
+    list(responsivePriority = 6L, targets = 6L),
+    list(responsivePriority = 7L, targets = 8L),
+    list(responsivePriority = 8L, targets = 10L),
+    list(responsivePriority = 9L, targets = 7L)
+  )
+}
+
+
+pond_overview_responsive_table_options <- function() {
+  list(
+    pageLength = 15L,
+    scrollX = FALSE,
+    autoWidth = FALSE,
+    dom = "Bfrtip",
+    buttons = c("copy", "csv"),
+    responsive = list(details = FALSE),
+    columnDefs = pond_overview_responsive_column_defs()
+  )
+}
+
+
+pond_overview_table_extensions <- function() {
+  c("Buttons", "Responsive")
 }

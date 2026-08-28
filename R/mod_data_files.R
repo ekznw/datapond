@@ -524,6 +524,30 @@ data_files_attributes_ui <- function(ns) {
           margin: -3px 0 8px 0;
         }
 
+        .datapond-attribute-table-pane .dataTables_wrapper,
+        .datapond-attribute-table-pane table.dataTable {
+          font-size: 11px;
+        }
+
+        .datapond-attribute-table-pane table.dataTable thead th,
+        .datapond-attribute-table-pane table.dataTable thead td {
+          font-size: 10.5px;
+          line-height: 1.2;
+          padding: 5px 7px;
+          white-space: nowrap;
+        }
+
+        .datapond-attribute-table-pane table.dataTable tbody td {
+          line-height: 1.25;
+          padding: 4px 7px;
+        }
+
+        .datapond-attribute-table-pane .dataTables_filter input,
+        .datapond-attribute-table-pane thead input {
+          font-size: 11px;
+          padding: 3px 5px;
+        }
+
         @media (max-width: 991px) {
           .datapond-attribute-workspace {
             grid-template-columns: minmax(0, 1fr);
@@ -1755,6 +1779,8 @@ mod_data_files_server <- function(id, state) {
       )
 
       if (isTRUE(is_message_table)) {
+        names(df) <- "Message"
+
         return(
           DT::datatable(
             df,
@@ -1794,6 +1820,12 @@ mod_data_files_server <- function(id, state) {
           )
         )
       }
+
+      names(df) <- make.unique(
+        friendly_field_label(
+          names(df)
+        )
+      )
 
       DT::datatable(
         df,
@@ -6512,6 +6544,15 @@ mod_data_files_server <- function(id, state) {
 
       tbl
     })
+
+    observeEvent(input$data_files_section, {
+      if (identical(input$data_files_section, "attributes")) {
+        session$sendCustomMessage(
+          type = "hideDatapondSidePanels",
+          message = list()
+        )
+      }
+    }, ignoreInit = TRUE)
 
     # let the attribute table be used for attribute selection
     observeEvent(

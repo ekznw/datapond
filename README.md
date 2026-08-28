@@ -31,11 +31,51 @@ The implemented application supports:
 - vector and raster metadata inspection;
 - attribute and raster-layer profiling;
 - manual and derived spatial extents;
-- metadata completeness and lifecycle dashboards; and
-- metadata review history.
+- metadata completeness and lifecycle dashboards;
+- metadata review history;
+- portable dataset ZIP bundles with dataset-only SQLite metadata; and
+- drag-and-drop dataset import with source user and Data Pond provenance;
+- named, read-only connections to additional local Data Ponds; and
+- cross-pond duplicate advisories for source and archive records.
 
 Immutable versioned ZIP releases and portable XML, Markdown, and PDF metadata
 exports are planned but are not yet implemented.
+
+Portable working-dataset transfer is implemented separately from immutable
+release packaging. A selected dataset can be compressed from the **Dataset
+transfer** tab. The ZIP is written inside that dataset's folder and can be
+dragged onto the same tab in another Data Pond. The receiving pond creates a
+new local record and folder, retains the original dataset UUID and records the
+source numeric dataset/user IDs and source Data Pond UUID in
+`dataset_import_tbl`. Existing UUIDs or destination folders are never
+overwritten.
+
+Bundle uploads default to a 2 GiB request limit. For larger compressed
+datasets, set a higher byte limit before starting the app, for example:
+
+```r
+options(datapond.max_bundle_size = 10 * 1024^3)
+datapond::run_data_pond()
+```
+
+### Connected Data Ponds
+
+Additional existing ponds can be connected from the configuration panel and
+given a nickname / repository name. Their visible dataset records appear in a
+read-only table on **Pond overview**. Selecting a connected record does not load
+it into the metadata forms: use **Switch to selected dataset's pond** first,
+then select an active user in that pond before editing.
+
+Connected catalogue reads query only `entry_tbl` in each `metadata.db`; they do
+not scan dataset files or calculate spatial metadata. Results are cached using
+the database modification time and file size and can be refreshed manually.
+This keeps the normal overview responsive when several ponds are connected.
+
+Cross-pond duplicates are matched by stable dataset UUID where possible, with
+citation key and folder key as fallbacks for older records. Duplicate working
+copies found only in `dev/` are shown as tolerated. A duplicate group containing
+any `src/` or `arc/` record is highlighted with a prompt to switch ponds and
+resolve which record is authoritative.
 
 ## Installation
 

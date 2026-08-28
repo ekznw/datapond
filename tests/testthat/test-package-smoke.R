@@ -69,6 +69,31 @@ test_that("collapsing configuration allows the main panel to use full width", {
   expect_match(html, "mainPanel.classList.add('col-sm-9')", fixed = TRUE)
 })
 
+test_that("pond configuration uses the compact side-panel layout", {
+  config_html <- as.character(datapond:::config_panel_ui())
+  app_html <- as.character(datapond:::ui)
+
+  expect_match(
+    config_html,
+    'class="dataset-guide pond-config-guide"',
+    fixed = TRUE
+  )
+  expect_match(config_html, 'id="hide_config_panel"', fixed = TRUE)
+  expect_match(config_html, "pond-config-intro-card", fixed = TRUE)
+  expect_match(config_html, "config-action-stack", fixed = TRUE)
+  expect_match(config_html, "Active pond", fixed = TRUE)
+  expect_match(config_html, ">Configuration<", fixed = TRUE)
+  expect_false(grepl('<details class="config-help" open', config_html, fixed = TRUE))
+
+  expect_match(app_html, ".pond-config-guide pre", fixed = TRUE)
+  expect_match(app_html, "max-height: 120px", fixed = TRUE)
+  expect_match(app_html, ".pond-config-guide .config-action-stack", fixed = TRUE)
+
+  server_source <- paste(deparse(body(datapond:::server)), collapse = "\n")
+  expect_match(server_source, "input$hide_config_panel", fixed = TRUE)
+  expect_match(server_source, "toggle_config_panel", fixed = TRUE)
+})
+
 test_that("new ponds default dataset creation to the dev folder", {
   expect_identical(
     datapond:::default_pond_config()$dataset_parent_dir,

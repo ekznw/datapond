@@ -473,6 +473,7 @@ init_db <- function(base_path) {
   ensure_keyword_vocab_table(conn)
 
   ensure_data_pond_tables(conn)
+  ensure_dataset_import_table(conn)
   ensure_dataset_citation_key_column(conn)
   ensure_dataset_lifecycle_columns(conn)
   ensure_dataset_record_control_columns(conn)
@@ -601,6 +602,45 @@ init_db <- function(base_path) {
     "
   )
   TRUE
+}
+
+
+ensure_dataset_import_table <- function(conn) {
+  DBI::dbExecute(
+    conn,
+    "
+    CREATE TABLE IF NOT EXISTS dataset_import_tbl (
+      id INTEGER PRIMARY KEY,
+      dataset_id INTEGER NOT NULL,
+      source_dataset_uuid TEXT NOT NULL,
+      source_dataset_id INTEGER,
+      source_data_pond_id TEXT NOT NULL,
+      source_created_by_user_id INTEGER,
+      source_created_by_user_name TEXT,
+      source_exported_by_user_id INTEGER,
+      source_exported_by_user_name TEXT,
+      bundle_id TEXT NOT NULL UNIQUE,
+      bundle_format_version INTEGER NOT NULL,
+      source_dataset_folder TEXT,
+      archive_name TEXT,
+      exported_at TEXT,
+      imported_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      imported_by_user_id INTEGER,
+      FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
+      FOREIGN KEY (imported_by_user_id) REFERENCES user_tbl(id)
+    )
+    "
+  )
+
+  DBI::dbExecute(
+    conn,
+    "
+    CREATE INDEX IF NOT EXISTS idx_dataset_import_dataset
+    ON dataset_import_tbl(dataset_id)
+    "
+  )
+
+  invisible(TRUE)
 }
 
 get_dataset_authors <- function(

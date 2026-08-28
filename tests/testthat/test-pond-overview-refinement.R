@@ -20,11 +20,49 @@ test_that("pond search and selected location details surround the map", {
   expect_gt(search_position, 0L)
   expect_gt(map_position, search_position)
   expect_gt(detail_position, map_position)
+  expect_match(
+    html,
+    'id="refresh_pond_overview"',
+    fixed = TRUE
+  )
+  expect_match(
+    html,
+    "Clear the overview selection and refresh the dataset extent map",
+    fixed = TRUE
+  )
   expect_false(grepl(
     'id="current_dataset_folder"',
     html,
     fixed = TRUE
   ))
+})
+
+
+test_that("pond refresh clears only its selection and invalidates the map", {
+  server_source <- paste(
+    deparse(body(datapond:::server)),
+    collapse = "\n"
+  )
+
+  expect_match(
+    server_source,
+    "input$refresh_pond_overview",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "pond_overview_selection_cleared(TRUE)",
+    fixed = TRUE
+  )
+  expect_match(
+    server_source,
+    "pond_overview_map_refresh\\(pond_overview_map_refresh\\(\\)\\s*\\+\\s*1L\\)"
+  )
+  expect_match(
+    server_source,
+    "DT::selectRows(dataset_table_proxy, NULL)",
+    fixed = TRUE
+  )
 })
 
 
@@ -67,6 +105,75 @@ test_that("pond inventory omits location and visibility detail columns", {
     "Spatial extent",
     "Organisations"
   ) %in% names(display)))
+})
+
+
+test_that("pond inventory abbreviates multiple authors after the first", {
+  expect_identical(
+    datapond:::pond_overview_author_label(c(
+      "First Author",
+      "First Author, Second Author",
+      "First Author, Second Author, Third Author",
+      NA_character_,
+      ""
+    )),
+    c(
+      "First Author",
+      "First Author et al.",
+      "First Author et al.",
+      NA_character_,
+      NA_character_
+    )
+  )
+
+  overview <- data.table::data.table(
+    id = 1L,
+    overview_class = "Development metadata incomplete",
+    display_title = "Test dataset",
+    authors = "First Author, Second Author",
+    lifecycle_label = "Draft",
+    metadata_readiness = "Metadata incomplete",
+    next_action = "Complete metadata",
+    spatial_extent = "No valid bounding box",
+    version = "1.0.0",
+    citation_date = "2026",
+    organisations = "Example Org"
+  )
+  display <- datapond:::pond_overview_inventory_display(overview)
+  expect_identical(display$Authors, "First Author et al.")
+})
+
+
+test_that("pond inventory keeps title authors and date in the compact view", {
+  definitions <- datapond:::pond_overview_responsive_column_defs()
+  essential <- definitions[vapply(
+    definitions,
+    function(definition) identical(definition$className, "all"),
+    logical(1)
+  )]
+
+  expect_setequal(
+    vapply(essential, function(definition) definition$targets, integer(1)),
+    c(2L, 3L, 9L)
+  )
+  expect_identical(
+    vapply(essential, function(definition) definition$responsivePriority, integer(1)),
+    1:3
+  )
+  expect_identical(essential[[1]]$width, "300px")
+
+  options <- datapond:::pond_overview_responsive_table_options()
+  expect_false(options$scrollX)
+  expect_false(options$responsive$details)
+  expect_identical(options$columnDefs, definitions)
+  expect_identical(
+    datapond:::pond_overview_table_extensions(),
+    c("Buttons", "Responsive")
+  )
+
+  server_source <- paste(deparse(body(datapond:::server)), collapse = "\n")
+  expect_match(server_source, "pond_overview_responsive_table_options", fixed = TRUE)
+  expect_match(server_source, "pond_overview_table_extensions", fixed = TRUE)
 })
 
 
