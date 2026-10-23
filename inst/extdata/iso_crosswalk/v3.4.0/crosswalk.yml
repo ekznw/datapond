@@ -1,0 +1,1465 @@
+mappings:
+- id: MDB-001
+  source: entry_tbl.metadata_uuid
+  mapping: direct
+  target: mdb:MD_Metadata/mdb:metadataIdentifier/mcc:MD_Identifier/mcc:code
+  status: ready
+  rule: The metadata-record UUID is persisted independently from the resource UUID.
+- id: MDB-002
+  source: entry_tbl.metadata_resource_scope_code
+  mapping: direct
+  target: mdb:MD_Metadata/mdb:metadataScope/mdb:MD_MetadataScope/mdb:resourceScope/mcc:MD_ScopeCode
+  status: ready
+  rule: Emit the stored MD_ScopeCode and apply scope-conditional validation.
+- id: MDB-003
+  source: entry_tbl.metadata_language_code
+  mapping: direct
+  target: mdb:MD_Metadata/mdb:defaultLocale/lan:PT_Locale/lan:language/lan:LanguageCode
+  status: ready
+  rule: Existing records are migrated to the profile default 'eng'.
+- id: MDB-004
+  source: entry_tbl.metadata_character_encoding
+  mapping: direct
+  target: mdb:MD_Metadata/mdb:defaultLocale/lan:PT_Locale/lan:characterEncoding/lan:MD_CharacterSetCode
+  status: ready
+  rule: Existing records are migrated to the profile default 'utf8'.
+- id: MDB-005
+  source: entry_tbl.metadata_creation_date
+  mapping: transform
+  target: mdb:MD_Metadata/mdb:dateInfo/cit:CI_Date/cit:date
+  status: conditional
+  rule: Emit with sibling cit:dateType codeListValue='creation'. Use the explicit
+    metadata_creation_date when present; otherwise use the earliest recorded metadata_review_tbl.review_timestamp.
+    Preserve precision and any supplied timezone. Do not substitute a resource date,
+    migration time or export time. A date-only value remains gco:Date; the pinned
+    creation-date Schematron rule currently requires DateTime and its failure must
+    remain visible.
+- id: MDB-006
+  source: metadata_review_tbl.review_timestamp
+  mapping: transform
+  target: mdb:MD_Metadata/mdb:dateInfo/cit:CI_Date/cit:date
+  status: ready
+  rule: Emit the latest recorded review timestamp with sibling cit:dateType codeListValue='lastUpdate'.
+    Order zoned timestamps by instant; preserve each original offset. Unzoned application
+    timestamps remain unzoned; mixed zoned/unzoned review history needs resolution
+    before ordering.
+- id: MDB-007
+  source: constant:ISO-19115-1-profile
+  mapping: constant
+  target: mdb:MD_Metadata/mdb:metadataStandard/cit:CI_Citation
+  status: ready
+  rule: Emit title 'ISO 19115-1:2014 geographic metadata - DataPond profile' and edition
+    'DataPond crosswalk <version>' resolved from CURRENT.
+- id: CIT-001
+  source: entry_tbl.title
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:title
+  status: ready
+- id: CIT-002
+  source:
+  - dataset_citation_date_tbl.date_value
+  - dataset_citation_date_tbl.date_type_code
+  - dataset_citation_date_tbl.date_precision
+  - dataset_citation_date_tbl.date_note
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:date/cit:CI_Date/cit:date
+  status: ready
+  rule: Emit one CI_Date per ordered row. gco:Date permits year, year-month and calendar
+    date in the pinned schema; preserve that precision. Use gco:DateTime only for
+    a recorded timestamp and preserve its timezone. entry_tbl.citation_date mirrors
+    the first publication row for compatibility only. Preserve nonblank date_note
+    as labelled otherCitationDetails on the resource citation.
+- id: CIT-002-COMPAT
+  source: entry_tbl.citation_date
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:date/cit:CI_Date/cit:date
+  status: deprecated-fallback
+  rule: ensure_iso_profile_schema backfills a missing publication row from citation_date.
+    Export the canonical typed row once through CIT-002; no duplicate citation date.
+- id: MRI-TOPIC-001
+  source: dataset_topic_category_tbl.topic_category_code
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:topicCategory/mri:MD_TopicCategoryCode
+  status: conditional
+  rule: Repeat in sort_order for scopes that require geographic discovery; never infer
+    from entry_tbl.keyword_topic.
+- id: MDB-RESP-001
+  source:
+  - metadata_responsibility_tbl.person_id
+  - metadata_responsibility_tbl.organisation_id
+  - metadata_responsibility_tbl.role_code
+  - metadata_responsibility_tbl.is_primary
+  mapping: join
+  target: mdb:MD_Metadata/mdb:contact/cit:CI_Responsibility
+  status: ready
+  rule: Transform creator, maintainer, and pointOfContact application roles to profile-approved
+    CI_RoleCode values; emit primary responsibility first per role.
+- id: CIT-003
+  source: entry_tbl.version
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:edition
+  status: ready
+- id: CIT-004
+  source: entry_tbl.uuid
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:identifier/mcc:MD_Identifier/mcc:code
+  status: ready
+  rule: Primary persistent resource identifier.
+- id: CIT-005
+  source: entry_tbl.citation_key
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:identifier/mcc:MD_Identifier/mcc:code
+  status: ready
+  rule: Emit as an additional identifier with codeSpace='DataPond citation key'.
+- id: CIT-006
+  source: entry_tbl.citation
+  mapping: extension
+  target: DataPond:renderedCitation
+  status: extension
+  rule: A rendered citation is derived presentation text; do not duplicate it into
+    CI_Citation properties.
+- id: MRI-001
+  source: entry_tbl.abstract
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:abstract
+  status: ready
+- id: MRI-002
+  source: entry_tbl.purpose
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:purpose
+  status: ready
+- id: MRI-003
+  source: entry_tbl.dataset_credit
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:credit
+  status: ready
+- id: MRI-004
+  source: entry_tbl.data_complete_status
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:status/mcc:MD_ProgressCode
+  status: ready
+  rule: Map complete to completed and started to underDevelopment; accept published
+    MD_ProgressCode values with case/spacing normalization. Unmatched text creates
+    an unknown status nilReason and a labelled supplementalInformation value. Do not
+    infer progress from release/archive workflow states.
+- id: MRI-005
+  source: entry_tbl.update_frequency
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceAndUpdateFrequency/mmi:MD_MaintenanceFrequencyCode
+  status: conditional
+  rule: Map published codes and explicit aliases to MD_MaintenanceFrequencyCode. Unmatched
+    text uses code unknown plus the original wording in maintenanceNote. Blank frequency
+    omits resourceMaintenance; no schedule is inferred from review history.
+- id: MRI-006
+  source: entry_tbl.software_desc
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:supplementalInformation
+  status: deprecated-fallback
+  rule: When no structured process step has tool_software_reference, preserve nonblank
+    software_desc as labelled supplementalInformation. Do not infer a production step
+    from software text.
+- id: MRI-KW-001
+  source:
+  - entry_tbl.keyword_object
+  - entry_tbl.keyword_topic
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword
+  status: ready
+  rule: Merge legacy topic values into keyword_object, de-duplicate case-insensitively,
+    and emit one canonical keyword group with mri:type codeListValue='theme'.
+- id: MRI-KW-002
+  source: entry_tbl.keyword_discipline
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword
+  status: ready
+  rule: Emit a keyword group with mri:type codeListValue='discipline'.
+- id: MRI-KW-003
+  source: entry_tbl.keyword_topic
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword
+  status: deprecated-fallback
+  rule: Read only as a fallback for an unmigrated legacy record; merge its values
+    into MRI-KW-001 and never emit it as a separate keyword group.
+- id: MRI-KW-004
+  source: entry_tbl.keyword_geo
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword
+  status: ready
+  rule: Emit a keyword group with mri:type codeListValue='place'.
+- id: GEX-T-001
+  source: entry_tbl.temporal_coverage_start_date
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:temporalElement/gex:EX_TemporalExtent/gex:extent/gml:TimePeriod/gml:beginPosition
+  status: deprecated-fallback
+  rule: ensure_iso_wave2_schema backfills the first structured extent only when none
+    exists, preserving endpoint precision; a missing opposite endpoint becomes indeterminate
+    unknown. Export the canonical extent once through MRI-TEMP-003.
+- id: GEX-T-002
+  source: entry_tbl.temporal_coverage_end_date
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:temporalElement/gex:EX_TemporalExtent/gex:extent/gml:TimePeriod/gml:endPosition
+  status: deprecated-fallback
+  rule: ensure_iso_wave2_schema backfills the first structured extent only when none
+    exists, preserving endpoint precision; a missing opposite endpoint becomes indeterminate
+    unknown. Export the canonical extent once through MRI-TEMP-003.
+- id: GEX-G-001
+  source: dataset_spatial_summary_tbl.xmin
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:geographicElement/gex:EX_GeographicBoundingBox/gex:westBoundLongitude
+  status: conditional
+  condition: dataset_spatial_summary_tbl.bbox_status indicates a valid derived or
+    manual extent.
+- id: GEX-G-002
+  source: dataset_spatial_summary_tbl.xmax
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:geographicElement/gex:EX_GeographicBoundingBox/gex:eastBoundLongitude
+  status: conditional
+  condition: dataset_spatial_summary_tbl.bbox_status indicates a valid derived or
+    manual extent.
+- id: GEX-G-003
+  source: dataset_spatial_summary_tbl.ymin
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:geographicElement/gex:EX_GeographicBoundingBox/gex:southBoundLatitude
+  status: conditional
+  condition: dataset_spatial_summary_tbl.bbox_status indicates a valid derived or
+    manual extent.
+- id: GEX-G-004
+  source: dataset_spatial_summary_tbl.ymax
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:geographicElement/gex:EX_GeographicBoundingBox/gex:northBoundLatitude
+  status: conditional
+  condition: dataset_spatial_summary_tbl.bbox_status indicates a valid derived or
+    manual extent.
+- id: GEX-G-005
+  source: entry_tbl.bbox
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:geographicElement/gex:EX_GeographicBoundingBox
+  status: deprecated-fallback
+  rule: Fallback only when no spatial summary, extracted spatial row or manual extent
+    row exists, including excluded/failed rows. Require explicit legacy EPSG:4326
+    and valid finite xmin; ymin; xmax; ymax bounds; validate geographic limits. Do
+    not guess CRS or transform projected legacy bounds.
+- id: GEX-G-006
+  source: dataset_spatial_summary_tbl.derivation_method
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:description
+  status: conditional
+  rule: Label the saved derivation method in the valid geographic EX_Extent description.
+    Translate included_source_envelope to a readable explanation. Calculating metadata
+    bounds is not a resource-production lineage step.
+- id: MRS-001
+  source:
+  - data_file_spatial_metadata_tbl.crs_auth_code
+  - data_file_spatial_metadata_tbl.crs_input
+  - dataset_manual_spatial_extent_tbl.crs_auth_code
+  - dataset_manual_spatial_extent_tbl.crs_input
+  mapping: transform
+  target: mdb:referenceSystemInfo/mrs:MD_ReferenceSystem/mrs:referenceSystemIdentifier/mcc:MD_Identifier/mcc:code
+  status: conditional
+  rule: Deduplicate identifiers from included spatial records and active included
+    manual extents, excluding inactive files. Use crs_auth_code, or an authority:code
+    in crs_input when absent. A name or WKT is not an authority identifier. Emit every
+    distinct accepted native CRS, separately from the WGS84 geographic summary.
+- id: MRS-002
+  source:
+  - data_file_spatial_metadata_tbl.crs_auth_code
+  - dataset_manual_spatial_extent_tbl.crs_auth_code
+  mapping: transform
+  target: mdb:referenceSystemInfo/mrs:MD_ReferenceSystem/mrs:referenceSystemIdentifier/mcc:MD_Identifier/mcc:codeSpace
+  status: conditional
+  rule: Split authority and code; emit EPSG or ESRI as codeSpace.
+- id: MRS-003
+  source:
+  - data_file_spatial_metadata_tbl.crs_name
+  - dataset_manual_spatial_extent_tbl.crs_name
+  mapping: direct
+  target: mdb:referenceSystemInfo/mrs:MD_ReferenceSystem/mrs:referenceSystemIdentifier/mcc:MD_Identifier/mcc:description
+  status: conditional
+- id: MRS-004
+  source: entry_tbl.epsg_code
+  mapping: transform
+  target: mdb:referenceSystemInfo/mrs:MD_ReferenceSystem/mrs:referenceSystemIdentifier/mcc:MD_Identifier/mcc:code
+  status: deprecated-fallback
+  rule: Fallback only when no structured summary/extracted/manual spatial records
+    exist. Accept a numeric EPSG code or EPSG:code, resolve locally through sf/GDAL/PROJ,
+    and export its code, codeSpace and name. Invalid/excluded modern rows never revive
+    a stale legacy CRS.
+- id: MRS-005
+  source: data_file_spatial_metadata_tbl.crs_input
+  mapping: extension
+  target: DataPond:nativeCrsDefinition
+  status: extension
+  rule: Preserve WKT or PROJ text as evidence; ISO export uses a structured reference-system
+    identifier. An authority:code in crs_input may supply that identifier only when
+    crs_auth_code is absent, as specified by MRS-001.
+- id: MSR-001
+  source: data_file_spatial_metadata_tbl.spatial_type
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:spatialRepresentationType/mcc:MD_SpatialRepresentationTypeCode
+  status: conditional
+  rule: Map included active file/layer spatial types to vector, grid, textTable, tin,
+    stereoModel or video; reject unmapped types. Resolve a file ID or unique legacy
+    relative path within the dataset. Reject duplicate file/layer descriptions. Emit
+    distinct representation codes.
+- id: MSR-002
+  source: data_file_spatial_metadata_tbl.geometry_type
+  mapping: transform
+  target: mdb:spatialRepresentationInfo/msr:MD_VectorSpatialRepresentation/msr:geometricObjects/msr:MD_GeometricObjects/msr:geometricObjectType/msr:MD_GeometricObjectTypeCode
+  status: conditional
+  rule: Map OGC geometry names and terra family names to point, curve or surface;
+    mixed names of one family retain that family. Unmapped or mixed families use an
+    unknown geometricObjectType nil reason. Preserve original geometry and portable
+    file/layer label in supplementalInformation; do not infer topology.
+- id: MSR-003
+  source: data_file_spatial_metadata_tbl.feature_count
+  mapping: direct
+  target: mdb:spatialRepresentationInfo/msr:MD_VectorSpatialRepresentation/msr:geometricObjects/msr:MD_GeometricObjects/msr:geometricObjectCount
+  status: conditional
+  rule: Require a nonnegative integer. Export geometricObjectCount only for simple
+    POINT, LINESTRING or POLYGON, where one feature represents one primitive. Preserve
+    other recorded feature counts as labelled supplementalInformation; multipart feature
+    counts are not primitive counts.
+- id: MSR-004
+  source: data_file_spatial_metadata_tbl.raster_nrow
+  mapping: transform
+  target: mdb:spatialRepresentationInfo/msr:MD_GridSpatialRepresentation/msr:axisDimensionProperties/msr:MD_Dimension/msr:dimensionSize
+  status: conditional
+  rule: Emit row dimension, requiring a positive integer if present; absent size carries
+    an unknown nil reason. Retain portable file/layer identity in dimensionTitle.
+- id: MSR-005
+  source: data_file_spatial_metadata_tbl.raster_ncol
+  mapping: transform
+  target: mdb:spatialRepresentationInfo/msr:MD_GridSpatialRepresentation/msr:axisDimensionProperties/msr:MD_Dimension/msr:dimensionSize
+  status: conditional
+  rule: Emit column dimension, requiring a positive integer if present; absent size
+    carries an unknown nil reason. Retain portable file/layer identity in dimensionTitle.
+- id: MSR-006
+  source:
+  - data_file_spatial_metadata_tbl.raster_nrow
+  - data_file_spatial_metadata_tbl.raster_ncol
+  - data_file_spatial_metadata_tbl.raster_nlyr
+  mapping: transform
+  target: mdb:spatialRepresentationInfo/msr:MD_GridSpatialRepresentation/msr:numberOfDimensions
+  status: conditional
+  rule: Emit 2 for a single-band row/column grid. For multiband or unknown layer counts
+    the number of independent axes is unknown, so use nilReason unknown on this mandatory
+    property. Unrecorded cell geometry and transformation-parameter availability also
+    use unknown nil reasons.
+- id: MSR-007
+  source:
+  - data_file_spatial_metadata_tbl.raster_res_x
+  - data_file_spatial_metadata_tbl.raster_res_y
+  mapping: transform
+  target: mdb:spatialRepresentationInfo/msr:MD_GridSpatialRepresentation/msr:axisDimensionProperties/msr:MD_Dimension/msr:resolution
+  status: conditional
+  rule: Map y resolution to row and x resolution to column. Require finite positive
+    values. Resolve unit offline from the recorded EPSG/ESRI/OGC authority code; supported
+    metre, degree, radian, international-foot and US-survey-foot units remain distinct.
+    Missing/unsupported CRS or unit blocks populated resolution export. No conversion
+    or guessed units.
+- id: MSR-008
+  source: data_file_spatial_metadata_tbl.raster_nlyr
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:supplementalInformation
+  status: conditional
+  rule: Preserve the positive integer band/layer count with its portable raster file/layer
+    label. It is not automatically the grid dimension count; see MSR-006.
+- id: MRI-RES-001
+  source: entry_tbl.cell_size
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:spatialResolution/mri:MD_Resolution/mri:distance
+  status: deprecated-fallback
+  rule: Use only when no included active raster axis resolution is exported. Parse
+    a positive finite numeric distance and explicit m/km/cm/mm/ft unit without conversion.
+    Otherwise retain the original wording as labelled supplementalInformation. Never
+    assume the unit of bare numbers.
+- id: MRI-RES-002
+  source:
+  - entry_tbl.min_scale
+  - entry_tbl.max_scale
+  - entry_tbl.creation_scale_note
+  mapping: extension
+  target: DataPond:recommendedUseScaleRange
+  status: extension
+  rule: These are recommended use/capture scales, not positional accuracy and not
+    a single ISO equivalent-scale denominator.
+- id: MRI-RES-003
+  source: entry_tbl.scale_factor
+  mapping: extension
+  target: DataPond:coordinateScaleFactor
+  status: extension
+  rule: Do not export as ISO data quality or spatial resolution without a defined
+    reference-system operation model.
+- id: CIT-RP-001
+  source:
+  - authority_tbl.person_id
+  - authority_tbl.author_order
+  - authority_tbl.role
+  - persons_tbl.name_first
+  - persons_tbl.name_last
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:citedResponsibleParty/cit:CI_Responsibility/cit:party/cit:CI_Individual/cit:name
+  status: ready
+  rule: Join authority_tbl to persons_tbl and retain author_order. Join only nonblank
+    name parts; missing people or names block assembly. A recorded affiliation is
+    represented by CI_Organisation/individual; a separately selected organisation
+    is not assumed to employ the person.
+- id: CIT-RP-002
+  source: authority_tbl.role
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:citedResponsibleParty/cit:CI_Responsibility/cit:role/cit:CI_RoleCode
+  status: ready
+  rule: Map the DataPond role vocabulary to CI_RoleCode; citation authors default
+    to codeListValue='author'.
+- id: CIT-RP-003
+  source: persons_tbl.role_title
+  mapping: direct
+  target: cit:CI_Individual/cit:positionName
+  status: conditional
+  rule: Apply within each exported CI_Individual, including metadata/resource contacts,
+    authors, processors and citation producers. Reviewers use the same contact helper
+    within metadataMaintenance; app users alone do not imply authorship.
+- id: CIT-RP-004
+  source: persons_tbl.email
+  mapping: direct
+  target: cit:CI_Individual/cit:contactInfo/cit:CI_Contact/cit:address/cit:CI_Address/cit:electronicMailAddress
+  status: conditional
+- id: CIT-RP-005
+  source: persons_tbl.phone_number
+  mapping: direct
+  target: cit:CI_Individual/cit:contactInfo/cit:CI_Contact/cit:phone/cit:CI_Telephone/cit:number
+  status: conditional
+- id: CIT-RP-006
+  source:
+  - persons_tbl.organisation_id
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: cit:CI_Responsibility/cit:party/cit:CI_Organisation/cit:name
+  status: conditional
+  rule: Use recorded persons_tbl.organisation_id for affiliation. When an explicit
+    co-responsible organisation differs, emit separate parties rather than invent
+    an affiliation. Match and deduplicate responsibilities by linked IDs and role,
+    never just display names.
+- id: CIT-RP-007
+  source: organisation_tbl.organisation_name_short
+  mapping: extension
+  target: DataPond:organisationShortName
+  status: extension
+  rule: Preserve as a local abbreviation; use organisation_name_full for CI_Organisation/name.
+- id: CIT-RP-008
+  source: organisation_tbl.organisation_code
+  mapping: extension
+  target: DataPond:organisationCode
+  status: extension
+- id: CIT-RP-009
+  source: organisation_tbl.organisation_department
+  mapping: transform
+  target: cit:CI_Responsibility/cit:party/cit:CI_Organisation/cit:name
+  status: deprecated-fallback
+  rule: ensure_iso_wave3_schema backfills organisational_unit_name from organisation_department
+    only when blank. CIT-016 qualifies the shared organisation name using that canonical
+    unit and its ancestry; do not append the legacy department a second time.
+- id: CIT-RP-010
+  source: organisation_tbl.organisation_address
+  mapping: transform
+  target: cit:CI_Organisation/cit:contactInfo/cit:CI_Contact/cit:address/cit:CI_Address
+  status: conditional
+  rule: Use the complete legacy address as deliveryPoint only when no normalized postal
+    components are available; never parse legacy address prose into guessed components.
+- id: MRI-POC-001
+  source:
+  - poc_tbl.person_id
+  - persons_tbl.name_first
+  - persons_tbl.name_last
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:pointOfContact/cit:CI_Responsibility/cit:party/cit:CI_Individual/cit:name
+  status: conditional
+- id: MRI-POC-002
+  source:
+  - poc_tbl.organisation_id
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:pointOfContact/cit:CI_Responsibility/cit:party/cit:CI_Organisation/cit:name
+  status: ready
+- id: MRI-POC-003
+  source: poc_tbl.role
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:pointOfContact/cit:CI_Responsibility/cit:role/cit:CI_RoleCode
+  status: ready
+- id: MRI-ORG-001
+  source:
+  - dataset_organisation_tbl.organisation_id
+  - dataset_organisation_tbl.role
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:pointOfContact/cit:CI_Responsibility
+  status: conditional
+  rule: Emit owners, custodians, originators, publishers, funders, and distributors
+    as repeatable responsibilities with mapped CI_RoleCode values.
+- id: MDB-CONTACT-001
+  source:
+  - entry_tbl.created_by_user_id
+  - user_tbl.person_id
+  - persons_tbl.name_first
+  - persons_tbl.name_last
+  mapping: extension
+  target: DataPond:recordCreationAudit
+  status: extension
+  rule: Saving a record does not establish metadata authorship. Use explicit metadata_responsibility_tbl
+    assignments; the user link and creation audit stay local.
+- id: MDB-CONTACT-002
+  source:
+  - metadata_review_tbl.reviewer_id
+  - persons_tbl.name_first
+  - persons_tbl.name_last
+  - metadata_review_tbl.reviewer_role
+  mapping: join
+  target: mdb:MD_Metadata/mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:contact/cit:CI_Responsibility
+  status: conditional
+  rule: Emit maintenance contacts deduplicated by person ID (or exact legacy full
+    name) and mapped role. A linked person is authoritative; broken links block assembly.
+    Blank/unmapped reviewer roles use explicit nilReason unknown; recorded role text
+    remains in its event note. Reviews never become dataset authors.
+- id: CIT-RP-011
+  source:
+  - entry_tbl.released_by_person_id
+  - entry_tbl.released_at
+  mapping: extension
+  target: DataPond:releaseApprovalAudit
+  status: extension
+  rule: The releasing person is an app approval actor, not necessarily the publisher.
+    Only explicitly assigned citation/resource responsibilities establish parties;
+    release audit stays local.
+- id: MRD-001
+  source: entry_tbl.data_distribution_url
+  mapping: direct
+  target: mdb:distributionInfo/mrd:MD_Distribution/mrd:transferOptions/mrd:MD_DigitalTransferOptions/mrd:onLine/cit:CI_OnlineResource/cit:linkage
+  status: deprecated-fallback
+  rule: ensure_iso_wave2_schema backfills a structured online resource only when none
+    exists. Export the canonical row through MRD-010; do not emit the compatibility
+    mirror separately.
+- id: MRD-002
+  source: entry_tbl.data_distributor
+  mapping: extension
+  target: DataPond:legacyDistributorText
+  status: extension
+  rule: Legacy distributor text stays local. Use the linked selected distributor organisation
+    or explicit distributor responsibilities; do not infer a party from a legacy snapshot.
+- id: MRD-002A
+  source:
+  - entry_tbl.data_distributor_organisation_id
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: mdb:distributionInfo/mrd:MD_Distribution/mrd:distributor/mrd:MD_Distributor/mrd:distributorContact/cit:CI_Responsibility
+  status: ready
+  rule: Join the selected distributor organisation and emit CI_RoleCode='distributor';
+    this structured field overrides the legacy text snapshot.
+- id: MRD-003
+  source: entry_tbl.data_distributor_other
+  mapping: extension
+  target: DataPond:legacyDistributorOther
+  status: extension
+  rule: Unstructured legacy distributor-other text stays local; explicit linked distributor
+    responsibilities are exported.
+- id: MRD-004
+  source:
+  - dataset_organisation_tbl.organisation_id
+  - dataset_organisation_tbl.role
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: mdb:distributionInfo/mrd:MD_Distribution/mrd:distributor/mrd:MD_Distributor/mrd:distributorContact/cit:CI_Responsibility
+  status: conditional
+  condition: dataset_organisation_tbl.role is distributor.
+  rule: Export explicitly assigned distributors; a custodian role alone does not establish
+    distribution responsibility. Deduplicate named organisations also selected by
+    MRD-002A.
+- id: MRD-005
+  source: data_file_tbl.data_file_format
+  mapping: extension
+  target: DataPond:inventoryFormat
+  status: extension
+  rule: Detected inventory formats classify content but do not establish distribution
+    formats. MRD-011 exports explicitly saved distribution specifications. No inventory
+    fallback is intended.
+- id: MRD-006
+  source: data_file_tbl.data_file_extension
+  mapping: extension
+  target: DataPond:fileExtension
+  status: extension
+  rule: Retain for inventory; format name is the ISO property.
+- id: MRD-007
+  source: data_file_tbl.file_size_kb
+  mapping: extension
+  target: DataPond:inventoryFileSize
+  status: extension
+  rule: 'Inventory size is not transfer size: package membership, packaging and compression
+    are not recorded here. No transferSize is emitted. A future distribution package
+    model would be a separate capability.'
+- id: MRD-008
+  source: data_file_tbl.data_file_description
+  mapping: extension
+  target: DataPond:dataFileDescription
+  status: extension
+- id: MRD-009
+  source:
+  - data_file_tbl.data_file_rel_path_full
+  - data_file_tbl.file_name
+  - data_file_tbl.file_role
+  mapping: extension
+  target: DataPond:dataFileInventory
+  status: extension
+  rule: Do not expose local filesystem paths as public online-resource linkages.
+- id: MCO-001
+  source: dataset_license_tbl.access_level_code
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:accessConstraints/mco:MD_RestrictionCode
+  status: ready
+  rule: Map public to unrestricted, public_request to otherRestrictions, and approved_partners/internal/embargoed/not_distributable
+    to restricted. Preserve the access-level label in otherConstraints; reject unknown
+    codes.
+- id: MCO-002
+  source: dataset_license_tbl.use_constraints
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:useLimitation
+  status: ready
+- id: MCO-003
+  source: dataset_license_tbl.license_name
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:reference/cit:CI_Citation/cit:title
+  status: ready
+- id: MCO-004
+  source: dataset_license_tbl.license_identifier
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:reference/cit:CI_Citation/cit:identifier/mcc:MD_Identifier/mcc:code
+  status: conditional
+- id: MCO-005
+  source: dataset_license_tbl.license_url
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:reference/cit:CI_Citation/cit:onlineResource/cit:CI_OnlineResource/cit:linkage
+  status: conditional
+- id: MCO-006
+  source:
+  - dataset_license_tbl.rights_holder_organisation_id
+  - organisation_tbl.organisation_name_full
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:responsibleParty/cit:CI_Responsibility
+  status: conditional
+  rule: Emit CI_RoleCode='rightsHolder'.
+- id: MCO-007
+  source: dataset_license_tbl.license_holder
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:responsibleParty/cit:CI_Responsibility/cit:party/cit:CI_Organisation/cit:name
+  status: deprecated-fallback
+  rule: Use only when no structured rights-holder organisation is linked.
+- id: MCO-008
+  source:
+  - dataset_license_tbl.redistribution_permission_code
+  - dataset_license_tbl.permission_reference
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:otherConstraints
+  status: conditional
+  rule: Render the recorded redistribution code as its controlled label and preserve
+    permission_reference verbatim in separate otherConstraints; do not infer permission
+    from missing values.
+- id: MCO-009
+  source:
+  - dataset_license_tbl.required_attribution
+  - dataset_license_tbl.attribution_text
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:useLimitation
+  status: conditional
+  rule: When required_attribution is true, emit the recorded attribution text, or
+    Attribution required if text is missing. Do not invent the attribution wording.
+- id: MCO-010
+  source:
+  - dataset_license_tbl.sensitive_data
+  - dataset_license_tbl.sensitivity_reason
+  - dataset_license_tbl.sensitivity_handling_code
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:otherConstraints
+  status: conditional
+  rule: Preserve the recorded sensitivity label and reason in legal otherConstraints;
+    if only sensitive_data is true, state Sensitive data. Never infer a national-security
+    classification.
+- id: MCO-011
+  source: dataset_license_tbl.license_description
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:otherConstraints
+  status: conditional
+- id: MCO-012
+  source: dataset_license_tbl.licence_notes
+  mapping: extension
+  target: DataPond:licenceNotes
+  status: extension
+  rule: Internal notes are excluded unless explicitly approved for public metadata.
+- id: MCO-013
+  source:
+  - entry_tbl.access_constraints
+  - entry_tbl.use_limitations
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints
+  status: ready
+  rule: Always consider supplementary access text as otherConstraints with an otherRestrictions
+    code and use_limitations as useLimitation, including when a structured licence
+    exists. Deduplicate within each target property after trimming and collapsing
+    whitespace for comparison only; keep first stored wording, case, punctuation and
+    distinct conditions. Do not rewrite database values.
+- id: MCO-014
+  source:
+  - entry_tbl.embargo_status
+  - entry_tbl.embargo_reason
+  - entry_tbl.embargo_end_date
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:otherConstraints
+  status: deprecated-fallback
+  rule: Use legacy embargo values only when the corresponding authoritative value
+    is absent; an explicit No embargo status suppresses stale date/reason mirrors.
+- id: MCO-015
+  source:
+  - dataset_license_tbl.rights_basis_code
+  - dataset_license_tbl.terms_review_date
+  mapping: extension
+  target: DataPond:rightsAssessment
+  status: extension
+- id: MRL-001
+  source: dataset_lineage_tbl.lineage_statement
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:statement
+  status: ready
+- id: MRL-002
+  source: dataset_lineage_source_tbl.description
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:description
+  status: ready
+  rule: Emit one LI_Source for every row in source_order; a provisional legacy-backfill
+    row remains one source.
+- id: MRL-003
+  source: dataset_lineage_source_tbl.title
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceCitation/cit:CI_Citation/cit:title
+  status: ready
+- id: MRL-004
+  source: dataset_lineage_process_step_tbl.description
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:description
+  status: ready
+- id: MRL-005
+  source: dataset_lineage_process_step_tbl.tool_software_reference
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:reference/cit:CI_Citation/cit:title
+  status: conditional
+  rule: Emit a software/tool citation when a stable product name or URI is available;
+    otherwise append to process description.
+- id: MRL-006
+  source: dataset_lineage_process_step_tbl.script_reference
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:reference/cit:CI_Citation/cit:onlineResource/cit:CI_OnlineResource/cit:linkage
+  status: conditional
+  rule: Emit only portable relative references or public URIs; never publish absolute
+    local paths.
+- id: MRL-007
+  source: dataset_lineage_process_step_tbl.output_description
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:description
+  status: conditional
+  rule: Append distinct output text to the process description under an Output label;
+    rationale remains separately authored.
+- id: MRL-011
+  source:
+  - dataset_lineage_source_tbl.identifier
+  - dataset_lineage_source_tbl.identifier_code_space
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceCitation/cit:CI_Citation/cit:identifier/mcc:MD_Identifier
+  status: conditional
+- id: MRL-012
+  source:
+  - dataset_lineage_source_tbl.citation_date
+  - dataset_lineage_source_tbl.citation_date_type_code
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceCitation/cit:CI_Citation/cit:date/cit:CI_Date
+  status: conditional
+- id: MRL-013
+  source: dataset_lineage_source_tbl.source_uri
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceCitation/cit:CI_Citation/cit:onlineResource/cit:CI_OnlineResource/cit:linkage
+  status: conditional
+- id: MRL-014
+  source:
+  - dataset_lineage_source_tbl.temporal_start
+  - dataset_lineage_source_tbl.temporal_end
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:scope/mcc:MD_Scope/mcc:extent/gex:EX_Extent/gex:temporalElement
+  status: conditional
+  rule: Preserve recorded endpoint precision in GML TimePeriod. Missing endpoints
+    use indeterminatePosition unknown; the uncaptured source scope level uses nilReason
+    unknown. Reject invalid dates and reversed comparable calendar ranges.
+- id: MRL-015
+  source: dataset_lineage_source_tbl.equivalent_scale_denominator
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceSpatialResolution/mri:MD_Resolution/mri:equivalentScale/mri:MD_RepresentativeFraction/mri:denominator
+  status: conditional
+- id: MRL-016
+  source:
+  - dataset_lineage_source_tbl.spatial_resolution_value
+  - dataset_lineage_source_tbl.spatial_resolution_unit
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceSpatialResolution/mri:MD_Resolution/mri:distance
+  status: conditional
+  rule: Emit gco:Distance with the saved positive value and unit when no equivalent
+    scale is supplied. LI_Source permits only one resolution and MD_Resolution is
+    a choice; when both are recorded, retain scale structurally and append the distance
+    and unit as labelled source description text. Missing units block export, not
+    draft saving.
+- id: MRL-017
+  source:
+  - dataset_lineage_source_tbl.responsible_person_id
+  - dataset_lineage_source_tbl.responsible_organisation_id
+  - dataset_lineage_source_tbl.role_code
+  mapping: join
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source/mrl:sourceCitation/cit:CI_Citation/cit:citedResponsibleParty/cit:CI_Responsibility
+  status: conditional
+- id: MRL-018
+  source:
+  - dataset_lineage_process_step_tbl.step_datetime
+  - dataset_lineage_process_step_tbl.rationale
+  mapping: direct
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep
+  status: conditional
+  rule: Emit rationale separately and encode a recorded step date/time as mrl:stepDateTime/gml:TimeInstant/gml:timePosition
+    with a unique gml:id. Preserve the stored precision and timezone; do not emit
+    a gco:DateTime directly inside stepDateTime.
+- id: MRL-019
+  source:
+  - dataset_lineage_process_step_tbl.processor_person_id
+  - dataset_lineage_process_step_tbl.processor_organisation_id
+  - dataset_lineage_process_step_tbl.role_code
+  mapping: join
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:processor/cit:CI_Responsibility
+  status: conditional
+- id: MRL-020
+  source:
+  - dataset_lineage_step_source_tbl.process_step_id
+  - dataset_lineage_step_source_tbl.source_id
+  mapping: join
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep/mrl:source/@xlink:href
+  status: ready
+  rule: Reference the corresponding LI_Source id within the same dataset using xlink:href;
+    never duplicate the source or emit an unqualified href attribute.
+- id: MRL-021
+  source: dataset_lineage_source_tbl.supporting_document_id
+  mapping: join
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:additionalDocumentation/cit:CI_Citation
+  status: conditional
+  rule: Require the linked document to be active and belong to the dataset. Emit one
+    additionalDocumentation citation with a stable local ID and link each source through
+    sourceMetadata. An authority link alone exports title/reference, not document
+    notes; notes require the lineage inclusion flag.
+- id: MRL-LEGACY-001
+  source:
+  - dataset_lineage_tbl.source_description
+  - dataset_lineage_tbl.source_datasets_text
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:source/mrl:LI_Source
+  status: deprecated-fallback
+  rule: Migrate once into a provisional structured source unless already represented
+    or previously backfilled; preserve the original as a hidden snapshot. Never split
+    the text or export the snapshot independently.
+- id: MRL-LEGACY-002
+  source:
+  - dataset_lineage_tbl.process_description
+  - dataset_lineage_tbl.processing_tools
+  - dataset_lineage_tbl.processing_scripts
+  - dataset_lineage_tbl.output_description
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:processStep/mrl:LI_ProcessStep
+  status: deprecated-fallback
+  rule: Migrate once into a provisional structured step unless already represented
+    or previously backfilled; preserve the original as a hidden snapshot. Never split
+    the text or export the snapshot independently.
+- id: MRL-008
+  source: dataset_lineage_tbl.lineage_notes
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:statement
+  status: conditional
+  rule: One-time migration folds distinct existing notes into lineage_statement under
+    a labelled paragraph. The notes column is then a hidden archival snapshot, never
+    independently exported or re-appended after narrative edits. There is no separate
+    internal-note classification in the current lineage form.
+- id: MRL-009
+  source:
+  - supporting_document_tbl.document_name
+  - supporting_document_tbl.document_type_label
+  - supporting_document_tbl.notes
+  mapping: transform
+  target: mdb:resourceLineage/mrl:LI_Lineage/mrl:additionalDocumentation/cit:CI_Citation
+  status: conditional
+  condition: supporting_document_tbl.active=1 and supporting_document_tbl.include_in_lineage=1.
+  rule: For explicitly included documents, use document_name as title and label the
+    saved document_type_label and notes in otherCitationDetails. Do not guess an ISO
+    presentationForm code from a local document type.
+- id: MRI-DOC-001
+  source:
+  - supporting_document_tbl.document_name
+  - supporting_document_tbl.document_type_label
+  - supporting_document_tbl.notes
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:additionalDocumentation/cit:CI_Citation
+  status: conditional
+  condition: supporting_document_tbl.active=1 and supporting_document_tbl.include_in_metadata=1.
+- id: MRI-DOC-002
+  source: supporting_document_tbl.document_rel_path
+  mapping: transform
+  target: cit:CI_Citation/cit:onlineResource/cit:CI_OnlineResource/cit:linkage
+  status: conditional
+  rule: Serialize an approved document's portable relative reference; reject absolute
+    paths and traversal. This mapping does not copy or establish existence of supporting
+    files. Package copying/resolvability checks belong to the future publishing workflow;
+    document_path remains local.
+- id: MRL-010
+  source:
+  - dataset_lineage_tbl.lineage_source_mode
+  - dataset_lineage_tbl.lineage_status
+  mapping: extension
+  target: DataPond:lineageWorkflow
+  status: extension
+- id: MMI-001
+  source: metadata_review_tbl.review_timestamp
+  mapping: direct
+  target: mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceDate
+  status: ready
+  rule: Emit one CI_Date per review with type lastRevision inside the single metadataMaintenance
+    property, in saved event order. Preserve timestamp precision and timezone. The
+    maintenance schedule is unknown because it is not recorded; resource frequency
+    is not a substitute.
+- id: MMI-002
+  source:
+  - metadata_review_tbl.update_reason
+  - metadata_review_tbl.update_summary
+  mapping: transform
+  target: mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceNote
+  status: ready
+  rule: Render a labelled note per event associating its date, reviewer, recorded
+    role, affected sections, reason and summary. These descriptive fields are export-facing;
+    omit blanks. Generic notes and workflow audit fields stay local; no attempt is
+    made to classify fragments of arbitrary prose.
+- id: MMI-003
+  source: metadata_review_tbl.metadata_section
+  mapping: transform
+  target: mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceNote
+  status: conditional
+  rule: Review history has MD_ScopeCode metadata. Preserve the saved app section labels
+    in each event maintenanceNote; app sections are not ISO resource scope codes.
+- id: MMI-004
+  source:
+  - metadata_review_tbl.update_type
+  - metadata_review_tbl.metadata_status
+  - metadata_review_tbl.source_of_change
+  - metadata_review_tbl.app_version
+  - metadata_review_tbl.notes
+  mapping: extension
+  target: DataPond:metadataReviewEvent
+  status: extension
+- id: MMI-005
+  source: metadata_review_tbl.review_date
+  mapping: direct
+  target: mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceDate
+  status: deprecated-fallback
+  rule: Use review_date only when review_timestamp is blank; malformed populated timestamps
+    block assembly. Retain recorded year/month/day precision; never manufacture a
+    time. This maintenance fallback does not change the core metadata creation-date
+    policy.
+- id: MMI-006
+  source: metadata_review_tbl.reviewer_name
+  mapping: direct
+  target: mdb:metadataMaintenance/mmi:MD_MaintenanceInformation/mmi:contact/cit:CI_Responsibility/cit:party/cit:CI_Individual/cit:name
+  status: deprecated-fallback
+  rule: Use the complete legacy reviewer_name only when reviewer_id is absent, without
+    guessing name parts or affiliations. A populated reviewer_id joined to persons_tbl
+    is authoritative; broken links block assembly.
+- id: MRC-001
+  source: dataset_attribute_tbl.data_field_name
+  mapping: direct
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:sequenceIdentifier
+  status: conditional
+  condition: The field describes a coverage sample dimension.
+  rule: Vector and tabular field catalogues should additionally be exported through
+    an ISO 19110 feature catalogue.
+- id: MRC-002
+  source: dataset_attribute_tbl.data_field_alias
+  mapping: direct
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:name
+  status: conditional
+  rule: Use as the human-readable attribute label; preserve the physical field name
+    as sequenceIdentifier.
+- id: MRC-003
+  source: dataset_attribute_tbl.data_field_desc
+  mapping: direct
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:description
+  status: conditional
+- id: MRC-004
+  source: dataset_attribute_tbl.data_field_units
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:units
+  status: conditional
+  rule: Preserve a recorded URI as an xlink reference or a recorded unit label as
+    a local GML UnitDefinition. Do not guess a vocabulary identifier or conversion.
+- id: MRC-005
+  source: dataset_attribute_tbl.min_value
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:minValue
+  status: conditional
+  condition: Active raster attribute with a finite recorded numeric minimum; malformed
+    values block assembly instead of being dropped.
+- id: MRC-006
+  source: dataset_attribute_tbl.max_value
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:maxValue
+  status: conditional
+  condition: Active raster attribute with a finite recorded numeric maximum; minimum
+    must not exceed maximum.
+- id: MRC-007
+  source:
+  - dataset_attribute_tbl.data_file_id
+  - dataset_attribute_tbl.layer_name
+  - dataset_attribute_tbl.attribute_order
+  mapping: transform
+  target: ISO19110:FC_FeatureCatalogue/featureType/carrierOfCharacteristics
+  status: conditional
+  rule: Group and order vector or tabular attributes in an external ISO 19110 feature
+    catalogue linked from MD_FeatureCatalogueDescription.
+- id: MRC-008
+  source:
+  - dataset_attribute_tbl.legend_field
+  - dataset_attribute_tbl.legend_field_notes
+  mapping: extension
+  target: DataPond:portrayalHint
+  status: extension
+- id: MRC-009
+  source:
+  - dataset_attribute_tbl.example_values
+  - dataset_attribute_tbl.unique_count
+  mapping: extension
+  target: DataPond:attributeProfile
+  status: extension
+  rule: 'Samples and unique counts stay local: samples are not permissible domains
+    or ISO 19157 assertions. Type information is mapped by MRC-015/016; raster value/missing
+    counts by MRC-017.'
+- id: MRI-LIFE-001
+  source: entry_tbl.lifecycle_status
+  mapping: extension
+  target: DataPond:lifecycleStatus
+  status: extension
+  rule: Keep lifecycle state local. Release does not establish completed production,
+    and archive workflow does not establish offline historical storage. Use explicit
+    data_complete_status for ISO resource progress.
+- id: CIT-LIFE-001
+  source: entry_tbl.released_at
+  mapping: extension
+  target: DataPond:releaseTimestamp
+  status: extension
+  rule: App release time does not establish resource publication. Typed citation dates
+    are authoritative; do not infer a publication event from released_at.
+- id: MRI-LIFE-002
+  source:
+  - entry_tbl.archived_at
+  - entry_tbl.archived_by_person_id
+  - entry_tbl.folder_locked
+  - entry_tbl.is_hidden
+  mapping: extension
+  target: DataPond:datasetLifecycle
+  status: extension
+- id: LOCAL-ENTRY-001
+  source:
+  - entry_tbl.folder_key
+  - entry_tbl.dataset_path
+  - entry_tbl.data_path
+  - entry_tbl.data_pond_id
+  mapping: extension
+  target: DataPond:localStorageIdentity
+  status: extension
+  rule: Local paths and pond identifiers are excluded from public ISO output.
+- id: MRL-IMPORT-001
+  source:
+  - dataset_import_tbl.source_dataset_uuid
+  - dataset_import_tbl.source_dataset_id
+  - dataset_import_tbl.source_data_pond_id
+  mapping: extension
+  target: DataPond:bundleTransferIdentity
+  status: extension
+  rule: Import preserves the same resource UUID, already exported by CIT-004. The
+    transferred record is not an upstream source dataset; source numeric IDs and pond
+    IDs stay local.
+- id: MRL-IMPORT-002
+  source:
+  - dataset_import_tbl.archive_name
+  - dataset_import_tbl.exported_at
+  - dataset_import_tbl.imported_at
+  - dataset_import_tbl.bundle_format_version
+  mapping: extension
+  target: DataPond:bundleTransferAudit
+  status: extension
+  rule: Archive names, bundle versions and copy times describe metadata/data transfer
+    between ponds, not resource production. Do not manufacture a lineage process step
+    from this audit.
+- id: MRL-MANUAL-001
+  source:
+  - dataset_manual_spatial_extent_tbl.extent_label
+  - dataset_manual_spatial_extent_tbl.source_note
+  - dataset_manual_spatial_extent_tbl.crs_auth_code
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:description
+  status: conditional
+  condition: The manual extent contributes to dataset_spatial_summary_tbl.
+  rule: Label saved manual extent name, source note and CRS in the geographic EX_Extent
+    description, only for active included extents listed in the summary contributor_keys
+    and not linked to an inactive file. Never claim a production step or infer who
+    supplied it.
+- id: LOCAL-SPATIAL-001
+  source:
+  - data_file_spatial_metadata_tbl.spatial_status
+  - data_file_spatial_metadata_tbl.crs_status
+  - data_file_spatial_metadata_tbl.bbox_status
+  - data_file_spatial_metadata_tbl.spatial_note
+  - data_file_spatial_metadata_tbl.user_notes
+  mapping: extension
+  target: DataPond:spatialExtractionReview
+  status: extension
+  rule: Workflow status is not an ISO 19157 result. Promote it only after defining
+    a quality measure, method, scope, and result.
+- id: LOCAL-FILE-001
+  source:
+  - data_file_tbl.file_role
+  - data_file_tbl.is_container
+  - data_file_tbl.container_type
+  - data_file_tbl.group_family
+  - data_file_tbl.group_key
+  - data_file_tbl.primary_dataset
+  - data_file_tbl.sidecar_count
+  - data_file_tbl.sidecar_exts
+  - data_file_tbl.sidecar_summary
+  - data_file_tbl.content_hint
+  - data_file_tbl.review_status
+  - data_file_tbl.data_file_notes
+  mapping: extension
+  target: DataPond:dataFileInventory
+  status: extension
+- id: LOCAL-LIC-001
+  source:
+  - dataset_license_tbl.license_template_notes
+  - dataset_license_tbl.license_template_id
+  mapping: extension
+  target: DataPond:licenceAssessment
+  status: deprecated-fallback
+  rule: Template selection and internal template notes stay local. Copied structured
+    licence terms are authoritative. Legacy access_level text has its own fallback
+    mapping MCO-018.
+- id: LOCAL-DOC-001
+  source:
+  - supporting_document_tbl.document_path
+  - supporting_document_tbl.document_dir
+  - supporting_document_tbl.document_extension
+  - supporting_document_tbl.document_type_auto_code
+  - supporting_document_tbl.document_type_code
+  - supporting_document_tbl.document_type_auto_text
+  - supporting_document_tbl.document_type_user_set
+  - supporting_document_tbl.document_type_user_text
+  mapping: extension
+  target: DataPond:supportingDocumentInventory
+  status: extension
+  rule: Classification evidence and absolute local paths remain local; approved title/type/notes
+    are mapped through MRI-DOC-001 or MRL-009.
+- id: LOCAL-SPATIAL-002
+  source:
+  - dataset_spatial_summary_tbl.bbox_status
+  - dataset_spatial_summary_tbl.status_message
+  - dataset_spatial_summary_tbl.bbox_crs
+  - dataset_spatial_summary_tbl.bbox_wgs84
+  - dataset_spatial_summary_tbl.included_source_count
+  - dataset_spatial_summary_tbl.eligible_source_count
+  - dataset_spatial_summary_tbl.skipped_source_count
+  - dataset_spatial_summary_tbl.contributor_keys
+  mapping: extension
+  target: DataPond:spatialSummaryProvenance
+  status: extension
+  rule: The four numeric WGS84 coordinates map to EX_GeographicBoundingBox; these
+    fields document calculation and review state.
+- id: LOCAL-ATTR-001
+  source:
+  - dataset_attribute_tbl.data_file_rel_path_full
+  - dataset_attribute_tbl.data_file_name
+  - dataset_attribute_tbl.layer_name
+  - dataset_attribute_tbl.data_pond_id
+  mapping: extension
+  target: DataPond:attributeSourceLocator
+  status: extension
+  rule: Use to associate attributes with packaged resources; never publish absolute
+    storage paths.
+- id: CIT-ALT-001
+  source: dataset_alternate_title_tbl.alternate_title
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:citation/cit:CI_Citation/cit:alternateTitle
+  status: ready
+  rule: Emit in sort_order; retain the primary entry_tbl title unchanged.
+- id: MRI-SCALE-002
+  source: entry_tbl.equivalent_scale_denominator
+  mapping: direct
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:spatialResolution/mri:MD_Resolution/mri:equivalentScale/mri:MD_RepresentativeFraction/mri:denominator
+  status: conditional
+  rule: Emit only a positive integer. Existing min_scale and max_scale remain a DataPond
+    capture/use-scale extension.
+- id: MRI-TEMP-003
+  source:
+  - dataset_temporal_extent_tbl.extent_label
+  - dataset_temporal_extent_tbl.start_value
+  - dataset_temporal_extent_tbl.end_value
+  - dataset_temporal_extent_tbl.start_precision
+  - dataset_temporal_extent_tbl.end_precision
+  - dataset_temporal_extent_tbl.start_indeterminate
+  - dataset_temporal_extent_tbl.end_indeterminate
+  - dataset_temporal_extent_tbl.description
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:temporalElement/gex:EX_TemporalExtent/gex:extent/gml:TimePeriod
+  status: ready
+  rule: Emit each ordered row as a TimePeriod. Preserve both extent_label and description
+    in EX_Extent description and retain endpoint precision and explicit indeterminatePosition.
+    Revalidate saved date/time values and reject reversed comparable year/month/day
+    ranges. No timestamp or timezone is invented.
+- id: MRI-TEMP-004
+  source:
+  - dataset_temporal_coverage_compat_vw.temporal_coverage_start_date
+  - dataset_temporal_coverage_compat_vw.temporal_coverage_end_date
+  mapping: extension
+  target: DataPond:legacyTemporalCoverage
+  status: deprecated-fallback
+  rule: Compatibility view only; structured temporal extents are authoritative.
+- id: MRD-010
+  source:
+  - dataset_online_resource_tbl.resource_url
+  - dataset_online_resource_tbl.resource_name
+  - dataset_online_resource_tbl.resource_description
+  - dataset_online_resource_tbl.protocol
+  - dataset_online_resource_tbl.function_code
+  - dataset_online_resource_tbl.media_type
+  - dataset_online_resource_tbl.is_primary
+  mapping: transform
+  target: mdb:distributionInfo/mrd:MD_Distribution/mrd:transferOptions/mrd:MD_DigitalTransferOptions/mrd:onLine/cit:CI_OnlineResource
+  status: ready
+  rule: Emit resources in sort_order, preserving URL, protocol, name, description
+    and function. Encode media_type as gcx:MimeFileType/@type on cit:name (use the
+    MIME label as text when name is absent). is_primary remains application selection
+    state, mirrored to entry_tbl.data_distribution_url; do not export the mirror again
+    or expose local inventory paths.
+- id: MRD-011
+  source:
+  - dataset_distribution_format_tbl.specification_title
+  - dataset_distribution_format_tbl.format_version
+  - dataset_distribution_format_tbl.media_type
+  - dataset_distribution_format_tbl.format_uri
+  mapping: transform
+  target: mdb:distributionInfo/mrd:MD_Distribution/mrd:distributionFormat/mrd:MD_Format
+  status: ready
+  rule: Emit explicit specifications only. Preserve title and version as citation
+    title/edition; encode media_type as gcx:MimeFileType/@type on the title and format_uri
+    as citation onlineResource. MIME type is not a physical mrd:medium.
+- id: MDQ-001
+  source:
+  - dataset_quality_result_tbl.scope_code
+  - dataset_quality_result_tbl.data_file_id
+  - dataset_quality_result_tbl.attribute_id
+  - dataset_quality_result_tbl.measure_identifier
+  - dataset_quality_result_tbl.measure_name
+  - dataset_quality_result_tbl.measure_type_code
+  - dataset_quality_result_tbl.quality_element_code
+  - dataset_quality_result_tbl.evaluation_method
+  - dataset_quality_result_tbl.evaluation_date
+  - dataset_quality_result_tbl.result_type_code
+  - dataset_quality_result_tbl.result_value
+  - dataset_quality_result_tbl.result_unit
+  - dataset_quality_result_tbl.conformance_specification
+  - dataset_quality_result_tbl.explanation
+  - dataset_quality_result_tbl.pass
+  mapping: transform
+  target: mdb:dataQualityInfo/mdq:DQ_DataQuality/mdq:report
+  status: ready
+  rule: Only explicitly saved measures are exported; scan/CRS/profile evidence is
+    not promoted. Emit the concrete MDQ element selected by quality_element_code (ISO
+    19157 MDQ 1.2.0); broad categories alone stop assembly with a clarification message.
+    Derive/verify the compatibility measure_type_code against that selection. Export
+    measure ID/name through DQ_MeasureReference. Validate file/attribute links within
+    the dataset and retain their scope descriptions. Quantitative values use gco:Record/field/Field/value
+    without numeric coercion; unit URIs use xlink:href and labels use a local GML
+    UnitDefinition without guessed conversions. A quantitative explanation is an accompanying
+    DQ_DescriptiveResult. Conformance retains explicit true/false and specification;
+    missing outcome is never false. Descriptive results retain their statement. Reject
+    incompatible populated result fields rather than discard them. Evaluation timestamps
+    retain precision/zone in dateTime before evaluationMethodDescription; year/month/day-only
+    dates are appended to that description with a labelled precision, never fabricated
+    as midnight.
+- id: MCO-016
+  source:
+  - dataset_license_tbl.embargo_status
+  - dataset_license_tbl.embargo_reason
+  - dataset_license_tbl.embargo_start_date
+  - dataset_license_tbl.embargo_end_date
+  - dataset_license_tbl.release_addressee
+  - dataset_license_tbl.release_statement
+  - dataset_license_tbl.dissemination_constraint_code
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints
+  status: ready
+  rule: Emit embargo status/reason/start/end as labelled otherConstraints, preserving
+    recorded dates, when status is not No. Nest release addressee/statement/dissemination
+    under mco:releasability/mco:MD_Releasability. A dissemination code without addressee
+    or statement remains an ISO validation failure. Canonical values override compatibility
+    mirrors.
+- id: GEX-010
+  source:
+  - dataset_vertical_extent_tbl.extent_label
+  - dataset_vertical_extent_tbl.description
+  - dataset_vertical_extent_tbl.minimum_value
+  - dataset_vertical_extent_tbl.maximum_value
+  - dataset_vertical_extent_tbl.unit_symbol
+  - dataset_vertical_extent_tbl.unit_uri
+  - dataset_vertical_extent_tbl.vertical_crs_name
+  - dataset_vertical_extent_tbl.vertical_crs_identifier
+  - dataset_vertical_extent_tbl.vertical_crs_uri
+  - dataset_vertical_extent_tbl.vertical_crs_type
+  - dataset_vertical_extent_tbl.sort_order
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:extent/gex:EX_Extent/gex:verticalElement/gex:EX_VerticalExtent
+  status: ready
+  rule: Emit saved extents in sort_order/id order; revalidate finite ordered bounds,
+    unit and CRS name. Bounds are gco:Real without uom and retain numeric precision/sign.
+    Label, note, unit symbol/URI, CRS name and local reference type are labelled EX_Extent
+    descriptions. Export saved public URI as verticalCRS reference and identifier
+    through verticalCRSId/MD_ReferenceSystem; split explicit AUTH:CODE only. Recognised
+    EPSG references resolve offline and must be standalone vertical CRSs with matching
+    unit and recorded up/down type; embed their WKT2 through mrs:crs/rbc:RS_CRS/rbc:definition.
+    No conversions or inferred datums. Conflicting EPSG IDs/URIs and known unit-URI
+    conflicts block assembly. Custom references stay explicit with unverified-compatibility
+    report warnings; a name alone produces an unknown CRS nilReason rather than a
+    fabricated identifier. Core/distribution/quality/content subset assessments exclude
+    this Wave 3 slice.
+- id: MRI-KEY-014
+  source:
+  - keyword_vocab_tbl.thesaurus_id
+  - keyword_thesaurus_tbl.field_code
+  - keyword_thesaurus_tbl.citation_title
+  - keyword_thesaurus_tbl.edition
+  - keyword_thesaurus_tbl.edition_date
+  - keyword_thesaurus_tbl.edition_date_type_code
+  - keyword_thesaurus_tbl.thesaurus_uri
+  - keyword_thesaurus_tbl.identifier
+  - keyword_thesaurus_tbl.responsible_person_id
+  - keyword_thesaurus_tbl.responsible_organisation_id
+  - keyword_thesaurus_tbl.responsible_role_code
+  mapping: join
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:descriptiveKeywords/mri:MD_Keywords/mri:thesaurusName/cit:CI_Citation
+  status: ready
+  rule: Group only canonical keyword_object, keyword_discipline, and keyword_geo values;
+    treat keyword_topic as an alias of keyword_object and emit the linked thesaurus
+    citation without inferring a thesaurus for free-text terms.
+- id: MRC-015
+  source:
+  - dataset_feature_catalogue_tbl.catalogue_uuid
+  - dataset_feature_catalogue_tbl.title
+  - dataset_feature_catalogue_tbl.version
+  - dataset_feature_catalogue_tbl.version_date
+  - dataset_feature_catalogue_tbl.language_code
+  - dataset_attribute_tbl.data_file_id
+  - dataset_attribute_tbl.layer_name
+  - dataset_attribute_tbl.data_field_name
+  - dataset_attribute_tbl.data_field_alias
+  - dataset_attribute_tbl.data_field_desc
+  - dataset_attribute_tbl.data_field_units
+  - dataset_attribute_tbl.attribute_type
+  - data_file_tbl.data_file_format
+  - dataset_feature_catalogue_tbl.producer_person_id
+  - dataset_feature_catalogue_tbl.producer_organisation_id
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_FeatureCatalogueDescription/mrc:featureCatalogueCitation
+    and ISO19110:gfc:FC_FeatureCatalogue
+  status: ready
+  rule: Use saved catalogue identity and GFC 2.2. Group active file/layer attributes;
+    qualify feature type names with file paths. Emit aliases as designation, types
+    as TypeName and units as GML definitions. Unknown cardinality, feature definitions,
+    version/date and producer carry nilReason and report warnings. Never treat sample
+    values as permissible domains or assert compliance without evidence. Validate
+    catalogue and metadata citation together.
+- id: CIT-016
+  source:
+  - organisation_tbl.parent_organisation_id
+  - organisation_tbl.organisational_unit_name
+  - organisation_tbl.organisation_address
+  - party_address_tbl.person_id
+  - party_address_tbl.organisation_id
+  - party_address_tbl.delivery_point
+  - party_address_tbl.city
+  - party_address_tbl.administrative_area
+  - party_address_tbl.postal_code
+  - party_address_tbl.country
+  - party_address_tbl.electronic_mail_address
+  - party_address_tbl.phone_number
+  - party_address_tbl.online_resource
+  mapping: join
+  target: cit:CI_Organisation and cit:CI_Contact/cit:address/cit:CI_Address
+  status: ready
+  rule: Serialize shared contacts in schema order; use normalized email and phone
+    per channel, with legacy person fields only when that channel is absent. Qualify
+    organisation names with recorded unit and ancestor names; reject hierarchy cycles.
+    Never emit positionName or otherProperty on CI_Organisation. Retain unsplit legacy
+    postal text only when normalized postal components are absent.
+- id: MCO-017
+  source: entry_tbl.license_type
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:reference/cit:CI_Citation/cit:title
+  status: deprecated-fallback
+  rule: Use only when the saved licence has no name, identifier or URL. An embargo-only
+    row must not suppress the fallback. Structured licence identity overrides the
+    legacy snapshot; this rule does not suppress supplementary access/use notes.
+- id: MRI-007
+  source:
+  - entry_tbl.resource_language_code
+  - entry_tbl.resource_character_encoding
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:defaultLocale/lan:PT_Locale
+  status: conditional
+  condition: Explicit dataset language supplied. The pinned content-catalogue rule
+    requires it when a feature catalogue is linked.
+  rule: Keep separate from metadata locale and catalogue language. No backfill; omitted
+    values remain missing and validation reports unmet conditions. Neither population
+    mode requires these for draft saving.
+- id: MRC-016
+  source:
+  - dataset_attribute_tbl.data_file_id
+  - dataset_attribute_tbl.data_file_rel_path_full
+  - dataset_attribute_tbl.layer_name
+  - dataset_attribute_tbl.attribute_type
+  - data_file_tbl.active
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeDescription/gco:RecordType
+  status: conditional
+  rule: One coverage per active raster file/layer. Resolve explicit file IDs or unique
+    legacy relative paths within the dataset; reject ambiguous or cross-dataset references.
+    Band names/types form RecordType and MemberName. Uncaptured content type is explicitly
+    unknown.
+- id: MRC-017
+  source:
+  - dataset_attribute_tbl.value_count
+  - dataset_attribute_tbl.missing_count
+  - dataset_attribute_tbl.profile_updated_at
+  mapping: transform
+  target: mdb:contentInfo/mrc:MD_CoverageDescription/mrc:attributeGroup/mrc:MD_AttributeGroup/mrc:attribute/mrc:MD_SampleDimension/mrc:otherProperty
+  status: conditional
+  condition: Saved raster profiling evidence is present.
+  rule: Named RecordType fields identify the ordered Record values and retain file/layer
+    provenance. Counts are profiling evidence, not ISO quality assertions or NoData
+    sentinel codes. No NoData sentinel is currently captured.
+- id: MCO-018
+  source: dataset_license_tbl.access_level
+  mapping: transform
+  target: mdb:identificationInfo/mri:MD_DataIdentification/mri:resourceConstraints/mco:MD_LegalConstraints/mco:otherConstraints
+  status: deprecated-fallback
+  rule: When access_level_code is blank, preserve legacy access_level as labelled
+    Access text. It does not establish a restriction code. The canonical code overrides
+    the legacy snapshot.

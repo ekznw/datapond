@@ -1,0 +1,5 @@
+---
+title: "Describe a dataset"
+---
+
+{{< include _content/dataset.qmd >}}

@@ -1,0 +1,328 @@
+---
+title: "Dataset development report"
+subtitle: "Scientific Services | Methods and lineage"
+lang: en-GB
+metadata-files: [ekznw-theme/ekznw.yml]
+template-version: "1.0.0"
+filters: [ekznw-theme/word-guidance.lua]
+format:
+  html:
+    toc: true
+    toc-title: "Report contents"
+    toc-depth: 2
+    number-sections: true
+    css: [ekznw-theme/style/default_overrides.css, ekznw-theme/development.css]
+  pdf:
+    toc: false
+    number-sections: true
+  docx:
+    reference-doc: ekznw-theme/reference.docx
+    toc: false
+    number-sections: true
+execute:
+  enabled: false
+---
+
+<!-- Template 1.0.0. Keep author guidance during development; remove it when
+the report is complete. This source contains no executable processing chunks.
+To cite a local bibliography, add bibliography: references.bib to the YAML.
+Keep a copy of that bibliography beside this document. -->
+
+**Dataset or project title:** [Enter title]
+
+**Prepared by:** [Name, organisation and role]
+
+**Dataset UUID and version:** [UUID] / [dataset version]
+
+**Report version and date:** [report version] / [YYYY-MM-DD]
+
+**Processing run or build:** [run identifier and processing dates]
+
+**Document status:** [In development / ready for review / complete]
+
+::: {.callout-tip title="Using this template" icon=false}
+Describe how the dataset was produced so that another person can understand,
+check and repeat the work. Replace the bracketed prompts with your own text.
+Keep these instructional notes while developing the report and remove them
+when it is complete. Add rows and repeat method sections wherever needed.
+:::
+
+Word users: save a project copy as `data_dev_project.docx`.
+Type directly into it and use the existing heading styles when adding sections.
+The report records methods and lineage; `metadata.pdf` describes the dataset
+for users and `citation.txt` provides its saved citation.
+
+## Revision history {.unnumbered}
+
+::: {.callout-tip title="What to record" icon=false}
+Record substantive changes, who made them and the report version. Identify
+changes to data or methods separately from wording and layout changes.
+:::
+
+| Date | Person and change | Report version |
+|:-----|:------------------|:---------------|
+| [YYYY-MM-DD] | [Name; change and reason] | [Version] |
+| [YYYY-MM-DD] | [Name; change and reason] | [Version] |
+
+*Template version 1.0.0. The report version and dataset version are separate.*
+
+{{< pagebreak >}}
+
+# Project summary
+
+## Purpose
+
+::: {.callout-tip title="What to write" icon=false}
+Explain why the dataset is needed, who will use it and which question or
+decision it supports. State the intended geographic and temporal coverage.
+:::
+
+[Write the purpose and intended use here.]
+
+## Scope and key definitions
+
+[Describe what the work includes and excludes. Define specialist terms and
+any boundaries, scales or assumptions needed to understand the methods.]
+
+# Main steps
+
+::: {.callout-tip title="What to write" icon=false}
+Summarise the workflow in order. Give each step a stable identifier that can
+also be used in the detailed methods, scripts, logs and validation records.
+:::
+
+| Step | Main activity | Result |
+|:-----|:--------------|:-------|
+| S01 | [Prepare and check inputs] | [Prepared inputs] |
+| S02 | [Process or derive data] | [Derived outputs] |
+| S03 | [Validate and assemble products] | [Checked products] |
+
+# Datasets used
+
+::: {.callout-tip title="What to record" icon=false}
+Identify the exact input versions, including externally supplied data. Record
+a citation or persistent identifier and the location of the input or its
+manifest. Note any restrictions, selection, exclusions or preprocessing.
+:::
+
+| Input | Citation and version | Location and role |
+|:------|:---------------------|:------------------|
+| I01 [Title] | [Citation; version/date; identifier] | [Relative path or stable URL; use] |
+| I02 [Title] | [Citation; version/date; identifier] | [Relative path or stable URL; use] |
+
+**Input selection and preparation:** [Explain inclusion rules, exclusions,
+permissions relevant to reuse and any preparation completed before S01.]
+
+{{< pagebreak >}}
+
+# Data processing
+
+::: {.callout-tip title="What to write" icon=false}
+Repeat the method section below for each main step. Describe what was actually
+done, why it was done that way and the settings that affect the result.
+Manual work in QGIS, ArcGIS, spreadsheets or field records is equally valid:
+record selections, tools, settings and decisions even when there is no code.
+:::
+
+## S01 Step title
+
+**Objective and rationale**
+
+[Explain what this step achieves and why this approach was selected.]
+
+**Inputs and prerequisites**
+
+[Identify input IDs, versions, layers or sheets, and any preceding steps.]
+
+**Method**
+
+[Describe the operations in sufficient detail for another practitioner to
+repeat them. Include formulas, diagrams or screenshots where they clarify
+the method. Cite published methods and explain any departures from them.]
+
+**Parameters and decision rules**
+
+| Setting | Value and units | Reason or source |
+|:--------|:----------------|:-----------------|
+| [Parameter or rule] | [Actual value] | [Rationale or citation] |
+| [Parameter or rule] | [Actual value] | [Rationale or citation] |
+
+**Implementation and execution evidence**
+
+[Record software and tool names; script or model path and code revision if
+applicable; run ID and date; and relative paths to logs or saved commands.
+Refer to Appendix D for the full processing environment.]
+
+**Outputs and checks**
+
+[Identify outputs from this step, checks performed, results and any failures,
+corrections or exceptions. Distinguish a completed check from a planned check.]
+
+**Decisions and limitations**
+
+[Explain judgement calls, rejected alternatives, uncertainty and limitations
+introduced by this step. Refer to decision IDs in Appendix E where useful.]
+
+{{< pagebreak >}}
+
+# Products
+
+::: {.callout-tip title="What to record" icon=false}
+List the final products and explain how they relate to the methods. Include
+relative filenames and layer or sheet names. Record units, CRS and resolution
+where relevant; use Not applicable for nonspatial data.
+:::
+
+| Product and relative path | Content and specification | Produced by |
+|:--------------------------|:--------------------------|:------------|
+| O01 [File; layer/sheet] | [Purpose; units; CRS/resolution if applicable] | [Step/run] |
+| O02 [File; layer/sheet] | [Purpose; units; CRS/resolution if applicable] | [Step/run] |
+
+**Packaging and completeness:** [State what is included, what is excluded,
+how NoData or missing values are represented and where the file manifest or
+checksum record is stored.]
+
+## Quality assessment
+
+::: {.callout-tip title="What to write" icon=false}
+Report the checks and their evidence. Include relevant completeness, spatial,
+attribute, numerical or independent-review checks. Record unresolved issues
+as well as successful results; do not describe an untested result as passed.
+:::
+
+| Check and acceptance criterion | Result | Evidence |
+|:-------------------------------|:-------|:---------|
+| [Check; expected outcome] | [Measured result; status] | [Log, table or review path] |
+| [Check; expected outcome] | [Measured result; status] | [Log, table or review path] |
+
+**Known limitations and appropriate use:** [Explain uncertainty, unsuitable
+applications and any conditions a downstream user must consider.]
+
+# Conclusion
+
+[Explain whether the purpose was achieved, which products are ready for use,
+what remains unresolved and which further work is recommended.]
+
+{{< pagebreak >}}
+
+# Appendices {.unnumbered}
+
+## Appendix A Dataset metadata {.unnumbered}
+
+::: {.callout-tip title="What to record" icon=false}
+Refer to the saved dataset metadata and citation. Summarise only the links
+needed to connect this methods report to the dataset; maintain the full
+descriptive record in the metadata document.
+:::
+
+**Metadata document:** [Relative path to metadata.pdf]
+
+**Citation:** [Relative path to citation.txt]
+
+**Dataset identity and version:** [UUID and version described by this report]
+
+**Archive or release reference:** [Release identifier or manifest path, if
+assigned; otherwise state Not yet assigned.]
+
+## Appendix B Supporting documentation {.unnumbered}
+
+| Reference | Document and purpose | Relative path or stable URL |
+|:----------|:---------------------|:----------------------------|
+| D01 | [Protocol, diagram, review or other evidence] | [Location] |
+| D02 | [Protocol, diagram, review or other evidence] | [Location] |
+
+## Appendix C Project folder structure {.unnumbered}
+
+::: {.callout-tip title="What to write" icon=false}
+Replace this example with the actual dataset structure. Keep references
+relative to the dataset folder where possible. Identify externally held
+inputs and explain how authorised users can obtain them.
+:::
+
+```text
+dataset_folder/
+  data/               Inputs and outputs
+  docs/               Evidence and logs
+  scripts/            Code or models
+  data_dev_project.*  Methods report
+  metadata.pdf        Dataset metadata
+  citation.txt        Dataset citation
+```
+
+{{< pagebreak >}}
+
+## Appendix D Processing environment {.unnumbered}
+
+::: {.callout-tip title="What to record" icon=false}
+Record the environment that actually produced the data. If processing used
+several computers or environments, identify the steps run in each. Keep
+production-run evidence when the report is rendered on another computer.
+For a manual workflow, record the application, version, tools and settings.
+:::
+
+### Software and dependencies {.unnumbered}
+
+| Component | Version or build | Steps and use |
+|:----------|:-----------------|:--------------|
+| [Operating system / platform] | [Version] | [Steps; workstation or cluster role] |
+| [Application or runtime] | [Version] | [Steps; tool or operation] |
+| [Package, plugin or GIS library] | [Version] | [Steps; dependency] |
+
+**Code or model revision:** [Repository and commit, script hash, saved model
+version or Not applicable.]
+
+**Environment definition:** [Relative path to a lockfile, environment export,
+container digest or other saved definition, if available.]
+
+### Run and reproducibility record {.unnumbered}
+
+**Run identity and dates:** [Identifier; start/end dates and time zone]
+
+**Configuration and input evidence:** [Saved parameters, seeds where relevant,
+input manifest and exact input versions]
+
+**Resources and execution settings:** [Relevant memory, cores, parallelism,
+hardware or scheduler settings; otherwise Not applicable]
+
+**Recorded environment output:** [Paste the saved environment summary here,
+or summarise it and give a relative path to the complete record.]
+
+**Steps to repeat the work:** [Explain the required order, entry points,
+dependencies, expected outputs and how successful completion is checked.]
+
+**Report rendering environment:** [Optional: record separately if different
+from the environment that produced the data.]
+
+{{< pagebreak >}}
+
+## Appendix E Project progress and decisions {.unnumbered}
+
+::: {.callout-tip title="What to record" icon=false}
+Keep working decisions and outstanding items here while the dataset develops.
+Record the reason and effect of substantive decisions. Resolve or clearly
+describe outstanding items when completing the report.
+:::
+
+| Date and decision ID | Decision and rationale | Effect or follow-up |
+|:---------------------|:-----------------------|:--------------------|
+| [YYYY-MM-DD; DEC01] | [Decision; person; reason] | [Affected steps; action/status] |
+| [YYYY-MM-DD; DEC02] | [Decision; person; reason] | [Affected steps; action/status] |
+
+**Outstanding work:** [List unresolved items, responsible people and the
+consequences for use of the current dataset.]
+
+**Review record:** [Record who reviewed the methods and evidence, the date,
+the scope of review and any remaining actions.]
+
+# References {.unnumbered}
+
+::: {.callout-tip title="What to write" icon=false}
+Include full references for cited datasets, methods and software where
+appropriate. Word users may type references or use their usual citation
+manager. Quarto users may add a local bibliography and citation keys.
+:::
+
+[Add full references here.]
+
+::: {#refs}
+:::

@@ -20,6 +20,10 @@ test_that("pond search and selected location details surround the map", {
   expect_gt(search_position, 0L)
   expect_gt(map_position, search_position)
   expect_gt(detail_position, map_position)
+  expect_gt(regexpr('id="pond_map_display"', html, fixed = TRUE)[[1]], map_position)
+  expect_gt(regexpr("Points show bounding-box centres", html, fixed = TRUE)[[1]], map_position)
+  expect_gt(regexpr('id="overview_dataset_abstract"', html, fixed = TRUE)[[1]], map_position)
+  expect_match(html, 'id="overview_current_only"', fixed = TRUE)
   expect_match(
     html,
     'id="refresh_pond_overview"',
@@ -27,7 +31,7 @@ test_that("pond search and selected location details surround the map", {
   )
   expect_match(
     html,
-    "Clear the overview selection and refresh the dataset extent map",
+    "Clear the overview selection and refresh the dataset map",
     fixed = TRUE
   )
   expect_false(grepl(
@@ -154,17 +158,18 @@ test_that("pond inventory keeps title authors and date in the compact view", {
 
   expect_setequal(
     vapply(essential, function(definition) definition$targets, integer(1)),
-    c(2L, 3L, 9L)
+    c(2L, 3L, 9L, 11L)
   )
   expect_identical(
     vapply(essential, function(definition) definition$responsivePriority, integer(1)),
-    1:3
+    1:4
   )
   expect_identical(essential[[1]]$width, "300px")
 
   options <- datapond:::pond_overview_responsive_table_options()
   expect_false(options$scrollX)
   expect_false(options$responsive$details)
+  expect_true(options$deferRender)
   expect_identical(options$columnDefs, definitions)
   expect_identical(
     datapond:::pond_overview_table_extensions(),
@@ -174,6 +179,25 @@ test_that("pond inventory keeps title authors and date in the compact view", {
   server_source <- paste(deparse(body(datapond:::server)), collapse = "\n")
   expect_match(server_source, "pond_overview_responsive_table_options", fixed = TRUE)
   expect_match(server_source, "pond_overview_table_extensions", fixed = TRUE)
+})
+
+test_that("indexed overview search reuses text and keeps copies in different ponds distinct", {
+  current <- data.table::data.table(id = 1L, title = "River samples", display_title = "River samples",
+    authors = "A. Researcher", uuid = "same-uuid", dataset_path = "/current/src/rivers")
+  other <- data.table::data.table(id = 1L, title = "River samples", uuid = "same-uuid",
+    pond_name = "Team archive", stage = "src", connection_type = "Local pond",
+    dataset_path = "/archive/src/rivers", open_path = "/archive", availability = "Local catalogue")
+  rows <- merge_pond_overview_inventory(current, other, "Field pond", "/current")
+  expect_equal(nrow(rows), 2L)
+  expect_equal(length(unique(rows$record_key)), 2L)
+  expect_equal(rows$id, c(1L, NA_integer_))
+  testthat::local_mocked_bindings(pond_overview_search_index = function(...) stop("Index should already be cached"))
+  expect_equal(filter_pond_overview_data(rows, "archive river")$pond_name, "Team archive")
+  expect_equal(filter_pond_overview_data(rows, "field researcher")$pond_name, "Field pond")
+  expect_equal(nrow(filter_pond_overview_data(rows, "unknown")), 0L)
+  expect_equal(nrow(filter_pond_overview_data(rows, "")), 2L)
+  expect_equal(current$id, 1L)
+  expect_false("active_pond" %in% names(current))
 })
 
 

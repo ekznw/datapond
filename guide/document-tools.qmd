@@ -1,0 +1,5 @@
+---
+title: "Set up document tools"
+---
+
+{{< include _content/document-tools.qmd >}}

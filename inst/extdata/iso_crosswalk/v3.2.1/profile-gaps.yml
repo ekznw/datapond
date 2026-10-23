@@ -1,0 +1,11 @@
+gaps:
+  - id: GAP-018
+    priority: high
+    iso_target: 'ISO 19115-3 XML instance validation'
+    issue: Section serializers exist, but there is no complete crosswalk-driven serializer with representative XSD/Schematron conformance tests. Mapping readiness is not serializer coverage or validated conformance.
+    recommendation: Build XML exports for vector, raster, and nonspatial fixtures and validate them against the official ISO/TC 211 schemas and Schematron rules.
+  - id: GAP-019
+    priority: high
+    iso_target: 'Supplementary resource constraints'
+    issue: MCO-013 treats access_constraints and use_limitations as legacy-only fallbacks, but the app allows additional operational notes alongside structured licensing. Suppressing these whenever a licence row exists can omit distinct information.
+    recommendation: Audit existing notes against structured terms; define additive, de-duplicated constraint export separately from the legacy license_type fallback and add serializer regression fixtures before adopting changed export semantics.

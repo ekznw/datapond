@@ -69,9 +69,9 @@ data_files_live_scan_ui <- function(ns) {
 
       shinyFiles::shinyDirButton(
         ns("custom_dir"),
-        "Select custom scan folder",
+        shiny::tagList("Select custom scan folder ", metadata_requirement_marker("Conditional")),
         paste(
-          "The selected folder will be",
+          "Required for a Custom folder scan. The selected folder will be",
           "scanned exactly as chosen."
         )
       )
@@ -307,7 +307,7 @@ data_files_selected_file_ui <- function(ns) {
 
         shiny::selectInput(
           ns("saved_file_select"),
-          "Selected saved data file",
+          metadata_field_label("Selected saved data file", "Conditional", "Select a saved file before reviewing it or editing and profiling its attributes."),
           choices = NULL
         )
       ),
@@ -449,7 +449,7 @@ data_files_review_ui <- function(ns) {
 
           shiny::checkboxInput(
             ns("include_in_attribute_scan"),
-            "Include in attribute profiling",
+            metadata_field_label("Include in attribute profiling", "Conditional", "Must be enabled and saved before profiling this file; not needed to save ordinary file notes."),
             value = FALSE
           ),
 
@@ -673,7 +673,7 @@ data_files_attributes_ui <- function(ns) {
 
         shiny::selectInput(
           ns("attribute_select"),
-          "Attribute or raster layer",
+          metadata_field_label("Attribute or raster layer", "Conditional", "Select an attribute or raster layer before saving its notes."),
           choices = NULL
         ),
 
@@ -812,101 +812,123 @@ data_files_spatial_overview_ui <- function(ns) {
     shiny::hr(),
 
     shiny::h3(
-      "Dataset creation / compilation scale"
+      "Dataset scale and level of detail"
+    ),
+
+    shiny::tags$p(
+      "Scale describes how much ground a map represents. At 1:25,000,",
+      "1 cm on a map represents 250 m on the ground. Enter only the number",
+      "after 1:, for example 25000. A smaller number means a larger scale",
+      "and generally finer detail: 1:10,000 is larger than 1:50,000."
+    ),
+    shiny::tags$p(
+      shiny::tags$strong("Why three inputs?"),
+      "The representative scale summarises the dataset's overall detail in one value.",
+      "The two optional range limits add context about the scales used to create",
+      "the data, or the scales recommended for a particular use.",
+      "A single value cannot describe that variation; a range alone does not",
+      "identify a representative value. You do not need to fill in all three."
+    ),
+
+    shiny::numericInput(
+      ns("equivalent_scale_denominator"),
+      "Representative dataset scale (1 :)",
+      value = NA_real_,
+      min = 1,
+      step = 1000
     ),
 
     shiny::tags$small(
-      style = paste(
-        "color:#666;",
-        "display:block;",
-        "margin-bottom:10px;"
-      ),
-
+      style = "color:#666; display:block; margin-bottom:10px;",
       paste(
-        "Record the scale or scale range at which the dataset",
-        "was captured, digitised, compiled or generalised.",
-        "This is dataset-level interpretive metadata stored",
-        "in entry_tbl."
+        "Choose one known scale that best describes the detail of the finished dataset,",
+        "as if it were a paper map. This is the ISO representative fraction denominator",
+        "used when sharing standard metadata. It is not calculated from the range:",
+        "do not simply average the limits. Leave blank if unknown or not meaningful."
       )
     ),
 
-    shiny::fluidRow(
-      shiny::column(
-        width = 6,
-
-        shiny::numericInput(
-          ns("max_scale"),
-          paste(
-            "Largest creation scale",
-            "-- smallest denominator: 1 :"
+    metadata_optional_details(
+      "Optional: creation or recommended-use scale range and notes",
+      shiny::tags$p(
+        "Use this range when one scale would hide useful information.",
+        "Creation scales describe the maps or working scales used to capture",
+        "or compile the data. Recommended-use scales describe where the finished",
+        "dataset is suitable for a stated purpose. These can differ. Use both",
+        "limits for the same kind of range and explain which kind in the note."
+      ),
+      shiny::fluidRow(
+        shiny::column(
+          width = 6,
+          shiny::numericInput(
+            ns("max_scale"),
+            "Largest scale in the range -- smaller number (1 :)",
+            value = NA_real_,
+            min = 1,
+            step = 1000
           ),
-          value = NA_real_,
-          min = 1,
-          step = 1000
+          shiny::tags$small(
+            class = "text-muted",
+            "The more detailed end of the range, for example 10000 for 1:10,000."
+          )
         ),
-
-        shiny::tags$small(
-          style = "color:#666; display:block;",
-
-          paste(
-            "Example: enter 5000 for a largest",
-            "creation scale of 1:5,000."
+        shiny::column(
+          width = 6,
+          shiny::numericInput(
+            ns("min_scale"),
+            "Smallest scale in the range -- larger number (1 :)",
+            value = NA_real_,
+            min = 1,
+            step = 1000
+          ),
+          shiny::tags$small(
+            class = "text-muted",
+            "The less detailed end of the range, for example 50000 for 1:50,000."
           )
         )
       ),
-
-      shiny::column(
-        width = 6,
-
-        shiny::numericInput(
-          ns("min_scale"),
-          paste(
-            "Smallest creation scale",
-            "-- largest denominator: 1 :"
-          ),
-          value = NA_real_,
-          min = 1,
-          step = 1000
-        ),
-
-        shiny::tags$small(
-          style = "color:#666; display:block;",
-
-          paste(
-            "Example: enter 50000 for a smallest",
-            "creation scale of 1:50,000."
-          )
-        )
-      )
-    ),
-
-    shiny::textAreaInput(
-      ns("creation_scale_note"),
-      "Creation / compilation scale note",
-      placeholder = paste(
-        "Explain how the scale was determined, including",
-        "source-map scales, imagery scales, mixed source",
-        "scales, generalisation, or why scale is not applicable."
+      shiny::tags$p(
+        "For a range, enter both limits and add a note. For a single creation",
+        "or recommended-use scale, enter the same number in both limits.",
+        "For example, if data were compiled at 1:25,000 and the finished dataset",
+        "retains that level of detail, all three inputs can be 25000.",
+        "For mixed sources at 1:10,000 to 1:50,000, enter 10000 and 50000 as",
+        "the creation limits; choose a representative scale only if you have",
+        "evidence for the finished dataset's overall detail."
       ),
-      rows = 4
+      shiny::textAreaInput(
+        ns("creation_scale_note"),
+        "Scale explanation and intended use",
+        placeholder = paste(
+          "Example: These are creation scales. Compiled from maps at 1:10,000",
+          "to 1:50,000, then simplified to detail comparable to 1:50,000.",
+          "For a recommended-use range, describe the intended task and the evidence",
+          "for the limits. Explain any representative scale chosen, or why scale",
+          "is unknown or not applicable."
+        ),
+        rows = 4
+      ),
+      shiny::tags$p(
+        class = "text-muted",
+        "You may save a note with all scale numbers blank. DataPond stores the",
+        "range separately from the representative scale; it does not check whether",
+        "the representative value lies within the range. Explain any difference.",
+        "The range is additional DataPond metadata, not a replacement for the",
+        "representative scale in the app's ISO export."
+      ),
+      shiny::uiOutput(ns("creation_scale_status"))
     ),
-
-    shiny::uiOutput(
-      ns("creation_scale_status")
+    shiny::tags$p(
+      class = "text-muted",
+      "Scale is a guide to detail, not a measurement of location accuracy.",
+      "Raster cell size (for example, 10 m) describes the grid spacing and does",
+      "not automatically determine a map scale. Zooming in on a screen does not",
+      "add detail to the underlying data. Record accuracy evidence separately",
+      "in the data quality section."
     ),
-
     shiny::tags$small(
-      style = paste(
-        "color:#666;",
-        "display:block;",
-        "margin-top:4px;",
-        "margin-bottom:12px;"
-      ),
-
-      paste(
-        "Creation-scale values are saved when the main",
-        "'Save Dataset' button is clicked."
-      )
+      class = "text-muted",
+      "Save these scale values and notes with the main Save Dataset button."
     ),
 
     shiny::hr(),
@@ -1018,8 +1040,8 @@ data_files_spatial_manual_extents_ui <- function(ns) {
         paste(
           "Use a manual extent when geographic coverage cannot be",
           "extracted directly, such as for spreadsheets, tabular",
-          "monitoring data or documentary datasets. The source CRS",
-          "must be supplied explicitly."
+          "monitoring data or documentary datasets. Select an extent on",
+          "the map below, or enter coordinates and their source CRS."
         )
       )
     ),
@@ -1053,7 +1075,7 @@ data_files_spatial_manual_extents_ui <- function(ns) {
 
         shiny::textInput(
           ns("manual_extent_crs"),
-          "Coordinate reference system",
+          metadata_field_label("Coordinate reference system", "Conditional", "Required when saving a manual extent; map selection supplies EPSG:4326."),
           placeholder =
             "For example: EPSG:4326 or EPSG:32736"
         )
@@ -1064,25 +1086,25 @@ data_files_spatial_manual_extents_ui <- function(ns) {
 
         shiny::numericInput(
           ns("manual_extent_xmin"),
-          "Minimum X",
+          metadata_field_label("Minimum X", "Conditional", "Required when saving a manual extent; map selection can supply it."),
           value = NA_real_
         ),
 
         shiny::numericInput(
           ns("manual_extent_ymin"),
-          "Minimum Y",
+          metadata_field_label("Minimum Y", "Conditional", "Required when saving a manual extent; map selection can supply it."),
           value = NA_real_
         ),
 
         shiny::numericInput(
           ns("manual_extent_xmax"),
-          "Maximum X",
+          metadata_field_label("Maximum X", "Conditional", "Required when saving a manual extent; map selection can supply it."),
           value = NA_real_
         ),
 
         shiny::numericInput(
           ns("manual_extent_ymax"),
-          "Maximum Y",
+          metadata_field_label("Maximum Y", "Conditional", "Required when saving a manual extent; map selection can supply it."),
           value = NA_real_
         )
       ),
@@ -1136,8 +1158,19 @@ data_files_spatial_manual_extents_ui <- function(ns) {
     ),
 
     shiny::h4(
-      "Extent preview"
+      "Select or preview extent"
     ),
+
+    shiny::helpText(
+      "Pan and zoom to your area, choose Select extent on map, then click",
+      "two opposite corners. This replaces the four coordinates and sets",
+      "the CRS to EPSG:4326 (longitude / latitude). Review the result and",
+      "choose Save extent to keep it."
+    ),
+
+    shiny::actionButton(ns("manual_extent_map_select"), "Select extent on map"),
+    shiny::actionButton(ns("manual_extent_map_cancel"), "Cancel selection"),
+    shiny::uiOutput(ns("manual_extent_map_status")),
 
     leaflet::leafletOutput(
       ns("manual_extent_map"),
@@ -1280,7 +1313,7 @@ data_files_spatial_technical_ui <- function(ns) {
 
 
 # Main spatial metadata UI ----
-data_files_spatial_ui <- function(id) {
+data_files_spatial_ui <- function(id, vertical_ui = NULL) {
   ns <- shiny::NS(id)
 
   shiny::tagList(
@@ -1321,7 +1354,8 @@ data_files_spatial_ui <- function(id) {
 
         data_files_spatial_dataset_extent_ui(
           ns
-        )
+        ),
+        vertical_ui
       ),
 
       shiny::tabPanel(
@@ -1355,7 +1389,7 @@ data_files_spatial_ui <- function(id) {
 }
 
 # Main data files UI ----
-mod_data_files_ui <- function(id) {
+mod_data_files_ui <- function(id, dictionary_ui = NULL, quality_ui = NULL) {
   ns <- shiny::NS(id)
 
   shiny::tagList(
@@ -1409,7 +1443,13 @@ mod_data_files_ui <- function(id) {
 
         data_files_attributes_ui(
           ns
-        )
+        ),
+        dictionary_ui
+      ),
+      if (!is.null(quality_ui)) shiny::tabPanel(
+        title = "Data quality",
+        value = "quality",
+        quality_ui
       )
     )
   )
@@ -1874,12 +1914,36 @@ mod_data_files_server <- function(id, state) {
     }
 
     creation_scale_validation <- reactive({
-      validate_creation_scale_metadata(
+      validation <- validate_creation_scale_metadata(
         max_scale = input$max_scale,
         min_scale = input$min_scale,
         creation_scale_note =
           input$creation_scale_note
       )
+      equivalent <- tryCatch(
+        validate_equivalent_scale_denominator(input$equivalent_scale_denominator),
+        error = function(e) e
+      )
+      if (inherits(equivalent, "error")) {
+        return(list(
+          valid = FALSE,
+          status = "invalid",
+          message = conditionMessage(equivalent),
+          values = c(
+            validation$values,
+            list(equivalent_scale_denominator = input$equivalent_scale_denominator)
+          )
+        ))
+      }
+      validation$values$equivalent_scale_denominator <- equivalent
+      if (!is.na(equivalent) && identical(validation$status, "not_recorded")) {
+        validation$status <- "valid"
+        validation$message <- paste0(
+          "ISO representative fraction recorded as 1:",
+          format(equivalent, big.mark = ",", scientific = FALSE)
+        )
+      }
+      validation
     })
 
 
@@ -1889,6 +1953,7 @@ mod_data_files_server <- function(id, state) {
       if (!isTRUE(validation$valid)) {
         return(
           list(
+            equivalent_scale_denominator = input$equivalent_scale_denominator,
             max_scale = input$max_scale,
             min_scale = input$min_scale,
             creation_scale_note =
@@ -1902,6 +1967,12 @@ mod_data_files_server <- function(id, state) {
 
 
     clear_creation_scale <- function() {
+      updateNumericInput(
+        session,
+        "equivalent_scale_denominator",
+        value = NA_real_
+      )
+
       updateNumericInput(
         session,
         "max_scale",
@@ -1957,9 +2028,23 @@ mod_data_files_server <- function(id, state) {
         )
       )
 
+      equivalent_scale <- creation_scale_numeric(
+        creation_scale_record_value(
+          rec,
+          "equivalent_scale_denominator",
+          default = NA_real_
+        )
+      )
+
       if (is.na(note)) {
         note <- ""
       }
+
+      updateNumericInput(
+        session,
+        "equivalent_scale_denominator",
+        value = equivalent_scale
+      )
 
       updateNumericInput(
         session,
@@ -1983,6 +2068,7 @@ mod_data_files_server <- function(id, state) {
     }
 
     output$creation_scale_status <- renderUI({
+      access_require("read")
       validation <- creation_scale_validation()
 
       status <- validation$status
@@ -2259,10 +2345,10 @@ mod_data_files_server <- function(id, state) {
     )
 
     shinyDirChoose(
-      input,
+      access_directory_input(input, "edit"),
       "custom_dir",
       roots = custom_scan_roots,
-      session = session
+      allowDirCreate = FALSE, session = session
     )
 
 
@@ -2510,6 +2596,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$scan_scope_status <- renderText({
+      access_require("read")
       scope_info <- scan_scope_info()
 
       scan_root <- scope_info$scan_root
@@ -2670,6 +2757,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$refresh_scan,
       {
+        access_require("edit", touch = TRUE)
         if (!require_active_user_for_write(
           state,
           "scanning data files"
@@ -2809,6 +2897,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$mode,
       {
+        access_require("edit", touch = TRUE)
         clear_live_scan_outputs(
           "Live scan source changed."
         )
@@ -2819,6 +2908,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$scan_scope,
       {
+        access_require("edit", touch = TRUE)
         clear_live_scan_outputs(
           "Live scan scope changed."
         )
@@ -2829,6 +2919,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$custom_dir,
       {
+        access_require("edit", touch = TRUE)
         clear_live_scan_outputs(
           "Custom scan folder changed."
         )
@@ -2839,6 +2930,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$exclude_transient_dirs,
       {
+        access_require("edit", touch = TRUE)
         clear_live_scan_outputs(
           paste(
             "Transient-directory exclusion",
@@ -2852,6 +2944,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       state$data_path,
       {
+        access_require("read", touch = TRUE)
         clear_live_scan_outputs(
           "Selected dataset data directory changed."
         )
@@ -2862,6 +2955,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       state$data_pond,
       {
+        access_require("read", touch = TRUE)
         clear_live_scan_outputs(
           "Data pond changed."
         )
@@ -2995,6 +3089,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$saved_file_review_table <- DT::renderDT({
+      access_require("read")
       df <- saved_file_review_summary()
 
       if (is.null(df) || nrow(df) == 0) {
@@ -3127,6 +3222,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$saved_file_review_table_rows_selected,
       {
+        access_require("read", touch = TRUE)
         selected_row <-
           input$saved_file_review_table_rows_selected
 
@@ -3663,6 +3759,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$selected_saved_file_status <- shiny::renderUI({
+      access_require("read")
       row <- selected_saved_file_record()
 
       if (
@@ -3870,6 +3967,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$inventory_summary <- shiny::renderUI({
+      access_require("read")
       counts <- inventory_counts()
 
       shiny::tags$div(
@@ -3942,6 +4040,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$inventory_view_note <- shiny::renderUI({
+      access_require("read")
       view <- input$inventory_view
 
       if (identical(
@@ -3989,6 +4088,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$live_scan_summary <- shiny::renderUI({
+      access_require("read")
       saved_count <- saved_file_inventory_count()
 
       if (saved_count > 0L) {
@@ -4032,6 +4132,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     shiny::observe({
+      access_require("read")
       dataset_id <- state$current_dataset_id
 
       dataset_key <- if (
@@ -4091,6 +4192,7 @@ mod_data_files_server <- function(id, state) {
     shiny::observeEvent(
       input$show_live_scan_panel,
       {
+        access_require("edit", touch = TRUE)
         if (
           isTRUE(
             live_scan_programmatic_update()
@@ -4137,6 +4239,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       extents <- manual_extents()
 
       choices <- c(
@@ -4183,6 +4286,7 @@ mod_data_files_server <- function(id, state) {
 
 
     observe({
+      access_require("read")
       files <- saved_data_files()
 
       choices <- c(
@@ -4238,6 +4342,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_new,
       {
+        access_require("edit", touch = TRUE)
         clear_manual_extent_form()
       }
     )
@@ -4246,6 +4351,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       state$current_dataset_id,
       {
+        access_require("read", touch = TRUE)
         clear_manual_extent_form()
 
         manual_extent_refresh(
@@ -4258,6 +4364,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_select,
       {
+        access_require("edit", touch = TRUE)
         selected_id <- suppressWarnings(
           as.integer(
             input$manual_extent_select
@@ -4428,6 +4535,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$manual_extent_validation <- renderUI({
+      access_require("read")
       validation <- manual_extent_validation_result()
 
       tags$div(
@@ -4459,16 +4567,19 @@ mod_data_files_server <- function(id, state) {
       )
     })
 
+    register_manual_extent_map_selector(
+      input, output, session,
+      reset_key = reactive(list(state$current_dataset_id, state$data_pond))
+    )
+
     output$manual_extent_map <- leaflet::renderLeaflet({
+      access_require("read")
       validation <- manual_extent_validation_result()
       preview <- validation$preview
 
       map <- leaflet::leaflet()
 
-      map <- leaflet::addProviderTiles(
-        map,
-        provider = "CartoDB.Positron"
-      )
+      map <- add_datapond_basemap(map)
 
       if (!isTRUE(preview$eligible)) {
         return(
@@ -4504,6 +4615,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_save,
       {
+        access_require("edit", touch = TRUE)
         if (!require_active_user_for_write(
           state,
           "saving a manual spatial extent"
@@ -4627,6 +4739,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_deactivate,
       {
+        access_require("edit", touch = TRUE)
         if (!require_active_user_for_write(
           state,
           "deactivating a manual spatial extent"
@@ -4694,6 +4807,7 @@ mod_data_files_server <- function(id, state) {
     )
 
     output$manual_extent_table <- DT::renderDT({
+      access_require("read")
       extents <- manual_extents()
 
       if (
@@ -4799,6 +4913,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$manual_extent_table_rows_selected,
       {
+        access_require("read", touch = TRUE)
         row_index <- input$manual_extent_table_rows_selected
         extents <- manual_extents()
 
@@ -4869,6 +4984,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$dataset_bbox_status <- renderUI({
+      access_require("read")
       summary <- dataset_bbox_summary()
 
       if (
@@ -4955,6 +5071,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$dataset_bbox_map <- leaflet::renderLeaflet({
+      access_require("read")
       summary <- dataset_bbox_summary()
       contributors <- dataset_bbox_contributors()
 
@@ -4965,9 +5082,8 @@ mod_data_files_server <- function(id, state) {
         )
       )
 
-      map <- leaflet::addProviderTiles(
-        map,
-        provider = "CartoDB.Positron"
+      map <- add_datapond_basemap(
+        map, overlay_groups = c("Included sources", "Derived dataset bbox")
       )
 
       if (
@@ -5034,17 +5150,6 @@ mod_data_files_server <- function(id, state) {
         group = "Derived dataset bbox"
       )
 
-      map <- leaflet::addLayersControl(
-        map,
-        overlayGroups = c(
-          "Included sources",
-          "Derived dataset bbox"
-        ),
-        options = leaflet::layersControlOptions(
-          collapsed = FALSE
-        )
-      )
-
       leaflet::fitBounds(
         map,
         lng1 = summary$xmin[1],
@@ -5055,6 +5160,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$dataset_bbox_contributors_table <- DT::renderDT({
+      access_require("read")
       contributors <- dataset_bbox_contributors()
 
       if (
@@ -5219,6 +5325,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       df <- saved_spatial_records()
 
       if (
@@ -5363,6 +5470,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$spatial_bbox_status <- renderUI({
+      access_require("read")
       preview <- selected_spatial_preview()
 
       if (isTRUE(preview$eligible)) {
@@ -5393,6 +5501,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$spatial_bbox_map <- leaflet::renderLeaflet({
+      access_require("read")
       preview <- selected_spatial_preview()
 
       map <- leaflet::leaflet(
@@ -5402,10 +5511,7 @@ mod_data_files_server <- function(id, state) {
         )
       )
 
-      map <- leaflet::addProviderTiles(
-        map,
-        provider = "CartoDB.Positron"
-      )
+      map <- add_datapond_basemap(map)
 
       if (!isTRUE(preview$eligible)) {
         return(
@@ -5442,6 +5548,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       row <- selected_spatial_record()
 
       if (is.null(row)) {
@@ -5475,6 +5582,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$spatial_bbox_inclusion_ui <- renderUI({
+      access_require("read")
       record <- selected_spatial_record()
       preview <- selected_spatial_preview()
 
@@ -5553,6 +5661,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$save_bbox_inclusion,
       {
+        access_require("edit", touch = TRUE)
         if (!require_active_user_for_write(
           state,
           "saving bounding-box inclusion"
@@ -5643,6 +5752,7 @@ mod_data_files_server <- function(id, state) {
     )
 
     output$spatial_record_details <- renderText({
+      access_require("read")
       row <- selected_spatial_record()
 
       if (is.null(row)) {
@@ -5686,6 +5796,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$save_spatial_notes, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "saving spatial review notes"
@@ -5748,6 +5859,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       df <- saved_data_files()
 
       if (
@@ -5877,6 +5989,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     shiny::observe({
+      access_require("read")
       row <- selected_saved_file_record()
 
       if (
@@ -5994,6 +6107,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$save_file_review, {
+      access_require("edit", touch = TRUE)
       req(input$saved_file_select)
 
       if (!require_active_user_for_write(
@@ -6035,6 +6149,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$profile_selected_file, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "profiling file attributes"
@@ -6258,6 +6373,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     shiny::observe({
+      access_require("read")
       at <- saved_attributes()
 
       if (
@@ -6390,6 +6506,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$attribute_select, {
+      access_require("edit", touch = TRUE)
       selected_id <- input$attribute_select
 
       if (
@@ -6452,6 +6569,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$save_attribute_note, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "saving the attribute note"
@@ -6475,6 +6593,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$attribute_table <- DT::renderDT({
+      access_require("read")
       at <- saved_attributes()
 
       if (is.null(at) || nrow(at) == 0) {
@@ -6546,6 +6665,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     observeEvent(input$data_files_section, {
+      access_require("read", touch = TRUE)
       if (identical(input$data_files_section, "attributes")) {
         session$sendCustomMessage(
           type = "hideDatapondSidePanels",
@@ -6558,6 +6678,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       input$attribute_table_rows_selected,
       {
+        access_require("read", touch = TRUE)
         selected_row <-
           input$attribute_table_rows_selected
 
@@ -6619,6 +6740,7 @@ mod_data_files_server <- function(id, state) {
 
     # input: extract_spatial ----
     observeEvent(input$extract_spatial, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "extracting spatial metadata"
@@ -7223,6 +7345,7 @@ mod_data_files_server <- function(id, state) {
     observeEvent(
       state$current_dataset_id,
       {
+        access_require("read", touch = TRUE)
         dataset_id <- state$current_dataset_id
         base_path <- state$data_pond
 
@@ -7294,6 +7417,7 @@ mod_data_files_server <- function(id, state) {
     )
 
     output$spatial_details_table <- DT::renderDT({
+      access_require("read")
       df <- spatial_metadata()
 
       if (is.null(df) || nrow(df) == 0) {
@@ -7312,6 +7436,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$spatial_summary_table <- DT::renderDT({
+      access_require("read")
       df <- spatial_summary()
 
       if (is.null(df) || nrow(df) == 0) {
@@ -7330,6 +7455,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$data_status <- renderText({
+      access_require("read")
       data_dir <- active_scan_dir()
       scan_df <- files()
       saved_df <- saved_data_files()
@@ -7464,6 +7590,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$inventory_table <- DT::renderDT({
+      access_require("read")
       view <- input$inventory_view
 
       if (
@@ -7569,6 +7696,7 @@ mod_data_files_server <- function(id, state) {
     shiny::observeEvent(
       input$inventory_table_rows_selected,
       {
+        access_require("read", touch = TRUE)
         if (!identical(
           input$inventory_view,
           "saved"
@@ -7620,6 +7748,7 @@ mod_data_files_server <- function(id, state) {
     )
 
     observeEvent(input$save_file_scan, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "saving the data-file scan"
@@ -7729,6 +7858,7 @@ mod_data_files_server <- function(id, state) {
     })
 
     output$file_scan_save_summary <- DT::renderDT({
+      access_require("read")
       df <- file_scan_save_summary()
 
       render_data_files_dt(

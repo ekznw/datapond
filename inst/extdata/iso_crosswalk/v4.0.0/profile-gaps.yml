@@ -1,0 +1,27 @@
+gaps:
+- id: GAP-018
+  priority: high
+  iso_target: ISO 19115-3 XML instance validation
+  issue: Nongeographic scope and named-area geographic discovery now have passing
+    paired metadata/catalogue fixtures. New records capture actual creation timestamps
+    and preserve imported dates. Pinned date-only creation failures remain visible
+    beside a separate DataPond precision-policy outcome. The mapping audit has 164
+    explicit dispositions. GAP-018 remains open for broader semantic/code-list checks,
+    app-facing assessment, transactional publishing and supporting-file checks. The
+    local date policy is not upstream ISO agreement.
+  recommendation: Add the app-facing dual-result report and validated transactional
+    publishing; extend semantic and receiving-catalogue checks. Retain the declared
+    date-policy distinction pending upstream clarification.
+- id: GAP-019
+  status: resolved-export
+  priority: high
+  iso_target: Supplementary resource constraints
+  issue: Resolved in crosswalk 3.2.5 and the shared distribution/licensing serializer.
+    Supplementary access/use notes are additive and whitespace-equivalent duplicates
+    are removed within the same property. MCO-017 independently handles legacy licence
+    identity. Existing pond records have not been rewritten or audited for semantic
+    contradictions.
+  recommendation: Regression fixtures cover structured licences with extra notes,
+    duplicates, distinct wording and embargo-only rows. Audit real pond notes before
+    any future destructive cleanup; retain potentially conflicting wording for review
+    rather than guessing equivalence.

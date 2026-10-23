@@ -1,0 +1,14 @@
+/*-- scss:defaults --*/
+$primary: #435b3b;
+$link-color: #365c3b;
+$body-bg: #faf9f5;
+$body-color: #27322b;
+$navbar-bg: #304333;
+$navbar-fg: #ffffff;
+$sidebar-bg: #f0f2e9;
+$font-family-sans-serif: system-ui, -apple-system, "Segoe UI", sans-serif;
+$font-size-root: 17px;
+$headings-font-weight: 650;
+$code-color: #6d4527;
+/*-- scss:rules --*/
+.navbar-brand img { max-height: 46px; }

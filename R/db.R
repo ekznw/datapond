@@ -3,6 +3,7 @@ get_db_path <- function(base_path) {
 }
 
 get_conn <- function(base_path) {
+  movement_assert_writable(base_path)
   conn <- dbConnect(RSQLite::SQLite(), get_db_path(base_path))
   dbExecute(conn, "PRAGMA foreign_keys = ON")
   conn
@@ -233,7 +234,10 @@ ensure_organisation_code_not_unique <- function(conn) {
           organisation_name_short TEXT,
           organisation_code TEXT NOT NULL,
           organisation_department TEXT,
-          organisation_address TEXT
+          organisation_address TEXT,
+          parent_organisation_id INTEGER,
+          organisational_unit_name TEXT,
+          FOREIGN KEY (parent_organisation_id) REFERENCES organisation_tbl_rebuild(id)
         )
         "
       )
@@ -246,7 +250,9 @@ ensure_organisation_code_not_unique <- function(conn) {
           organisation_name_short,
           organisation_code,
           organisation_department,
-          organisation_address
+          organisation_address,
+          parent_organisation_id,
+          organisational_unit_name
         )
         SELECT
           id,
@@ -254,7 +260,9 @@ ensure_organisation_code_not_unique <- function(conn) {
           organisation_name_short,
           organisation_code,
           organisation_department,
-          organisation_address
+          organisation_address,
+          parent_organisation_id,
+          organisational_unit_name
         FROM organisation_tbl
         "
       )
@@ -367,8 +375,8 @@ init_db <- function(base_path) {
   ensure_columns(
     conn = conn,
     table = "organisation_tbl",
-    fields = "organisation_department",
-    types = c(organisation_department = "TEXT")
+    fields = c("organisation_department", "parent_organisation_id", "organisational_unit_name"),
+    types = c(organisation_department = "TEXT", parent_organisation_id = "INTEGER", organisational_unit_name = "TEXT")
   )
   ensure_organisation_code_not_unique(conn)
   DBI::dbExecute(
@@ -478,6 +486,7 @@ init_db <- function(base_path) {
   ensure_dataset_lifecycle_columns(conn)
   ensure_dataset_record_control_columns(conn)
   ensure_entry_creation_scale_columns_conn(conn)
+  ensure_iso_profile_schema(conn, migrate = FALSE)
 
   ensure_data_pond_id(base_path, conn = conn)
 
@@ -492,15 +501,14 @@ init_db <- function(base_path) {
 
   ensure_metadata_review_table(conn)
   ensure_licensing_v2_schema(conn)
+  ensure_iso_wave2_schema(conn, migrate = FALSE)
+  ensure_iso_wave3_schema(conn, migrate = FALSE)
   seed_license_templates(conn)
   repair_dataset_license_template_links(conn)
 
-  migrate_existing_dataset_licensing_v2(
-    conn
-  )
-
   ensure_supporting_document_table(conn)
   ensure_dataset_lineage_table(conn)
+  ensure_dataset_lineage_detail_tables(conn, migrate = FALSE)
   ensure_columns(conn, "metadata_review_tbl", fields = c("reviewer_id"),
     types = c(reviewer_id = "INTEGER")
   )
@@ -508,6 +516,7 @@ init_db <- function(base_path) {
     conn,
     "dataset_lineage_tbl",
     fields = c(
+      "lineage_source_mode",
       "lineage_statement",
       "source_description",
       "source_datasets_text",
@@ -521,6 +530,7 @@ init_db <- function(base_path) {
       "updated_by_person_id"
     ),
     types = c(
+      lineage_source_mode = "TEXT DEFAULT 'form'",
       lineage_statement = "TEXT",
       source_description = "TEXT",
       source_datasets_text = "TEXT",
@@ -601,6 +611,7 @@ init_db <- function(base_path) {
         )
     "
   )
+  apply_legacy_patch_v1(conn)
   TRUE
 }
 
@@ -926,7 +937,25 @@ get_datasets_with_authors <- function(base_path, include_hidden = FALSE) {
 
 get_organisations <- function(base_path) {
   conn <- get_conn(base_path)
-  res <- dbGetQuery(conn, "SELECT * FROM organisation_tbl")
+  res <- dbGetQuery(conn, "
+    SELECT *
+    FROM organisation_tbl
+    ORDER BY
+      LOWER(TRIM(COALESCE(
+        NULLIF(organisation_name_short, ''),
+        organisation_name_full,
+        ''
+      ))),
+      CASE
+        WHEN organisation_department IS NULL OR
+          TRIM(organisation_department) = ''
+        THEN 0
+        ELSE 1
+      END,
+      LOWER(TRIM(COALESCE(organisation_department, ''))),
+      LOWER(TRIM(COALESCE(organisation_code, ''))),
+      id
+  ")
   dbDisconnect(conn)
   res
 }
@@ -934,22 +963,30 @@ get_organisations <- function(base_path) {
 insert_organisation <- function(data, base_path) {
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
+  ensure_iso_wave3_schema(conn)
+  validate_organisation_parent_conn(conn, wave3_optional_integer(data$parent_organisation_id))
   dbExecute(conn, "
     INSERT INTO organisation_tbl (
       organisation_name_full,
       organisation_name_short,
       organisation_code,
       organisation_department,
-      organisation_address
+      organisation_address,
+      parent_organisation_id,
+      organisational_unit_name
     )
-    VALUES (?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   ", params = list(
       data$full,
       data$short,
       data$code,
       data$department %||% NA_character_,
-      data$address
+      data$address,
+      wave3_optional_integer(data$parent_organisation_id),
+      wave3_text_default(data$organisational_unit_name, data$department %||% NA_character_)
   ))
+  organisation_id <- DBI::dbGetQuery(conn, "SELECT last_insert_rowid() AS id")$id[1]
+  upsert_primary_organisation_address_conn(conn, organisation_id, data)
   TRUE
 }
 
@@ -960,6 +997,10 @@ update_organisation <- function(
 ) {
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
+  ensure_iso_wave3_schema(conn)
+  validate_organisation_parent_conn(
+    conn, wave3_optional_integer(data$parent_organisation_id), as.integer(organisation_id)
+  )
 
   dbExecute(
     conn,
@@ -970,7 +1011,9 @@ update_organisation <- function(
       organisation_name_short = ?,
       organisation_code = ?,
       organisation_department = ?,
-      organisation_address = ?
+      organisation_address = ?,
+      parent_organisation_id = ?,
+      organisational_unit_name = ?
     WHERE id = ?
     ",
     params = list(
@@ -979,10 +1022,314 @@ update_organisation <- function(
       data$code,
       data$department %||% NA_character_,
       data$address,
+      wave3_optional_integer(data$parent_organisation_id),
+      wave3_text_default(data$organisational_unit_name, data$department %||% NA_character_),
       as.integer(organisation_id)
     )
   )
+  upsert_primary_organisation_address_conn(conn, organisation_id, data)
   TRUE
+}
+
+validate_organisation_parent_conn <- function(conn, parent_id, organisation_id = NA_integer_) {
+  parent_id <- wave3_optional_integer(parent_id); organisation_id <- wave3_optional_integer(organisation_id)
+  if (is.na(parent_id)) return(invisible(TRUE))
+  if (!is.na(organisation_id) && identical(parent_id, organisation_id)) {
+    stop("An organisation cannot be its own parent.", call. = FALSE)
+  }
+  current <- parent_id; visited <- integer()
+  while (!is.na(current)) {
+    if (current %in% visited || (!is.na(organisation_id) && identical(current, organisation_id))) {
+      stop("The selected parent would create an organisational hierarchy cycle.", call. = FALSE)
+    }
+    visited <- c(visited, current)
+    found <- DBI::dbGetQuery(conn,
+      "SELECT parent_organisation_id FROM organisation_tbl WHERE id = ?", params = list(current))
+    if (!nrow(found)) stop("The selected parent organisation does not exist.", call. = FALSE)
+    current <- wave3_optional_integer(found$parent_organisation_id[1])
+  }
+  invisible(TRUE)
+}
+
+upsert_primary_organisation_address_conn <- function(conn, organisation_id, data) {
+  fields <- c("delivery_point", "city", "administrative_area", "postal_code", "country",
+              "electronic_mail_address", "address_phone_number", "online_resource")
+  values <- lapply(fields, function(field) wave3_optional_text(data[[field]]))
+  names(values) <- fields
+  if (all(vapply(values, is.na, logical(1)))) {
+    legacy <- wave3_optional_text(data$address)
+    if (!is.na(legacy)) values$delivery_point <- legacy else return(invisible(FALSE))
+  }
+  DBI::dbExecute(conn, "DELETE FROM party_address_tbl WHERE organisation_id = ? AND is_primary = 1", params = list(as.integer(organisation_id)))
+  DBI::dbExecute(conn, "INSERT INTO party_address_tbl (
+    organisation_id, delivery_point, city, administrative_area, postal_code, country,
+    electronic_mail_address, phone_number, online_resource, is_primary
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)", params = c(list(as.integer(organisation_id)), unname(values)))
+  invisible(TRUE)
+}
+
+organisation_reference_columns <- function(conn) {
+  references <- data.frame(
+    table = character(),
+    column = character(),
+    stringsAsFactors = FALSE
+  )
+  quote_identifier <- function(value) {
+    as.character(DBI::dbQuoteIdentifier(conn, value))
+  }
+
+  for (table in setdiff(DBI::dbListTables(conn), c("organisation_tbl", "party_address_tbl"))) {
+    fields <- DBI::dbListFields(conn, table)
+    organisation_fields <- fields[
+      grepl("(^organisation_id$|_organisation_id$)", fields)
+    ]
+
+    foreign_keys <- DBI::dbGetQuery(
+      conn,
+      paste0("PRAGMA foreign_key_list(", quote_identifier(table), ")")
+    )
+    if (nrow(foreign_keys) > 0L) {
+      organisation_fields <- c(
+        organisation_fields,
+        foreign_keys$from[
+          foreign_keys$table == "organisation_tbl" &
+            foreign_keys$to == "id"
+        ]
+      )
+    }
+
+    organisation_fields <- unique(organisation_fields)
+    if (length(organisation_fields) > 0L) {
+      references <- rbind(
+        references,
+        data.frame(
+          table = rep(table, length(organisation_fields)),
+          column = organisation_fields,
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+  }
+
+  # A parent organisation is a genuine hierarchy reference. Addresses are
+  # owned components and are deliberately excluded from usage counts.
+  if ("parent_organisation_id" %in% DBI::dbListFields(conn, "organisation_tbl")) {
+    references <- rbind(references, data.frame(
+      table = "organisation_tbl", column = "parent_organisation_id",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  unique(references)
+}
+
+organisation_reference_usage <- function(conn, organisation_id) {
+  references <- organisation_reference_columns(conn)
+  if (nrow(references) == 0L) {
+    references$records <- integer()
+    return(references)
+  }
+
+  records <- integer(nrow(references))
+  for (i in seq_len(nrow(references))) {
+    table <- as.character(DBI::dbQuoteIdentifier(conn, references$table[i]))
+    column <- as.character(DBI::dbQuoteIdentifier(conn, references$column[i]))
+    records[i] <- as.integer(DBI::dbGetQuery(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS records FROM ", table,
+        " WHERE ", column, " = ?"
+      ),
+      params = list(organisation_id)
+    )$records[1])
+  }
+
+  references$records <- records
+  references[references$records > 0L, , drop = FALSE]
+}
+
+get_organisation_usage <- function(organisation_id, base_path) {
+  organisation_id <- suppressWarnings(as.integer(organisation_id[1]))
+  if (length(organisation_id) != 1L || is.na(organisation_id)) {
+    stop("Select an organisation.", call. = FALSE)
+  }
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  organisation_reference_usage(conn, organisation_id)
+}
+
+remove_organisation_record <- function(organisation_id, base_path) {
+  if (length(organisation_id) != 1L) {
+    stop("Select an organisation to remove.", call. = FALSE)
+  }
+  organisation_id <- suppressWarnings(as.integer(organisation_id))
+  if (is.na(organisation_id)) {
+    stop("Select an organisation to remove.", call. = FALSE)
+  }
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  DBI::dbWithTransaction(conn, {
+    exists <- DBI::dbGetQuery(
+      conn,
+      "SELECT COUNT(*) AS records FROM organisation_tbl WHERE id = ?",
+      params = list(organisation_id)
+    )$records[1]
+    if (as.integer(exists) != 1L) {
+      stop("The organisation record no longer exists.", call. = FALSE)
+    }
+
+    usage <- organisation_reference_usage(conn, organisation_id)
+    if (nrow(usage) > 0L) {
+      stop(
+        "This organisation is still used by ",
+        sum(usage$records),
+        " linked record(s). Merge it into another organisation instead.",
+        call. = FALSE
+      )
+    }
+
+    if (DBI::dbExistsTable(conn, "party_address_tbl")) {
+      DBI::dbExecute(conn, "DELETE FROM party_address_tbl WHERE organisation_id = ?",
+                     params = list(organisation_id))
+    }
+
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM organisation_tbl WHERE id = ?",
+      params = list(organisation_id)
+    )
+  })
+
+  invisible(TRUE)
+}
+
+merge_organisation_records <- function(
+  source_organisation_id,
+  target_organisation_id,
+  base_path
+) {
+  if (
+    length(source_organisation_id) != 1L ||
+      length(target_organisation_id) != 1L
+  ) {
+    stop("Both organisations are required.", call. = FALSE)
+  }
+  source_organisation_id <- suppressWarnings(
+    as.integer(source_organisation_id)
+  )
+  target_organisation_id <- suppressWarnings(
+    as.integer(target_organisation_id)
+  )
+  if (is.na(source_organisation_id) || is.na(target_organisation_id)) {
+    stop("Both organisations are required.", call. = FALSE)
+  }
+  if (identical(source_organisation_id, target_organisation_id)) {
+    stop("Choose two different organisations to merge.", call. = FALSE)
+  }
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  quote_identifier <- function(value) {
+    as.character(DBI::dbQuoteIdentifier(conn, value))
+  }
+
+  DBI::dbWithTransaction(conn, {
+    organisations <- DBI::dbGetQuery(
+      conn,
+      "SELECT id FROM organisation_tbl WHERE id IN (?, ?)",
+      params = list(source_organisation_id, target_organisation_id)
+    )
+    if (!source_organisation_id %in% organisations$id) {
+      stop("The duplicate organisation no longer exists.", call. = FALSE)
+    }
+    if (!target_organisation_id %in% organisations$id) {
+      stop("The organisation to keep no longer exists.", call. = FALSE)
+    }
+
+    duplicate_links_removed <- 0L
+    if (DBI::dbExistsTable(conn, "dataset_organisation_tbl")) {
+      duplicate_links_removed <- as.integer(DBI::dbExecute(
+        conn,
+        "
+        DELETE FROM dataset_organisation_tbl AS source
+        WHERE source.organisation_id = ?
+          AND EXISTS (
+            SELECT 1
+            FROM dataset_organisation_tbl AS target
+            WHERE target.organisation_id = ?
+              AND target.dataset_id = source.dataset_id
+              AND LOWER(TRIM(COALESCE(target.role, ''))) =
+                LOWER(TRIM(COALESCE(source.role, '')))
+          )
+        ",
+        params = list(source_organisation_id, target_organisation_id)
+      ))
+    }
+
+    if (DBI::dbExistsTable(conn, "party_address_tbl")) {
+      target_has_primary <- DBI::dbGetQuery(conn,
+        "SELECT COUNT(*) AS n FROM party_address_tbl WHERE organisation_id = ? AND is_primary = 1",
+        params = list(target_organisation_id))$n[1] > 0L
+      if (target_has_primary) DBI::dbExecute(conn,
+        "UPDATE party_address_tbl SET is_primary = 0 WHERE organisation_id = ?",
+        params = list(source_organisation_id))
+      DBI::dbExecute(conn,
+        "UPDATE party_address_tbl SET organisation_id = ? WHERE organisation_id = ?",
+        params = list(target_organisation_id, source_organisation_id))
+    }
+
+    references <- organisation_reference_columns(conn)
+    links_moved <- 0L
+    if (nrow(references) > 0L) {
+      for (i in seq_len(nrow(references))) {
+        table <- quote_identifier(references$table[i])
+        column <- quote_identifier(references$column[i])
+        if (identical(references$table[i], "organisation_tbl") &&
+            identical(references$column[i], "parent_organisation_id")) {
+          source_parent <- DBI::dbGetQuery(conn,
+            "SELECT parent_organisation_id FROM organisation_tbl WHERE id = ?",
+            params = list(source_organisation_id))$parent_organisation_id[1]
+          child_count <- DBI::dbGetQuery(conn,
+            "SELECT COUNT(*) AS n FROM organisation_tbl WHERE parent_organisation_id = ?",
+            params = list(source_organisation_id))$n[1]
+          replacement_for_target <- if (is.na(source_parent) || identical(as.integer(source_parent), target_organisation_id)) NA_integer_ else as.integer(source_parent)
+          DBI::dbExecute(conn,
+            "UPDATE organisation_tbl SET parent_organisation_id = ? WHERE id = ? AND parent_organisation_id = ?",
+            params = list(replacement_for_target, target_organisation_id, source_organisation_id))
+          DBI::dbExecute(conn,
+            "UPDATE organisation_tbl SET parent_organisation_id = ? WHERE parent_organisation_id = ? AND id != ?",
+            params = list(target_organisation_id, source_organisation_id, target_organisation_id))
+          links_moved <- links_moved + as.integer(child_count)
+          next
+        }
+        links_moved <- links_moved + as.integer(DBI::dbExecute(
+          conn,
+          paste0(
+            "UPDATE ", table,
+            " SET ", column, " = ?",
+            " WHERE ", column, " = ?"
+          ),
+          params = list(target_organisation_id, source_organisation_id)
+        ))
+      }
+    }
+
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM organisation_tbl WHERE id = ?",
+      params = list(source_organisation_id)
+    )
+
+    list(
+      source_organisation_id = source_organisation_id,
+      target_organisation_id = target_organisation_id,
+      links_moved = links_moved,
+      duplicate_links_removed = duplicate_links_removed
+    )
+  })
 }
 
 ensure_person_unique_indexes <- function(conn) {
@@ -1027,13 +1374,15 @@ ensure_person_unique_indexes <- function(conn) {
   invisible(TRUE)
 }
 
-sync_persons_to_db <- function(person_dt, base_path) {
+sync_persons_to_db <- function(person_dt, base_path, conn = NULL) {
   if (is.null(person_dt) || nrow(person_dt) == 0) {
     warning("No persons to sync")
     return(invisible(NULL))
   }
-  conn <- get_conn(base_path)
-  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  if (is.null(conn)) {
+    conn <- get_conn(base_path)
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  }
   for (i in seq_len(nrow(person_dt))) {
     first_name <- trimws(
       as.character(person_dt$name_first[i] %||% "")
@@ -1307,6 +1656,7 @@ update_person <- function(person_id, data, base_path) {
 }
 
 set_user_status <- function(person_id, is_user, base_path) {
+  if (!isTRUE(is_user)) access_assert_unlinked_person(base_path, person_id)
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
   if (isTRUE(is_user)) {
@@ -1329,6 +1679,237 @@ set_user_status <- function(person_id, is_user, base_path) {
       WHERE person_id = ?
     ", params = list(person_id))
   }
+}
+
+merge_person_records <- function(source_person_id, target_person_id, base_path) {
+  if (length(source_person_id) != 1L || length(target_person_id) != 1L) {
+    stop("Both the duplicate and the person to keep are required.", call. = FALSE)
+  }
+  source_person_id <- suppressWarnings(as.integer(source_person_id))
+  target_person_id <- suppressWarnings(as.integer(target_person_id))
+  if (is.na(source_person_id) || is.na(target_person_id)) {
+    stop("Both the duplicate and the person to keep are required.", call. = FALSE)
+  }
+  access_assert_unlinked_person(base_path, source_person_id)
+  access_assert_unlinked_person(base_path, target_person_id)
+  if (identical(source_person_id, target_person_id)) {
+    stop("Choose two different person records to merge.", call. = FALSE)
+  }
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  quote_identifier <- function(value) {
+    as.character(DBI::dbQuoteIdentifier(conn, value))
+  }
+
+  update_reference <- function(table, column, from_id, to_id) {
+    sql <- paste0(
+      "UPDATE ", quote_identifier(table),
+      " SET ", quote_identifier(column), " = ?",
+      " WHERE ", quote_identifier(column), " = ?"
+    )
+    as.integer(DBI::dbExecute(conn, sql, params = list(to_id, from_id)))
+  }
+
+  result <- DBI::dbWithTransaction(conn, {
+    people <- DBI::dbGetQuery(
+      conn,
+      "SELECT id FROM persons_tbl WHERE id IN (?, ?)",
+      params = list(source_person_id, target_person_id)
+    )
+    if (!source_person_id %in% people$id) {
+      stop("The duplicate person record no longer exists.", call. = FALSE)
+    }
+    if (!target_person_id %in% people$id) {
+      stop("The person record to keep no longer exists.", call. = FALSE)
+    }
+
+    users <- DBI::dbGetQuery(
+      conn,
+      paste(
+        "SELECT id, person_id, COALESCE(is_active, 0) AS is_active,",
+        "COALESCE(is_admin, 0) AS is_admin",
+        "FROM user_tbl WHERE person_id IN (?, ?)"
+      ),
+      params = list(source_person_id, target_person_id)
+    )
+    source_user <- users[users$person_id == source_person_id, , drop = FALSE]
+    target_user <- users[users$person_id == target_person_id, , drop = FALSE]
+    source_user_id <- if (nrow(source_user) == 1L) {
+      as.integer(source_user$id[1])
+    } else {
+      NA_integer_
+    }
+    target_user_id <- if (nrow(target_user) == 1L) {
+      as.integer(target_user$id[1])
+    } else {
+      NA_integer_
+    }
+    user_links_moved <- 0L
+
+    if (!is.na(source_user_id) && is.na(target_user_id)) {
+      DBI::dbExecute(
+        conn,
+        "UPDATE user_tbl SET person_id = ? WHERE id = ?",
+        params = list(target_person_id, source_user_id)
+      )
+      target_user_id <- source_user_id
+    } else if (!is.na(source_user_id) && !is.na(target_user_id)) {
+      tables <- setdiff(DBI::dbListTables(conn), "user_tbl")
+      user_references <- data.frame(
+        table = character(),
+        column = character(),
+        stringsAsFactors = FALSE
+      )
+
+      for (table in tables) {
+        fields <- DBI::dbListFields(conn, table)
+        local_user_fields <- fields[
+          grepl("(^user_id$|_user_id$)", fields) &
+            !grepl("^source_", fields)
+        ]
+        if (length(local_user_fields) > 0L) {
+          user_references <- rbind(
+            user_references,
+            data.frame(
+              table = rep(table, length(local_user_fields)),
+              column = local_user_fields,
+              stringsAsFactors = FALSE
+            )
+          )
+        }
+
+        foreign_keys <- DBI::dbGetQuery(
+          conn,
+          paste0("PRAGMA foreign_key_list(", quote_identifier(table), ")")
+        )
+        if (nrow(foreign_keys) > 0L) {
+          user_fields <- foreign_keys$from[
+            foreign_keys$table == "user_tbl" &
+              foreign_keys$to == "id"
+          ]
+          if (length(user_fields) > 0L) {
+            user_references <- rbind(
+              user_references,
+              data.frame(
+                table = rep(table, length(user_fields)),
+                column = user_fields,
+                stringsAsFactors = FALSE
+              )
+            )
+          }
+        }
+      }
+
+      user_references <- unique(user_references)
+      if (nrow(user_references) > 0L) {
+        for (i in seq_len(nrow(user_references))) {
+          user_links_moved <- user_links_moved + update_reference(
+            user_references$table[i],
+            user_references$column[i],
+            source_user_id,
+            target_user_id
+          )
+        }
+      }
+
+      DBI::dbExecute(
+        conn,
+        paste(
+          "UPDATE user_tbl",
+          "SET is_active = MAX(COALESCE(is_active, 0), ?),",
+          "is_admin = MAX(COALESCE(is_admin, 0), ?)",
+          "WHERE id = ?"
+        ),
+        params = list(
+          as.integer(source_user$is_active[1] %||% 0L),
+          as.integer(source_user$is_admin[1] %||% 0L),
+          target_user_id
+        )
+      )
+      DBI::dbExecute(
+        conn,
+        "DELETE FROM user_tbl WHERE id = ?",
+        params = list(source_user_id)
+      )
+    }
+
+    person_references <- data.frame(
+      table = character(),
+      column = character(),
+      stringsAsFactors = FALSE
+    )
+    tables <- setdiff(DBI::dbListTables(conn), "user_tbl")
+    for (table in tables) {
+      fields <- DBI::dbListFields(conn, table)
+      local_person_fields <- fields[
+        grepl("(^person_id$|_person_id$|^reviewer_id$)", fields)
+      ]
+      if (length(local_person_fields) > 0L) {
+        person_references <- rbind(
+          person_references,
+          data.frame(
+            table = rep(table, length(local_person_fields)),
+            column = local_person_fields,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+
+      foreign_keys <- DBI::dbGetQuery(
+        conn,
+        paste0("PRAGMA foreign_key_list(", quote_identifier(table), ")")
+      )
+      if (nrow(foreign_keys) == 0L) {
+        next
+      }
+      person_fields <- foreign_keys$from[
+        foreign_keys$table == "persons_tbl" &
+          foreign_keys$to == "id"
+      ]
+      if (length(person_fields) > 0L) {
+        person_references <- rbind(
+          person_references,
+          data.frame(
+            table = rep(table, length(person_fields)),
+            column = person_fields,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    }
+
+    person_links_moved <- 0L
+    person_references <- unique(person_references)
+    if (nrow(person_references) > 0L) {
+      for (i in seq_len(nrow(person_references))) {
+        person_links_moved <- person_links_moved + update_reference(
+          person_references$table[i],
+          person_references$column[i],
+          source_person_id,
+          target_person_id
+        )
+      }
+    }
+
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM persons_tbl WHERE id = ?",
+      params = list(source_person_id)
+    )
+
+    list(
+      source_person_id = source_person_id,
+      target_person_id = target_person_id,
+      source_user_id = source_user_id,
+      target_user_id = target_user_id,
+      person_links_moved = person_links_moved,
+      user_links_moved = user_links_moved
+    )
+  })
+
+  result
 }
 
 insert_authors <- function(
@@ -1450,355 +2031,112 @@ ensure_columns <- function(conn, table, fields, types = NULL) {
   invisible(TRUE)
 }
 
-# Controlled keyword-vocabulary preparation and seed management ----
-prepare_keyword_vocab_seed <- function(vocab_dt) {
-  if (is.null(vocab_dt) || nrow(vocab_dt) == 0L) {
-    return(data.frame())
-  }
-
-  dt <- as.data.frame(vocab_dt, stringsAsFactors = FALSE)
-
-  required <- c("field_code", "option_value", "option_label")
-  missing <- setdiff(required, names(dt))
-
-  if (length(missing) > 0L) {
-    stop(
-      "Keyword seed is missing columns: ",
-      paste(missing, collapse = ", ")
-    )
-  }
-
-  if (!"sort_order" %in% names(dt)) {
-    dt$sort_order <- ave(
-      seq_len(nrow(dt)),
-      dt$field_code,
-      FUN = seq_along
-    )
-  }
-
-  dt$field_code <- trimws(as.character(dt$field_code))
-  dt$option_value <- trimws(as.character(dt$option_value))
-  dt$option_label <- trimws(as.character(dt$option_label))
-  dt$sort_order <- suppressWarnings(as.integer(dt$sort_order))
-
-  dt$option_label[
-    is.na(dt$option_label) | dt$option_label == ""
-  ] <- dt$option_value[
-    is.na(dt$option_label) | dt$option_label == ""
-  ]
-
-  dt <- dt[
-    !is.na(dt$field_code) &
-      nzchar(dt$field_code) &
-      !is.na(dt$option_value) &
-      nzchar(dt$option_value),
-    ,
-    drop = FALSE
-  ]
-
-  key <- paste(
-    tolower(dt$field_code),
-    tolower(dt$option_value),
-    sep = "\r"
-  )
-
-  dt[!duplicated(key), , drop = FALSE]
-}
-
-
-merge_keyword_vocab_seed <- function(vocab_dt, base_path,
-                                     user_id = NULL) {
-  seed <- prepare_keyword_vocab_seed(vocab_dt)
-  user_id <- normalise_optional_user_id(user_id)
-
-  if (nrow(seed) == 0L) {
-    return(data.frame(inserted = 0L, updated = 0L, preserved = 0L))
-  }
-
-  conn <- get_conn(base_path)
-  on.exit(DBI::dbDisconnect(conn), add = TRUE)
-
-  ensure_keyword_vocab_table(conn)
-
-  inserted <- 0L
-  updated <- 0L
-  preserved <- 0L
-  now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-
-  DBI::dbWithTransaction(conn, {
-    for (i in seq_len(nrow(seed))) {
-      existing <- DBI::dbGetQuery(conn, "
-        SELECT id, source
-        FROM keyword_vocab_tbl
-        WHERE field_code = ? COLLATE NOCASE
-          AND option_value = ? COLLATE NOCASE
-        LIMIT 1
-      ", params = list(
-        seed$field_code[i],
-        seed$option_value[i]
-      ))
-
-      if (nrow(existing) == 0L) {
-        DBI::dbExecute(conn, "
-          INSERT INTO keyword_vocab_tbl (
-            field_code,
-            option_value,
-            option_label,
-            sort_order,
-            is_active,
-            source,
-            approval_status,
-            created_at,
-            created_by_user_id,
-            updated_at,
-            updated_by_user_id
-          )
-          VALUES (?, ?, ?, ?, 1, 'seed_csv', 'approved',
-                  ?, ?, ?, ?)
-        ", params = list(
-          seed$field_code[i],
-          seed$option_value[i],
-          seed$option_label[i],
-          seed$sort_order[i],
-          now,
-          user_id,
-          now,
-          user_id
-        ))
-
-        inserted <- inserted + 1L
-        next
-      }
-
-      # Preserve administrator-created or overridden terms.
-      if (!identical(existing$source[1], "seed_csv")) {
-        preserved <- preserved + 1L
-        next
-      }
-
-      DBI::dbExecute(conn, "
-        UPDATE keyword_vocab_tbl
-        SET
-          option_label = ?,
-          sort_order = ?,
-          is_active = 1,
-          approval_status = 'approved',
-          updated_at = ?,
-          updated_by_user_id = ?
-        WHERE id = ?
-      ", params = list(
-        seed$option_label[i],
-        seed$sort_order[i],
-        now,
-        user_id,
-        existing$id[1]
-      ))
-
-      updated <- updated + 1L
-    }
-  })
-
-  data.frame(
-    inserted = inserted,
-    updated = updated,
-    preserved = preserved
-  )
-}
-
-
-seed_keyword_vocab_if_empty <- function(vocab_dt, base_path,
-                                        user_id = NULL) {
-  conn <- get_conn(base_path)
-  ensure_keyword_vocab_table(conn)
-
-  n <- DBI::dbGetQuery(
-    conn,
-    "SELECT COUNT(*) AS n FROM keyword_vocab_tbl"
-  )$n[1]
-
-  DBI::dbDisconnect(conn)
-
-  if (n > 0L) {
-    return(data.frame(inserted = 0L, updated = 0L, preserved = n))
-  }
-
-  merge_keyword_vocab_seed(
-    vocab_dt = vocab_dt,
-    base_path = base_path,
-    user_id = user_id
-  )
-}
-
-
-reset_keyword_vocab_seed <- function(
-  vocab_dt,
-  base_path,
-  user_id = NULL
-) {
-  user_id <- normalise_optional_user_id(user_id)
-
-  local({
-    conn <- get_conn(base_path)
-
-    on.exit(
-      DBI::dbDisconnect(conn),
-      add = TRUE
-    )
-
-    ensure_keyword_vocab_table(conn)
-
-    now <- format(
-      Sys.time(),
-      "%Y-%m-%d %H:%M:%S"
-    )
-
-    DBI::dbExecute(
-      conn,
-      "
-      UPDATE keyword_vocab_tbl
-      SET
-        is_active = 0,
-        updated_at = ?,
-        updated_by_user_id = ?
-      WHERE source = 'seed_csv'
-      ",
-      params = list(
-        now,
-        user_id
-      )
-    )
-  })
-
-  # Terms still present in the CSV are reactivated. Seed terms no
-  # longer present remain inactive. Administrator-managed terms are
-  # retained.
-  merge_keyword_vocab_seed(
-    vocab_dt = vocab_dt,
-    base_path = base_path,
-    user_id = user_id
-  )
-}
-
-
-# Temporary compatibility wrapper for any older call sites.
-sync_vocab_to_db <- function(vocab_dt, base_path, table,
-                              user_id = NULL) {
-  if (!identical(table, "keyword_vocab_tbl")) {
-    stop("sync_vocab_to_db() only supports keyword_vocab_tbl.")
-  }
-
-  merge_keyword_vocab_seed(
-    vocab_dt = vocab_dt,
-    base_path = base_path,
-    user_id = user_id
-  )
-}
-
 sync_organisations_to_db <- function(
   org_dt,
-  base_path
+  base_path,
+  conn = NULL
 ) {
   if (is.null(org_dt) || nrow(org_dt) == 0L) {
     warning("No organisations to sync.")
     return(invisible(NULL))
   }
 
-  conn <- get_conn(base_path)
-
-  on.exit(
-    DBI::dbDisconnect(conn),
-    add = TRUE
-  )
-
-  DBI::dbWithTransaction(
-    conn,
-    {
-      for (i in seq_len(nrow(org_dt))) {
-        department <- if (
-          "department" %in% names(org_dt)
-        ) {
-          org_dt$department[i]
-        } else if (
-          "organisation_department" %in% names(org_dt)
-        ) {
-          org_dt$organisation_department[i]
-        } else {
-          NA_character_
-        }
-        department <- trimws(
-          as.character(department)
-        )
-        if (length(department) == 0L || is.na(department)) {
-          department <- ""
-        }
-
-        existing <- DBI::dbGetQuery(
-          conn,
-          "
-          SELECT id
-          FROM organisation_tbl
-          WHERE organisation_code = ?
-            AND COALESCE(TRIM(organisation_department), '') = ?
-          ORDER BY id
-          LIMIT 1
-          ",
-          params = list(
-            org_dt$code[i],
-            department
-          )
-        )
-
-        if (nrow(existing) > 0L) {
-          DBI::dbExecute(
-            conn,
-            "
-            UPDATE organisation_tbl
-            SET
-              organisation_name_full = ?,
-              organisation_name_short = ?,
-              organisation_department = COALESCE(NULLIF(?, ''), organisation_department),
-              organisation_address = ?
-            WHERE id = ?
-            ",
-            params = list(
-              org_dt$full[i],
-              org_dt$short[i],
-              department,
-              org_dt$address[i],
-              existing$id[1]
-            )
-          )
-        } else {
-          DBI::dbExecute(
-            conn,
-            "
-            INSERT INTO organisation_tbl (
-              organisation_name_full,
-              organisation_name_short,
-              organisation_code,
-              organisation_department,
-              organisation_address
-            )
-            VALUES (?, ?, ?, ?, ?)
-            ",
-            params = list(
-              org_dt$full[i],
-              org_dt$short[i],
-              org_dt$code[i],
-              if (nzchar(department)) department else NA_character_,
-              org_dt$address[i]
-            )
-          )
-        }
-      }
+  if (is.null(conn)) {
+    conn <- get_conn(base_path)
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  }
+  # A savepoint also works inside atomic first-use party seeding.
+  DBI::dbExecute(conn, "SAVEPOINT datapond_seed_organisations")
+  finished <- FALSE
+  on.exit({
+    if (!finished) DBI::dbExecute(conn, "ROLLBACK TO datapond_seed_organisations")
+    DBI::dbExecute(conn, "RELEASE datapond_seed_organisations")
+  }, add = TRUE, after = FALSE)
+  for (i in seq_len(nrow(org_dt))) {
+    department <- if (
+      "department" %in% names(org_dt)
+    ) {
+      org_dt$department[i]
+    } else if (
+      "organisation_department" %in% names(org_dt)
+    ) {
+      org_dt$organisation_department[i]
+    } else {
+      NA_character_
     }
-  )
+    department <- trimws(
+      as.character(department)
+    )
+    if (length(department) == 0L || is.na(department)) {
+      department <- ""
+    }
 
+    existing <- DBI::dbGetQuery(
+      conn,
+      "
+      SELECT id
+      FROM organisation_tbl
+      WHERE organisation_code = ?
+        AND COALESCE(TRIM(organisation_department), '') = ?
+      ORDER BY id
+      LIMIT 1
+      ",
+      params = list(
+        org_dt$code[i],
+        department
+      )
+    )
+
+    if (nrow(existing) > 0L) {
+      DBI::dbExecute(
+        conn,
+        "
+        UPDATE organisation_tbl
+        SET
+          organisation_name_full = ?,
+          organisation_name_short = ?,
+          organisation_department = COALESCE(NULLIF(?, ''), organisation_department),
+          organisation_address = ?
+        WHERE id = ?
+        ",
+        params = list(
+          org_dt$full[i],
+          org_dt$short[i],
+          department,
+          org_dt$address[i],
+          existing$id[1]
+        )
+      )
+    } else {
+      DBI::dbExecute(
+        conn,
+        "
+        INSERT INTO organisation_tbl (
+          organisation_name_full,
+          organisation_name_short,
+          organisation_code,
+          organisation_department,
+          organisation_address
+        )
+        VALUES (?, ?, ?, ?, ?)
+        ",
+        params = list(
+          org_dt$full[i],
+          org_dt$short[i],
+          org_dt$code[i],
+          if (nzchar(department)) department else NA_character_,
+          org_dt$address[i]
+        )
+      )
+    }
+  }
+  finished <- TRUE
   invisible(TRUE)
 }
 
 # function to get keywords from the database
 get_keywords <- function(field_code, base_path) {
+  field_code <- canonical_keyword_field_code(field_code)
   conn <- get_conn(base_path)
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
@@ -1840,6 +2178,12 @@ get_keywords <- function(field_code, base_path) {
 }
 
 is_user_admin <- function(user_id, base_path) {
+  if (!is.null(shiny::getDefaultReactiveDomain())) {
+    auth <- access_context()
+    if (is.null(auth) || !identical(access_path(base_path), access_path(auth$pond))) return(FALSE)
+    identity <- access_session(base_path, auth$token, "admin")
+    return(!is.null(identity) && identical(as.integer(user_id), as.integer(identity$user_id[1])))
+  }
   if (is.null(user_id) || length(user_id) == 0L ||
       is.na(user_id[1])) {
     return(FALSE)
@@ -1993,10 +2337,17 @@ hard_delete_dataset_record <- function(dataset_id, user_id, base_path) {
   conn <- get_conn(base_path)
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
+  if (DBI::dbExistsTable(conn, "dataset_release_tbl") && nrow(DBI::dbGetQuery(conn,
+    "SELECT release_id FROM dataset_release_tbl WHERE dataset_id=?", params = list(as.integer(dataset_id)))))
+    stop("This dataset has frozen releases. Hide the record instead of deleting its release history.")
+
   DBI::dbWithTransaction(conn, {
     DBI::dbExecute(conn, "PRAGMA defer_foreign_keys = ON")
 
-    for (table in setdiff(DBI::dbListTables(conn), "entry_tbl")) {
+    mutable_tables <- DBI::dbGetQuery(
+      conn, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+    )$name
+    for (table in setdiff(mutable_tables, "entry_tbl")) {
       fields <- DBI::dbListFields(conn, table)
       if (!"dataset_id" %in% fields) {
         next
@@ -2065,9 +2416,7 @@ get_keyword_vocab_admin <- function(
   )
 
   if (isTRUE(has_field_filter)) {
-    field_code <- trimws(
-      as.character(field_code[1])
-    )
+    field_code <- canonical_keyword_field_code(field_code)
 
     sql <- paste0(
       sql,
@@ -2088,20 +2437,14 @@ get_keyword_vocab_admin <- function(
     "
   )
 
-  if (isTRUE(has_field_filter)) {
-    return(
-      DBI::dbGetQuery(
-        conn,
-        sql,
-        params = list(field_code)
-      )
-    )
+  vocabulary <- if (isTRUE(has_field_filter)) {
+    DBI::dbGetQuery(conn, sql, params = list(field_code))
+  } else {
+    DBI::dbGetQuery(conn, sql)
   }
+  vocabulary$dataset_count <- keyword_vocab_usage(conn, vocabulary)
+  vocabulary
 
-  DBI::dbGetQuery(
-    conn,
-    sql
-  )
 }
 
 
@@ -2118,17 +2461,20 @@ save_keyword_vocab_term <- function(
 ) {
   assert_admin_user(user_id, base_path)
 
-  field_code <- trimws(as.character(field_code[1]))
+  field_code <- canonical_keyword_field_code(field_code)
   option_value <- trimws(as.character(option_value[1]))
   option_label <- trimws(as.character(option_label[1]))
 
-  if (!nzchar(field_code) || !nzchar(option_value)) {
+  if (is.na(field_code) || is.na(option_value) || !nzchar(field_code) || !nzchar(option_value)) {
     stop("Field code and option value are required.")
   }
 
-  if (!nzchar(option_label)) {
+  if (is.na(option_label) || !nzchar(option_label)) {
     option_label <- option_value
   }
+
+  prepare_keyword_vocab_seed(data.frame(field_code = field_code, option_value = option_value,
+    option_label = option_label, sort_order = if (is.na(sort_order)) 100L else sort_order))
 
   approval_status <- match.arg(
     approval_status,
@@ -2142,20 +2488,36 @@ save_keyword_vocab_term <- function(
 
   existing <- if (!is.null(keyword_id) && !is.na(keyword_id)) {
     DBI::dbGetQuery(conn, "
-      SELECT id, source
+      SELECT *
       FROM keyword_vocab_tbl
       WHERE id = ?
       LIMIT 1
     ", params = list(as.integer(keyword_id)))
   } else {
     DBI::dbGetQuery(conn, "
-      SELECT id, source
+      SELECT *
       FROM keyword_vocab_tbl
       WHERE field_code = ? COLLATE NOCASE
         AND option_value = ? COLLATE NOCASE
       LIMIT 1
     ", params = list(field_code, option_value))
   }
+
+  editing <- !is.null(keyword_id) && !is.na(keyword_id)
+  if (!editing && nrow(existing)) {
+    stop("This keyword already exists. Select it in the table to edit it.")
+  }
+  if (editing && !nrow(existing)) stop("This keyword no longer exists. Reload the vocabulary before editing.")
+  if (nrow(existing) &&
+      (!identical(existing$option_value[1], option_value) || !identical(existing$field_code[1], field_code)) &&
+      keyword_vocab_usage(conn, existing)[1] > 0L) {
+    stop("This term is used by datasets. Its stored value and group cannot be changed; edit the display label instead.")
+  }
+  duplicate <- DBI::dbGetQuery(conn, paste(
+    "SELECT id FROM keyword_vocab_tbl WHERE field_code = ? COLLATE NOCASE",
+    "AND (option_value = ? COLLATE NOCASE OR option_label = ? COLLATE NOCASE) AND id != ?"
+  ), params = list(field_code, option_value, option_label, if (nrow(existing)) existing$id[1] else -1L))
+  if (nrow(duplicate)) stop("Another term in this group already uses that value or display label.")
 
   now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
@@ -2243,6 +2605,7 @@ set_keyword_vocab_active <- function(keyword_id, is_active,
     UPDATE keyword_vocab_tbl
     SET
       is_active = ?,
+      source = CASE WHEN source = 'seed_csv' THEN 'admin_override' ELSE source END,
       updated_at = ?,
       updated_by_user_id = ?
     WHERE id = ?
@@ -2356,7 +2719,7 @@ register_pending_keyword_values <- function(values, base_path,
     return(0L)
   }
 
-  vocab_fields <- c(
+  accepted_fields <- c(
     "keyword_object",
     "keyword_discipline",
     "keyword_topic",
@@ -2364,7 +2727,7 @@ register_pending_keyword_values <- function(values, base_path,
   )
 
   fields <- intersect(
-    vocab_fields,
+    accepted_fields,
     names(values)
   )
 
@@ -2378,15 +2741,18 @@ register_pending_keyword_values <- function(values, base_path,
   ensure_keyword_vocab_table(conn)
 
   inserted <- 0L
+  user_id <- normalise_optional_user_id(user_id)
   now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
   DBI::dbWithTransaction(conn, {
     for (field in fields) {
-      field_code <- field
+      field_code <- canonical_keyword_field_code(field)
 
-      raw <- as.character(unlist(values[[field]], use.names = FALSE))
-      terms <- trimws(unlist(strsplit(raw, ";", fixed = TRUE)))
-      terms <- unique(terms[!is.na(terms) & nzchar(terms)])
+      vocabulary <- DBI::dbGetQuery(conn,
+        "SELECT option_value, option_label FROM keyword_vocab_tbl WHERE field_code = ?",
+        params = list(field_code))
+      terms <- normalise_keyword_values(values[[field]],
+        stats::setNames(vocabulary$option_value, vocabulary$option_label))
 
       for (term in terms) {
         existing <- DBI::dbGetQuery(conn, "
@@ -2842,6 +3208,12 @@ save_data_file_scan <- function(
 save_entry_dynamic <- function(table, data, base_path, id = NULL) {
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
+  # Only a new application record establishes creation now. Imports use
+  # transfer_insert_row; migrations and ordinary updates must never backdate.
+  if (identical(table, "entry_tbl") && (is.null(id) || length(id) == 0L || is.na(id))) {
+    if (!non_empty_scalar(data$metadata_creation_date))
+      data$metadata_creation_date <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  }
   ensure_columns(conn, table, names(data))
   # INSERT
   if (is.null(id) || length(id) == 0 || is.na(id)) {
@@ -3364,177 +3736,6 @@ seed_license_templates <- function(conn) {
   invisible(TRUE)
 }
 
-migrate_existing_dataset_licensing_v2 <- function(
-  conn
-) {
-  ensure_licensing_v2_schema(
-    conn
-  )
-
-  # Existing open-licence records cannot reliably tell us
-  # whether EKZNW or an external provider controlled the rights.
-  # Mark those for user review rather than guessing ownership.
-  DBI::dbExecute(
-    conn,
-    "
-    UPDATE dataset_license_tbl
-    SET rights_basis_code =
-      CASE
-        WHEN license_identifier = 'PROVIDER-LICENCE'
-          THEN 'external_licence'
-
-        WHEN license_identifier =
-          'REDISTRIBUTION-PERMISSION'
-          THEN 'external_permission'
-
-        WHEN license_identifier = 'NO-LICENCE'
-          THEN 'rights_unknown'
-
-        WHEN license_identifier IN (
-          'EKZNW-INTERNAL',
-          'EKZNW-PARTNER'
-        )
-          THEN 'ekznw_owned'
-
-        WHEN license_identifier IS NOT NULL
-          AND TRIM(license_identifier) != ''
-          THEN 'review_required'
-
-        ELSE NULL
-      END
-    WHERE rights_basis_code IS NULL
-       OR TRIM(rights_basis_code) = ''
-    "
-  )
-
-  DBI::dbExecute(
-    conn,
-    "
-    UPDATE dataset_license_tbl
-    SET access_level_code =
-      CASE
-        WHEN license_identifier = 'EKZNW-INTERNAL'
-          THEN 'internal'
-
-        WHEN license_identifier = 'EKZNW-PARTNER'
-          THEN 'approved_partners'
-
-        WHEN license_identifier = 'NO-LICENCE'
-          THEN 'not_distributable'
-
-        WHEN license_identifier IN (
-          'CC-BY-4.0',
-          'CC0-1.0',
-          'CC-BY-SA-4.0',
-          'CC-BY-NC-4.0',
-          'ODbL-1.0'
-        )
-          THEN 'public'
-
-        WHEN LOWER(COALESCE(access_level, ''))
-          LIKE '%partner%'
-          THEN 'approved_partners'
-
-        WHEN LOWER(COALESCE(access_level, ''))
-          LIKE '%internal%'
-          THEN 'internal'
-
-        WHEN LOWER(COALESCE(access_level, ''))
-          LIKE '%embargo%'
-          THEN 'embargoed'
-
-        WHEN LOWER(COALESCE(access_level, ''))
-          LIKE '%public%'
-          THEN 'public'
-
-        ELSE NULL
-      END
-    WHERE access_level_code IS NULL
-       OR TRIM(access_level_code) = ''
-    "
-  )
-
-  DBI::dbExecute(
-    conn,
-    "
-    UPDATE dataset_license_tbl
-    SET redistribution_permission_code =
-      CASE
-        WHEN license_identifier = 'CC0-1.0'
-          THEN 'unrestricted'
-
-        WHEN license_identifier = 'CC-BY-4.0'
-          THEN 'permitted_with_attribution'
-
-        WHEN license_identifier IN (
-          'CC-BY-SA-4.0',
-          'CC-BY-NC-4.0',
-          'ODbL-1.0',
-          'PROVIDER-LICENCE',
-          'REDISTRIBUTION-PERMISSION',
-          'CUSTOM-TERMS'
-        )
-          THEN 'permitted_with_conditions'
-
-        WHEN license_identifier = 'EKZNW-PARTNER'
-          THEN 'approved_recipients_only'
-
-        WHEN license_identifier IN (
-          'EKZNW-INTERNAL',
-          'NO-LICENCE'
-        )
-          THEN 'prohibited'
-
-        ELSE 'unknown'
-      END
-    WHERE redistribution_permission_code IS NULL
-       OR TRIM(redistribution_permission_code) = ''
-    "
-  )
-
-  DBI::dbExecute(
-    conn,
-    "
-    UPDATE dataset_license_tbl
-    SET required_attribution =
-      CASE
-        WHEN license_identifier IN (
-          'CC-BY-4.0',
-          'CC-BY-SA-4.0',
-          'CC-BY-NC-4.0',
-          'ODbL-1.0',
-          'EKZNW-PARTNER'
-        )
-          THEN 1
-
-        WHEN license_identifier = 'CC0-1.0'
-          THEN 0
-
-        ELSE COALESCE(required_attribution, 0)
-      END
-    "
-  )
-
-  DBI::dbExecute(
-    conn,
-    "
-    UPDATE dataset_license_tbl
-    SET sensitivity_handling_code =
-      CASE
-        WHEN COALESCE(sensitive_data, 0) = 1
-          THEN 'review_required'
-
-        ELSE 'none'
-      END
-    WHERE sensitivity_handling_code IS NULL
-        OR TRIM(sensitivity_handling_code) = ''
-    "
-  )
-
-  invisible(TRUE)
-}
-
-
 get_license_templates <- function(base_path) {
   conn <- get_conn(
     base_path
@@ -3662,6 +3863,8 @@ save_dataset_license <- function(
     conn
   )
 
+  ensure_legacy_patch_v1_marker(conn, "licensing")
+
   template_value <- function(
     field,
     default = NA_character_
@@ -3766,7 +3969,8 @@ save_dataset_license <- function(
       licence_notes,
 
       updated_at,
-      updated_by_person_id
+      updated_by_person_id,
+      legacy_licensing_v1_migrated_at
     )
     VALUES (
       ?, ?, ?, ?, ?, ?, ?,
@@ -3775,9 +3979,11 @@ save_dataset_license <- function(
       ?, ?, ?,
       ?, ?, ?,
       ?, ?,
-      ?, ?
+      ?, ?, CURRENT_TIMESTAMP
     )
     ON CONFLICT(dataset_id) DO UPDATE SET
+      legacy_licensing_v1_migrated_at = COALESCE(
+        dataset_license_tbl.legacy_licensing_v1_migrated_at, excluded.legacy_licensing_v1_migrated_at),
       license_template_id =
         excluded.license_template_id,
       license_identifier =
@@ -4233,7 +4439,7 @@ upsert_supporting_document <- function(dataset_id, row, class, base_path, user_p
     class$code,  # initial effective document_type_code
     class$label,
     class$auto,
-    0L,
+    as.integer(identical(class$code, "lineage")),
     1L,
     NA_character_,
     1L,
@@ -4337,6 +4543,7 @@ ensure_dataset_lineage_table <- function(conn) {
     CREATE TABLE IF NOT EXISTS dataset_lineage_tbl (
       id INTEGER PRIMARY KEY,
       dataset_id INTEGER NOT NULL UNIQUE,
+      lineage_source_mode TEXT DEFAULT 'form',
       lineage_statement TEXT,
       source_description TEXT,
       source_datasets_text TEXT,
@@ -4355,6 +4562,145 @@ ensure_dataset_lineage_table <- function(conn) {
   invisible(TRUE)
 }
 
+lineage_value_origin_codes <- function() {
+  c("user", "supporting_document", "extracted_metadata", "legacy_backfill")
+}
+
+# An empty editor choice means automatic for a new row and unchanged for an
+# existing row. Exploring the selector must not erase recorded provenance.
+lineage_origin_for_save <- function(conn, table, dataset_id, record_id, value, default) {
+  origin <- normalise_lineage_optional_text(value)
+  if (is.na(origin) && !is.na(record_id)) {
+    saved <- DBI::dbGetQuery(conn, paste0(
+      "SELECT value_origin_code FROM ", table, " WHERE id = ? AND dataset_id = ?"
+    ), params = list(record_id, as.integer(dataset_id)))
+    if (nrow(saved)) origin <- normalise_lineage_optional_text(saved$value_origin_code[1])
+  }
+  if (is.na(origin)) origin <- default
+  if (!origin %in% lineage_value_origin_codes()) stop("Unknown lineage value origin.", call. = FALSE)
+  origin
+}
+
+lineage_responsible_role_codes <- function() {
+  c(
+    "resourceProvider", "custodian", "owner", "user", "distributor",
+    "originator", "pointOfContact", "principalInvestigator", "processor",
+    "publisher", "author", "collaborator"
+  )
+}
+
+ensure_dataset_lineage_detail_tables <- function(conn, migrate = TRUE) {
+  DBI::dbExecute(conn, "
+    CREATE TABLE IF NOT EXISTS dataset_lineage_source_tbl (
+      id INTEGER PRIMARY KEY,
+      dataset_id INTEGER NOT NULL,
+      source_order INTEGER NOT NULL DEFAULT 1,
+      title TEXT,
+      identifier TEXT,
+      identifier_code_space TEXT,
+      description TEXT,
+      source_uri TEXT,
+      citation_date TEXT,
+      citation_date_type_code TEXT,
+      temporal_start TEXT,
+      temporal_end TEXT,
+      equivalent_scale_denominator INTEGER,
+      spatial_resolution_value REAL,
+      spatial_resolution_unit TEXT,
+      responsible_person_id INTEGER,
+      responsible_organisation_id INTEGER,
+      role_code TEXT,
+      supporting_document_id INTEGER,
+      value_origin_code TEXT NOT NULL DEFAULT 'user',
+      is_provisional INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_by_person_id INTEGER,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by_person_id INTEGER,
+      FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
+      FOREIGN KEY (responsible_person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (responsible_organisation_id) REFERENCES organisation_tbl(id),
+      FOREIGN KEY (supporting_document_id) REFERENCES supporting_document_tbl(id),
+      FOREIGN KEY (created_by_person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (updated_by_person_id) REFERENCES persons_tbl(id)
+    )
+  ")
+  DBI::dbExecute(conn, "
+    CREATE TABLE IF NOT EXISTS dataset_lineage_process_step_tbl (
+      id INTEGER PRIMARY KEY,
+      dataset_id INTEGER NOT NULL,
+      step_order INTEGER NOT NULL DEFAULT 1,
+      description TEXT,
+      rationale TEXT,
+      step_datetime TEXT,
+      processor_person_id INTEGER,
+      processor_organisation_id INTEGER,
+      role_code TEXT,
+      tool_software_reference TEXT,
+      script_reference TEXT,
+      output_description TEXT,
+      value_origin_code TEXT NOT NULL DEFAULT 'user',
+      is_provisional INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_by_person_id INTEGER,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_by_person_id INTEGER,
+      FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
+      FOREIGN KEY (processor_person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (processor_organisation_id) REFERENCES organisation_tbl(id),
+      FOREIGN KEY (created_by_person_id) REFERENCES persons_tbl(id),
+      FOREIGN KEY (updated_by_person_id) REFERENCES persons_tbl(id)
+    )
+  ")
+  # dataset_id is deliberately present on the junction table. Besides enforcing
+  # dataset boundaries, it lets portable dataset bundles discover and transfer it.
+  DBI::dbExecute(conn, "
+    CREATE TABLE IF NOT EXISTS dataset_lineage_step_source_tbl (
+      id INTEGER PRIMARY KEY,
+      dataset_id INTEGER NOT NULL,
+      process_step_id INTEGER NOT NULL,
+      source_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_by_person_id INTEGER,
+      FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
+      FOREIGN KEY (process_step_id) REFERENCES dataset_lineage_process_step_tbl(id),
+      FOREIGN KEY (source_id) REFERENCES dataset_lineage_source_tbl(id),
+      FOREIGN KEY (created_by_person_id) REFERENCES persons_tbl(id)
+    )
+  ")
+
+  DBI::dbExecute(conn, paste(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lineage_source_order",
+    "ON dataset_lineage_source_tbl(dataset_id, source_order)"
+  ))
+  DBI::dbExecute(conn, paste(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lineage_step_order",
+    "ON dataset_lineage_process_step_tbl(dataset_id, step_order)"
+  ))
+  DBI::dbExecute(conn, paste(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lineage_step_source",
+    "ON dataset_lineage_step_source_tbl(process_step_id, source_id)"
+  ))
+  DBI::dbExecute(conn, paste(
+    "CREATE INDEX IF NOT EXISTS idx_lineage_source_document",
+    "ON dataset_lineage_source_tbl(supporting_document_id)"
+  ))
+
+  ensure_legacy_patch_v1_marker(conn, "lineage")
+  if (isTRUE(migrate)) apply_legacy_patch_v1(conn, "lineage")
+  invisible(TRUE)
+}
+
+merge_lineage_narrative <- function(statement, notes) {
+  statement <- normalise_lineage_optional_text(statement)
+  notes <- normalise_lineage_optional_text(notes)
+  if (is.na(notes)) return(statement)
+  if (is.na(statement)) return(notes)
+  if (identical(statement, notes) ||
+      endsWith(statement, paste0("\n\nAdditional lineage notes: ", notes))) return(statement)
+  paste0(statement, "\n\nAdditional lineage notes: ", notes)
+}
+
 get_dataset_lineage <- function(dataset_id, base_path) {
   if (is.null(dataset_id) ||
       length(dataset_id) == 0 ||
@@ -4363,6 +4709,7 @@ get_dataset_lineage <- function(dataset_id, base_path) {
   }
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
   res <- dbGetQuery(conn, "
     SELECT *
     FROM dataset_lineage_tbl
@@ -4375,10 +4722,19 @@ get_dataset_lineage <- function(dataset_id, base_path) {
 save_dataset_lineage <- function(dataset_id, data, base_path, user_person_id = NA_integer_) {
   conn <- get_conn(base_path)
   on.exit(dbDisconnect(conn), add = TRUE)
+  saved <- DBI::dbGetQuery(conn, "SELECT * FROM dataset_lineage_tbl WHERE dataset_id = ?",
+                          params = list(dataset_id))
+  for (field in c("source_description", "source_datasets_text", "process_description",
+                  "processing_tools", "processing_scripts", "output_description", "lineage_notes")) {
+    if (is.null(data[[field]])) {
+      data[[field]] <- if (nrow(saved)) saved[[field]][1] else NA_character_
+    }
+  }
   now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   dbExecute(conn, "
     INSERT INTO dataset_lineage_tbl (
       dataset_id,
+      lineage_source_mode,
       lineage_statement,
       source_description,
       source_datasets_text,
@@ -4391,8 +4747,9 @@ save_dataset_lineage <- function(dataset_id, data, base_path, user_person_id = N
       updated_at,
       updated_by_person_id
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(dataset_id) DO UPDATE SET
+      lineage_source_mode = excluded.lineage_source_mode,
       lineage_statement = excluded.lineage_statement,
       source_description = excluded.source_description,
       source_datasets_text = excluded.source_datasets_text,
@@ -4406,6 +4763,7 @@ save_dataset_lineage <- function(dataset_id, data, base_path, user_person_id = N
       updated_by_person_id = excluded.updated_by_person_id
   ", params = list(
     dataset_id,
+    data$lineage_source_mode %||% "form",
     data$lineage_statement,
     data$source_description,
     data$source_datasets_text,
@@ -4421,6 +4779,434 @@ save_dataset_lineage <- function(dataset_id, data, base_path, user_person_id = N
   invisible(TRUE)
 }
 
+normalise_lineage_optional_integer <- function(x) {
+  value <- suppressWarnings(as.integer(x[1]))
+  if (length(value) == 0L || is.na(value)) NA_integer_ else value
+}
+
+normalise_lineage_optional_number <- function(x) {
+  value <- suppressWarnings(as.numeric(x[1]))
+  if (length(value) == 0L || is.na(value)) NA_real_ else value
+}
+
+normalise_lineage_optional_text <- function(x) {
+  if (is.null(x) || length(x) == 0L || is.na(x[1])) return(NA_character_)
+  value <- trimws(as.character(x[1]))
+  if (!nzchar(value)) NA_character_ else value
+}
+
+validate_lineage_parent <- function(conn, dataset_id) {
+  found <- DBI::dbGetQuery(
+    conn,
+    "SELECT id FROM entry_tbl WHERE id = ? LIMIT 1",
+    params = list(as.integer(dataset_id))
+  )
+  if (nrow(found) != 1L) stop("Dataset record not found.", call. = FALSE)
+  invisible(TRUE)
+}
+
+validate_lineage_reference <- function(conn, table, id, dataset_id = NULL) {
+  id <- normalise_lineage_optional_integer(id)
+  if (is.na(id)) return(NA_integer_)
+  sql <- paste0("SELECT id FROM ", table, " WHERE id = ?")
+  params <- list(id)
+  if (!is.null(dataset_id)) {
+    sql <- paste0(sql, " AND dataset_id = ?")
+    params <- c(params, list(as.integer(dataset_id)))
+  }
+  found <- DBI::dbGetQuery(conn, sql, params = params)
+  if (nrow(found) != 1L) {
+    stop("A lineage reference does not belong to the selected dataset.", call. = FALSE)
+  }
+  id
+}
+
+get_dataset_lineage_sources <- function(dataset_id, base_path) {
+  if (is.null(dataset_id) || length(dataset_id) == 0L || is.na(dataset_id[1])) {
+    return(data.frame())
+  }
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  DBI::dbGetQuery(conn, "
+    SELECT
+      s.*,
+      d.document_rel_path AS supporting_document_path,
+      TRIM(COALESCE(p.name_first, '') || ' ' || COALESCE(p.name_last, ''))
+        AS responsible_person_name,
+      COALESCE(o.organisation_name_short, o.organisation_name_full)
+        AS responsible_organisation_name
+    FROM dataset_lineage_source_tbl s
+    LEFT JOIN supporting_document_tbl d
+      ON d.id = s.supporting_document_id AND d.active = 1
+    LEFT JOIN persons_tbl p ON p.id = s.responsible_person_id
+    LEFT JOIN organisation_tbl o ON o.id = s.responsible_organisation_id
+    WHERE s.dataset_id = ?
+    ORDER BY s.source_order, s.id
+  ", params = list(as.integer(dataset_id[1])))
+}
+
+save_dataset_lineage_source <- function(
+  dataset_id, data, base_path, user_person_id = NA_integer_, source_id = NULL
+) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  validate_lineage_parent(conn, dataset_id)
+  source_id <- normalise_lineage_optional_integer(source_id)
+  supporting_document_id <- normalise_lineage_optional_integer(
+    data$supporting_document_id
+  )
+  if (!is.na(supporting_document_id)) {
+    document <- DBI::dbGetQuery(
+      conn,
+      paste(
+        "SELECT id FROM supporting_document_tbl",
+        "WHERE id = ? AND dataset_id = ? AND active = 1"
+      ),
+      params = list(supporting_document_id, as.integer(dataset_id))
+    )
+    if (nrow(document) != 1L) {
+      stop(
+        "The authoritative lineage document must be active and belong to the selected dataset.",
+        call. = FALSE
+      )
+    }
+  }
+  origin <- lineage_origin_for_save(conn, "dataset_lineage_source_tbl", dataset_id,
+    source_id, data$value_origin_code,
+    if (is.na(supporting_document_id)) "user" else "supporting_document")
+  scale_text <- normalise_lineage_optional_text(data$equivalent_scale_denominator)
+  scale_number <- normalise_lineage_optional_number(data$equivalent_scale_denominator)
+  if (!is.na(scale_text) && is.na(scale_number)) {
+    stop("Equivalent scale denominator must be a positive integer.", call. = FALSE)
+  }
+  if (!is.na(scale_number) && (
+    scale_number <= 0 || scale_number != floor(scale_number) ||
+      scale_number > .Machine$integer.max
+  )) {
+    stop("Equivalent scale denominator must be a positive integer.", call. = FALSE)
+  }
+  scale <- if (is.na(scale_number)) NA_integer_ else as.integer(scale_number)
+  resolution_text <- normalise_lineage_optional_text(data$spatial_resolution_value)
+  resolution <- normalise_lineage_optional_number(data$spatial_resolution_value)
+  if (!is.na(resolution_text) && is.na(resolution)) {
+    stop("Spatial resolution must be numeric.", call. = FALSE)
+  }
+  if (!is.na(resolution) && resolution <= 0) {
+    stop("Spatial resolution must be positive.", call. = FALSE)
+  }
+  role <- normalise_lineage_optional_text(data$role_code)
+  if (!is.na(role) && !role %in% lineage_responsible_role_codes()) {
+    stop("Unknown ISO responsible-party role.", call. = FALSE)
+  }
+  citation_date_type <- normalise_lineage_optional_text(data$citation_date_type_code)
+  if (!is.na(citation_date_type) &&
+      !citation_date_type %in% c("creation", "publication", "revision")) {
+    stop("Unknown ISO citation-date type.", call. = FALSE)
+  }
+  title <- normalise_lineage_optional_text(data$title)
+  description <- normalise_lineage_optional_text(data$description)
+  if (is.na(title) && is.na(description) && is.na(supporting_document_id)) {
+    stop("Provide a source title, description, or authoritative document.", call. = FALSE)
+  }
+  now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  user_person_id <- normalise_lineage_optional_integer(user_person_id)
+
+  DBI::dbWithTransaction(conn, {
+    if (is.na(source_id)) {
+      next_order <- DBI::dbGetQuery(conn, paste(
+        "SELECT COALESCE(MAX(source_order), 0) + 1 AS n",
+        "FROM dataset_lineage_source_tbl WHERE dataset_id = ?"
+      ), params = list(as.integer(dataset_id)))$n[1]
+      DBI::dbExecute(conn, "
+        INSERT INTO dataset_lineage_source_tbl (
+          dataset_id, source_order, title, identifier, identifier_code_space,
+          description, source_uri, citation_date, citation_date_type_code,
+          temporal_start, temporal_end, equivalent_scale_denominator,
+          spatial_resolution_value, spatial_resolution_unit,
+          responsible_person_id, responsible_organisation_id, role_code,
+          supporting_document_id, value_origin_code, is_provisional,
+          created_at, created_by_person_id, updated_at, updated_by_person_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+      ", params = list(
+        as.integer(dataset_id), as.integer(next_order), title,
+        normalise_lineage_optional_text(data$identifier),
+        normalise_lineage_optional_text(data$identifier_code_space), description,
+        normalise_lineage_optional_text(data$source_uri),
+        normalise_lineage_optional_text(data$citation_date),
+        citation_date_type,
+        normalise_lineage_optional_text(data$temporal_start),
+        normalise_lineage_optional_text(data$temporal_end), scale, resolution,
+        normalise_lineage_optional_text(data$spatial_resolution_unit),
+        normalise_lineage_optional_integer(data$responsible_person_id),
+        normalise_lineage_optional_integer(data$responsible_organisation_id),
+        role, supporting_document_id, origin, now, user_person_id, now, user_person_id
+      ))
+      source_id <- as.integer(DBI::dbGetQuery(
+        conn, "SELECT last_insert_rowid() AS id"
+      )$id[1])
+    } else {
+      validate_lineage_reference(
+        conn, "dataset_lineage_source_tbl", source_id, dataset_id
+      )
+      DBI::dbExecute(conn, "
+        UPDATE dataset_lineage_source_tbl SET
+          title = ?, identifier = ?, identifier_code_space = ?, description = ?,
+          source_uri = ?, citation_date = ?, citation_date_type_code = ?,
+          temporal_start = ?, temporal_end = ?, equivalent_scale_denominator = ?,
+          spatial_resolution_value = ?, spatial_resolution_unit = ?,
+          responsible_person_id = ?, responsible_organisation_id = ?, role_code = ?,
+          supporting_document_id = ?, value_origin_code = ?, is_provisional = 0,
+          updated_at = ?, updated_by_person_id = ?
+        WHERE id = ? AND dataset_id = ?
+      ", params = list(
+        title, normalise_lineage_optional_text(data$identifier),
+        normalise_lineage_optional_text(data$identifier_code_space), description,
+        normalise_lineage_optional_text(data$source_uri),
+        normalise_lineage_optional_text(data$citation_date),
+        citation_date_type,
+        normalise_lineage_optional_text(data$temporal_start),
+        normalise_lineage_optional_text(data$temporal_end), scale, resolution,
+        normalise_lineage_optional_text(data$spatial_resolution_unit),
+        normalise_lineage_optional_integer(data$responsible_person_id),
+        normalise_lineage_optional_integer(data$responsible_organisation_id),
+        role, supporting_document_id, origin, now, user_person_id,
+        source_id, as.integer(dataset_id)
+      ))
+    }
+  })
+  source_id
+}
+
+get_dataset_lineage_process_steps <- function(dataset_id, base_path) {
+  if (is.null(dataset_id) || length(dataset_id) == 0L || is.na(dataset_id[1])) {
+    return(data.frame())
+  }
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  DBI::dbGetQuery(conn, "
+    SELECT
+      p.*,
+      TRIM(COALESCE(person.name_first, '') || ' ' || COALESCE(person.name_last, ''))
+        AS processor_person_name,
+      COALESCE(o.organisation_name_short, o.organisation_name_full)
+        AS processor_organisation_name,
+      GROUP_CONCAT(ss.source_id, ',') AS source_ids
+    FROM dataset_lineage_process_step_tbl p
+    LEFT JOIN persons_tbl person ON person.id = p.processor_person_id
+    LEFT JOIN organisation_tbl o ON o.id = p.processor_organisation_id
+    LEFT JOIN dataset_lineage_step_source_tbl ss ON ss.process_step_id = p.id
+    WHERE p.dataset_id = ?
+    GROUP BY p.id
+    ORDER BY p.step_order, p.id
+  ", params = list(as.integer(dataset_id[1])))
+}
+
+save_dataset_lineage_process_step <- function(
+  dataset_id, data, base_path, user_person_id = NA_integer_, process_step_id = NULL
+) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  validate_lineage_parent(conn, dataset_id)
+  process_step_id <- normalise_lineage_optional_integer(process_step_id)
+  description <- normalise_lineage_optional_text(data$description)
+  if (is.na(description)) stop("A process-step description is required.", call. = FALSE)
+  origin <- lineage_origin_for_save(conn, "dataset_lineage_process_step_tbl", dataset_id,
+    process_step_id, data$value_origin_code, "user")
+  role <- normalise_lineage_optional_text(data$role_code)
+  if (!is.na(role) && !role %in% lineage_responsible_role_codes()) {
+    stop("Unknown ISO responsible-party role.", call. = FALSE)
+  }
+  now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  user_person_id <- normalise_lineage_optional_integer(user_person_id)
+
+  DBI::dbWithTransaction(conn, {
+    if (is.na(process_step_id)) {
+      next_order <- DBI::dbGetQuery(conn, paste(
+        "SELECT COALESCE(MAX(step_order), 0) + 1 AS n",
+        "FROM dataset_lineage_process_step_tbl WHERE dataset_id = ?"
+      ), params = list(as.integer(dataset_id)))$n[1]
+      DBI::dbExecute(conn, "
+        INSERT INTO dataset_lineage_process_step_tbl (
+          dataset_id, step_order, description, rationale, step_datetime,
+          processor_person_id, processor_organisation_id, role_code,
+          tool_software_reference, script_reference, output_description,
+          value_origin_code, is_provisional, created_at, created_by_person_id,
+          updated_at, updated_by_person_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+      ", params = list(
+        as.integer(dataset_id), as.integer(next_order), description,
+        normalise_lineage_optional_text(data$rationale),
+        normalise_lineage_optional_text(data$step_datetime),
+        normalise_lineage_optional_integer(data$processor_person_id),
+        normalise_lineage_optional_integer(data$processor_organisation_id), role,
+        normalise_lineage_optional_text(data$tool_software_reference),
+        normalise_lineage_optional_text(data$script_reference),
+        normalise_lineage_optional_text(data$output_description), origin,
+        now, user_person_id, now, user_person_id
+      ))
+      process_step_id <- as.integer(DBI::dbGetQuery(
+        conn, "SELECT last_insert_rowid() AS id"
+      )$id[1])
+    } else {
+      validate_lineage_reference(
+        conn, "dataset_lineage_process_step_tbl", process_step_id, dataset_id
+      )
+      DBI::dbExecute(conn, "
+        UPDATE dataset_lineage_process_step_tbl SET
+          description = ?, rationale = ?, step_datetime = ?, processor_person_id = ?,
+          processor_organisation_id = ?, role_code = ?, tool_software_reference = ?,
+          script_reference = ?, output_description = ?, value_origin_code = ?,
+          is_provisional = 0, updated_at = ?, updated_by_person_id = ?
+        WHERE id = ? AND dataset_id = ?
+      ", params = list(
+        description, normalise_lineage_optional_text(data$rationale),
+        normalise_lineage_optional_text(data$step_datetime),
+        normalise_lineage_optional_integer(data$processor_person_id),
+        normalise_lineage_optional_integer(data$processor_organisation_id), role,
+        normalise_lineage_optional_text(data$tool_software_reference),
+        normalise_lineage_optional_text(data$script_reference),
+        normalise_lineage_optional_text(data$output_description), origin,
+        now, user_person_id, process_step_id, as.integer(dataset_id)
+      ))
+    }
+  })
+  process_step_id
+}
+
+set_dataset_lineage_step_sources <- function(
+  dataset_id, process_step_id, source_ids, base_path, user_person_id = NA_integer_
+) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  process_step_id <- validate_lineage_reference(
+    conn, "dataset_lineage_process_step_tbl", process_step_id, dataset_id
+  )
+  source_ids <- unique(suppressWarnings(as.integer(source_ids)))
+  source_ids <- source_ids[!is.na(source_ids)]
+  if (length(source_ids) > 0L) {
+    for (source_id in source_ids) {
+      validate_lineage_reference(
+        conn, "dataset_lineage_source_tbl", source_id, dataset_id
+      )
+    }
+  }
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(
+      conn, "DELETE FROM dataset_lineage_step_source_tbl WHERE process_step_id = ?",
+      params = list(process_step_id)
+    )
+    for (source_id in source_ids) {
+      DBI::dbExecute(conn, "
+        INSERT INTO dataset_lineage_step_source_tbl (
+          dataset_id, process_step_id, source_id, created_by_person_id
+        ) VALUES (?, ?, ?, ?)
+      ", params = list(
+        as.integer(dataset_id), process_step_id, source_id,
+        normalise_lineage_optional_integer(user_person_id)
+      ))
+    }
+  })
+  invisible(TRUE)
+}
+
+delete_dataset_lineage_source <- function(dataset_id, source_id, base_path) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  validate_lineage_reference(conn, "dataset_lineage_source_tbl", source_id, dataset_id)
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(
+      conn, "DELETE FROM dataset_lineage_step_source_tbl WHERE source_id = ?",
+      params = list(as.integer(source_id))
+    )
+    DBI::dbExecute(
+      conn, "DELETE FROM dataset_lineage_source_tbl WHERE id = ? AND dataset_id = ?",
+      params = list(as.integer(source_id), as.integer(dataset_id))
+    )
+    rows <- DBI::dbGetQuery(conn, paste(
+      "SELECT id FROM dataset_lineage_source_tbl WHERE dataset_id = ?",
+      "ORDER BY source_order, id"
+    ), params = list(as.integer(dataset_id)))
+    if (nrow(rows) > 0L) {
+      DBI::dbExecute(conn, paste(
+        "UPDATE dataset_lineage_source_tbl SET source_order = -source_order",
+        "WHERE dataset_id = ?"
+      ), params = list(as.integer(dataset_id)))
+      for (i in seq_len(nrow(rows))) DBI::dbExecute(
+        conn, "UPDATE dataset_lineage_source_tbl SET source_order = ? WHERE id = ?",
+        params = list(i, rows$id[i])
+      )
+    }
+  })
+  invisible(TRUE)
+}
+
+delete_dataset_lineage_process_step <- function(dataset_id, process_step_id, base_path) {
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  validate_lineage_reference(
+    conn, "dataset_lineage_process_step_tbl", process_step_id, dataset_id
+  )
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(
+      conn, "DELETE FROM dataset_lineage_step_source_tbl WHERE process_step_id = ?",
+      params = list(as.integer(process_step_id))
+    )
+    DBI::dbExecute(conn, paste(
+      "DELETE FROM dataset_lineage_process_step_tbl",
+      "WHERE id = ? AND dataset_id = ?"
+    ), params = list(as.integer(process_step_id), as.integer(dataset_id)))
+    rows <- DBI::dbGetQuery(conn, paste(
+      "SELECT id FROM dataset_lineage_process_step_tbl WHERE dataset_id = ?",
+      "ORDER BY step_order, id"
+    ), params = list(as.integer(dataset_id)))
+    if (nrow(rows) > 0L) {
+      DBI::dbExecute(conn, paste(
+        "UPDATE dataset_lineage_process_step_tbl SET step_order = -step_order",
+        "WHERE dataset_id = ?"
+      ), params = list(as.integer(dataset_id)))
+      for (i in seq_len(nrow(rows))) DBI::dbExecute(
+        conn, "UPDATE dataset_lineage_process_step_tbl SET step_order = ? WHERE id = ?",
+        params = list(i, rows$id[i])
+      )
+    }
+  })
+  invisible(TRUE)
+}
+
+move_dataset_lineage_record <- function(dataset_id, record_id, direction, type, base_path) {
+  direction <- match.arg(direction, c("up", "down"))
+  type <- match.arg(type, c("source", "process_step"))
+  table <- if (type == "source") "dataset_lineage_source_tbl" else "dataset_lineage_process_step_tbl"
+  order_field <- if (type == "source") "source_order" else "step_order"
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  ensure_dataset_lineage_detail_tables(conn)
+  rows <- DBI::dbGetQuery(conn, paste(
+    "SELECT id FROM", table, "WHERE dataset_id = ? ORDER BY", order_field, ", id"
+  ), params = list(as.integer(dataset_id)))
+  position <- match(as.integer(record_id), rows$id)
+  target <- position + if (direction == "up") -1L else 1L
+  if (is.na(position) || target < 1L || target > nrow(rows)) return(invisible(FALSE))
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(conn, paste("UPDATE", table, "SET", order_field, "= -", order_field,
+      "WHERE dataset_id = ?"), params = list(as.integer(dataset_id)))
+    reordered <- rows$id
+    reordered[c(position, target)] <- reordered[c(target, position)]
+    for (i in seq_along(reordered)) DBI::dbExecute(
+      conn, paste("UPDATE", table, "SET", order_field, "= ? WHERE id = ?"),
+      params = list(i, reordered[i])
+    )
+  })
+  invisible(TRUE)
+}
+
 get_lineage_supporting_documents <- function(dataset_id, base_path) {
   if (is.null(dataset_id) ||
       length(dataset_id) == 0 ||
@@ -4431,7 +5217,9 @@ get_lineage_supporting_documents <- function(dataset_id, base_path) {
   on.exit(dbDisconnect(conn), add = TRUE)
   dbGetQuery(conn, "
     SELECT
+      id,
       document_rel_path,
+      document_extension,
       document_type_label,
       document_type_auto_text,
       notes
@@ -4441,6 +5229,78 @@ get_lineage_supporting_documents <- function(dataset_id, base_path) {
       AND include_in_lineage = 1
     ORDER BY document_rel_path
   ", params = list(dataset_id))
+}
+
+set_lineage_supporting_documents <- function(
+  dataset_id,
+  document_ids,
+  base_path,
+  user_person_id = NA_integer_
+) {
+  if (is.null(dataset_id) ||
+      length(dataset_id) == 0L ||
+      is.na(dataset_id[1])) {
+    stop("dataset_id is required.")
+  }
+
+  document_ids <- unique(as.integer(document_ids))
+  document_ids <- document_ids[!is.na(document_ids)]
+
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  if (length(document_ids) > 0L) {
+    placeholders <- paste(rep("?", length(document_ids)), collapse = ", ")
+    matching <- DBI::dbGetQuery(
+      conn,
+      paste0(
+        "SELECT id FROM supporting_document_tbl ",
+        "WHERE dataset_id = ? AND active = 1 AND id IN (",
+        placeholders,
+        ")"
+      ),
+      params = c(list(as.integer(dataset_id[1])), as.list(document_ids))
+    )$id
+
+    if (length(matching) != length(document_ids)) {
+      stop(
+        paste(
+          "Every lineage document must be an active supporting document",
+          "belonging to the selected dataset."
+        )
+      )
+    }
+  }
+
+  DBI::dbWithTransaction(conn, {
+    DBI::dbExecute(
+      conn,
+      "
+      UPDATE supporting_document_tbl
+      SET include_in_lineage = 0
+      WHERE dataset_id = ?
+        AND active = 1
+      ",
+      params = list(as.integer(dataset_id[1]))
+    )
+
+    if (length(document_ids) > 0L) {
+      placeholders <- paste(rep("?", length(document_ids)), collapse = ", ")
+      DBI::dbExecute(
+        conn,
+        paste0(
+          "UPDATE supporting_document_tbl ",
+          "SET include_in_lineage = 1 ",
+          "WHERE dataset_id = ? AND active = 1 AND id IN (",
+          placeholders,
+          ")"
+        ),
+        params = c(list(as.integer(dataset_id[1])), as.list(document_ids))
+      )
+    }
+  })
+
+  invisible(TRUE)
 }
 
 ensure_data_pond_tables <- function(conn) {
@@ -4603,7 +5463,9 @@ get_dataset_poc_links <- function(dataset_id, base_path) {
       p.name_first || ' ' || p.name_last AS name,
       o.organisation_name_full,
       o.organisation_name_short,
-      o.organisation_department
+      o.organisation_code,
+      o.organisation_department,
+      o.organisation_address
     FROM poc_tbl poc
     LEFT JOIN persons_tbl p ON poc.person_id = p.id
     LEFT JOIN organisation_tbl o ON poc.organisation_id = o.id
@@ -4808,6 +5670,11 @@ set_dataset_lifecycle <- function(
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
   ensure_dataset_lifecycle_columns(conn)
+
+  current <- release_entry(conn, dataset_id)
+  if (metadata_present(current$dataset_path) && startsWith(normalizePath(current$dataset_path[1], winslash = "/", mustWork = FALSE),
+                 paste0(normalizePath(release_store(base_path), winslash = "/", mustWork = FALSE), "/")))
+    stop("Use Restore as draft for a frozen archive; its lifecycle cannot be changed in place.")
 
   now <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 

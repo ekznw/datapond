@@ -7,23 +7,60 @@ organisation_select_choices <- function(df) {
     df,
     stringsAsFactors = FALSE
   )
-  labels <- paste0(
-    df$organisation_name_short,
-    " (", df$organisation_code, ")"
+
+  field_value <- function(field) {
+    if (!field %in% names(df)) {
+      return(rep("", nrow(df)))
+    }
+    value <- as.character(df[[field]])
+    value[is.na(value)] <- ""
+    trimws(value)
+  }
+
+  full_name <- field_value("organisation_name_full")
+  short_name <- field_value("organisation_name_short")
+  code <- field_value("organisation_code")
+  departments <- field_value("organisation_department")
+  addresses <- field_value("organisation_address")
+  display_name <- ifelse(nzchar(short_name), short_name, full_name)
+  missing_name <- !nzchar(display_name)
+  display_name[missing_name] <- paste(
+    "Organisation",
+    df$id[missing_name]
   )
-  departments <- trimws(
-    as.character(df$organisation_department)
+
+  labels <- display_name
+  has_code <- nzchar(code)
+  labels[has_code] <- paste0(
+    labels[has_code],
+    " (", code[has_code], ")"
   )
-  has_department <- !is.na(departments) & nzchar(departments)
+  has_department <- nzchar(departments)
   labels[has_department] <- paste0(
     labels[has_department],
     " \u2014 ",
     departments[has_department]
   )
+  has_address <- nzchar(addresses)
+  labels[has_address] <- paste0(
+    labels[has_address],
+    " \u2014 Address: ",
+    addresses[has_address]
+  )
+
+  sorted <- order(
+    tolower(display_name),
+    has_department,
+    tolower(departments),
+    tolower(code),
+    suppressWarnings(as.integer(df$id)),
+    na.last = TRUE,
+    method = "radix"
+  )
 
   setNames(
-    as.character(df$id),
-    labels
+    as.character(df$id[sorted]),
+    labels[sorted]
   )
 }
 
@@ -52,10 +89,15 @@ dataset_organisation_role_descriptor <- function() {
 mod_dataset_org_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    h4("Owning Organisation(s)"),
+    h4(metadata_field_label("Owning Organisation(s)", "Mandatory", "Add at least one organisation with a usable code before creating or saving the dataset.")),
+    shiny::helpText(paste(
+      "Add at least one organisation. The first added organisation's code,",
+      "publication date and first theme keyword form the folder name and citation key.",
+      "Selecting an organisation alone does not add it; click Add."
+    )),
     selectizeInput(
       ns("org_select"),
-      "Select organisation",
+      metadata_field_label("Select organisation", "Conditional", "Select an organisation when adding it; click Add to include it in the dataset."),
       choices = NULL,
       options = list(
         placeholder = "Select organisation..."
@@ -63,7 +105,7 @@ mod_dataset_org_ui <- function(id) {
     ),
     selectInput(
       ns("org_role"),
-      "Role",
+      metadata_field_label("Role", "Conditional", "Choose a role when adding an owning organisation."),
       choices = dataset_organisation_role_choices()
     ),
     tags$small(
@@ -99,6 +141,7 @@ mod_dataset_org_server <- function(id, state) {
     })
     # populate dropdown
     observe({
+      access_require("read")
       choices <- org_choices()
       updateSelectizeInput(
         session,
@@ -109,6 +152,7 @@ mod_dataset_org_server <- function(id, state) {
     })
     # ADD ORGANISATION
     observeEvent(input$add_org, {
+      access_require("edit", touch = TRUE)
       req(input$org_select)
       current <- org_list()
       selected_id <- as.integer(input$org_select)
@@ -133,12 +177,14 @@ mod_dataset_org_server <- function(id, state) {
     })
     # REMOVE LAST
     observeEvent(input$remove_org, {
+      access_require("edit", touch = TRUE)
       df <- org_list()
       if (nrow(df) == 0) return()
       org_list(df[-nrow(df), ])
     })
     # DISPLAY TABLE
     output$org_table <- renderTable({
+      access_require("read")
       df <- org_list()
       if (nrow(df) == 0) return(NULL)
       df

@@ -1,0 +1,30 @@
+gaps:
+  - id: GAP-010
+    priority: medium
+    iso_target: 'gex:EX_VerticalExtent'
+    issue: Vertical extent, vertical CRS, and vertical units are not stored.
+    recommendation: Add optional vertical minimum, maximum, unit, and vertical CRS fields for applicable resources.
+
+  - id: GAP-014
+    priority: medium
+    iso_target: 'mri:descriptiveKeywords/mri:MD_Keywords/mri:thesaurusName'
+    issue: Keyword values record local vocabulary provenance but not an exportable thesaurus citation/version.
+    recommendation: Add vocabulary title, edition/date, URI, and responsible party to keyword vocabulary metadata.
+
+  - id: GAP-015
+    priority: medium
+    iso_target: 'mrc:MD_FeatureCatalogueDescription and ISO 19110:2016'
+    issue: Dataset attributes are rich, but vector and tabular attributes do not have a formal feature-catalogue representation.
+    recommendation: Generate an ISO 19110 feature catalogue and link it from MD_FeatureCatalogueDescription; use MRC sample dimensions only for true coverages.
+
+  - id: GAP-016
+    priority: medium
+    iso_target: 'cit:CI_Organisation and cit:CI_Address'
+    issue: Organisation addresses are stored as one text field and departments are not structurally distinct organizations.
+    recommendation: Normalize address parts and allow parent/child organisational units where detailed contact export is required.
+
+  - id: GAP-018
+    priority: high
+    iso_target: 'ISO 19115-3 XML instance validation'
+    issue: No serializer or XSD/Schematron conformance test currently consumes this crosswalk.
+    recommendation: Build XML exports for vector, raster, and nonspatial fixtures and validate them against the official ISO/TC 211 schemas and Schematron rules.

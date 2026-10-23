@@ -1,0 +1,22 @@
+{
+  "dta_scp": {
+    "dataset_records": 16,
+    "preserved_entry_fields": ["id", "uuid", "title", "access_constraints", "use_limitations", "data_distribution_url", "temporal_coverage_start_date", "temporal_coverage_end_date"],
+    "preserved_lineage_fields": ["id", "dataset_id", "source_description", "source_datasets_text", "process_description", "processing_tools", "processing_scripts", "output_description", "lineage_notes"],
+    "party_rows_preserved": true,
+    "repeated_lineage_migration_identical": true,
+    "pending_lineage_markers": 0,
+    "foreign_key_violations": 0,
+    "lineage_row_counts": [4, 1, 0]
+  },
+  "bspi": {
+    "dataset_records": 66,
+    "preserved_entry_fields": ["id", "uuid", "title", "software_desc", "epsg_code", "access_constraints", "use_limitations", "data_distribution_url", "temporal_coverage_start_date", "temporal_coverage_end_date"],
+    "preserved_lineage_fields": ["id", "dataset_id", "source_description", "source_datasets_text", "process_description", "processing_tools", "processing_scripts", "output_description", "lineage_notes"],
+    "party_rows_preserved": true,
+    "repeated_lineage_migration_identical": true,
+    "pending_lineage_markers": 0,
+    "foreign_key_violations": 0,
+    "lineage_row_counts": [66, 67, 68]
+  }
+}

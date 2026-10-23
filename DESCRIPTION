@@ -1,9 +1,11 @@
 Package: datapond
 Title: Offline-First Data Lifecycle Management
-Version: 1.2.0.0000
+Version: 1.4.0
 Authors@R:
-    person("Paul Gordijn", role = c("aut", "cre"),
+    person("Paul", "Gordijn", role = c("aut", "cre"),
            email = "paul.gordijn@kznwildlife.com")
+Author: Paul Gordijn [aut, cre]
+Maintainer: Paul Gordijn <paul.gordijn@kznwildlife.com>
 Description: Provides a local Shiny application for managing the dataset
     lifecycle, documenting metadata, maintaining a pond-local SQLite catalogue,
     organising lifecycle folders, inventorying data files, and extracting
@@ -11,24 +13,33 @@ Description: Provides a local Shiny application for managing the dataset
     low-connectivity environments.
 License: MIT + file LICENSE
 Encoding: UTF-8
+SystemRequirements: Quarto and XeLaTeX (for PDF document generation),
+    Python (>= 3.9, for document inventories and dataset releases)
 Depends:
     R (>= 4.1.0)
 Imports:
     data.table,
     DBI,
+    digest,
     DT,
     ekznwr,
     htmltools,
     leaflet,
-    readxl,
+    jsonlite,
+    processx,
+    ps,
     RSQLite,
     sf,
     shiny,
     shinyFiles,
+    sodium,
     terra,
+    xml2,
     uuid
 Suggests:
-    testthat (>= 3.0.0)
+    readxl,
+    testthat (>= 3.0.0),
+    yaml
 Remotes:
     ekznw/ekznwr
 Config/testthat/edition: 3

@@ -1,0 +1,1330 @@
+version: 4.1.0
+scope: Full candidate with linked catalogue; subset assessments intentionally cover
+  less.
+meaning:
+  implemented: Serializer exists; conditions, nil reasons and validation failures
+    still apply.
+  migration: Legacy source is backfilled into a canonical table and exported once;
+    no parallel legacy XML.
+  local: No independent public ISO property; retained locally or used as selection/relationship
+    context. Shared source values can be mapped by another explicit entry.
+limitation: This audit indexes mapping decisions and regression suites. It is not
+  a per-value completeness proof for every record, codelist certification, or a claim
+  that all datasets pass GAP-018.
+mappings:
+- id: MDB-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: The metadata-record UUID is persisted independently from the resource UUID.
+- id: MDB-002
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit the stored MD_ScopeCode and apply scope-conditional validation.
+- id: MDB-003
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Existing records are migrated to the profile default 'eng'.
+- id: MDB-004
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Existing records are migrated to the profile default 'utf8'.
+- id: MDB-005
+  disposition: implemented
+  implementation:
+  - R/iso_core_export.R
+  - R/db.R
+  - R/iso_profile_db.R
+  - inst/iso/validate_metadata.py
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-nonspatial-dates.R
+  - tests/testthat/test-dataset-transfer.R
+  note: New application records store a real UTC creation timestamp on INSERT; updates,
+    migrations and imports never fill unknown creation with current time. Explicit
+    metadata_creation_date is authoritative. When absent, only a review event explicitly
+    tagged new_metadata_record can supply its recorded timestamp; ordinary reviews
+    cannot establish creation. Preserve year/month/day/timestamp precision and supplied
+    timezone. Never substitute resource publication or export time. Pinned DateTime-only
+    creation failures remain visible. The separately reported DataPond creation-date
+    precision policy 1.0.0 accepts XSD-valid root creation Dates, without changing
+    upstream files or claiming upstream agreement.
+- id: MDB-006
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Emit the latest recorded review timestamp with sibling cit:dateType codeListValue='lastUpdate'.
+    Order zoned timestamps by instant; preserve each original offset. Unzoned application
+    timestamps remain unzoned; mixed zoned/unzoned review history needs resolution
+    before ordering.
+- id: MDB-007
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit title 'ISO 19115-1:2014 geographic metadata - DataPond profile' and edition
+    'DataPond crosswalk <version>' resolved from CURRENT.
+- id: CIT-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: CIT-002
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit one CI_Date per ordered row. gco:Date permits year, year-month and calendar
+    date in the pinned schema; preserve that precision. Use gco:DateTime only for
+    a recorded timestamp and preserve its timezone. entry_tbl.citation_date mirrors
+    the first publication row for compatibility only. Preserve nonblank date_note
+    as labelled otherCitationDetails on the resource citation.
+- id: CIT-002-COMPAT
+  disposition: migration
+  implementation: R/iso_profile_db.R
+  tests: tests/testthat/test-iso-profile-slices.R
+  note: ensure_iso_profile_schema backfills a missing publication row from citation_date.
+    Export the canonical typed row once through CIT-002; no duplicate citation date.
+- id: MRI-TOPIC-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Repeat in sort_order for scopes that require geographic discovery; never infer
+    from entry_tbl.keyword_topic.
+- id: MDB-RESP-001
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Transform creator, maintainer, and pointOfContact application roles to profile-approved
+    CI_RoleCode values; emit primary responsibility first per role.
+- id: CIT-003
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: CIT-004
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Primary persistent resource identifier.
+- id: CIT-005
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit as an additional identifier with codeSpace='DataPond citation key'.
+- id: CIT-006
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: A rendered citation is derived presentation text; do not duplicate it into
+    CI_Citation properties.
+- id: MRI-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-002
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-003
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-004
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Map complete to completed and started to underDevelopment; accept published
+    MD_ProgressCode values with case/spacing normalization. Unmatched text creates
+    an unknown status nilReason and a labelled supplementalInformation value. Do not
+    infer progress from release/archive workflow states.
+- id: MRI-005
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Map published codes and explicit aliases to MD_MaintenanceFrequencyCode. Unmatched
+    text uses code unknown plus the original wording in maintenanceNote. Blank frequency
+    omits resourceMaintenance; no schedule is inferred from review history.
+- id: MRI-006
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: When no structured process step has tool_software_reference, preserve nonblank
+    software_desc as labelled supplementalInformation. Do not infer a production step
+    from software text.
+- id: MRI-KW-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Merge legacy topic values into keyword_object, de-duplicate case-insensitively,
+    and emit one canonical keyword group with mri:type codeListValue='theme'.
+- id: MRI-KW-002
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit a keyword group with mri:type codeListValue='discipline'.
+- id: MRI-KW-003
+  disposition: migration
+  implementation: R/iso_wave3_db.R
+  tests:
+  - tests/testthat/test-iso-wave3.R
+  - tests/testthat/test-keyword-theme-merge.R
+  note: Read only as a fallback for an unmigrated legacy record; merge its values
+    into MRI-KW-001 and never emit it as a separate keyword group.
+- id: MRI-KW-004
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-core-export.R
+  - tests/testthat/test-iso-profile-slices.R
+  - tests/testthat/test-iso-wave3.R
+  note: Emit a keyword group with mri:type codeListValue='place'.
+- id: GEX-T-001
+  disposition: migration
+  implementation: R/iso_wave2_db.R
+  tests: tests/testthat/test-iso-wave2.R
+  note: ensure_iso_wave2_schema backfills the first structured extent only when none
+    exists, preserving endpoint precision; a missing opposite endpoint becomes indeterminate
+    unknown. Export the canonical extent once through MRI-TEMP-003.
+- id: GEX-T-002
+  disposition: migration
+  implementation: R/iso_wave2_db.R
+  tests: tests/testthat/test-iso-wave2.R
+  note: ensure_iso_wave2_schema backfills the first structured extent only when none
+    exists, preserving endpoint precision; a missing opposite endpoint becomes indeterminate
+    unknown. Export the canonical extent once through MRI-TEMP-003.
+- id: GEX-G-001
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: GEX-G-002
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: GEX-G-003
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: GEX-G-004
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: GEX-G-005
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Fallback only when no spatial summary, extracted spatial row or manual extent
+    row exists, including excluded/failed rows. Require explicit legacy EPSG:4326
+    and valid finite xmin; ymin; xmax; ymax bounds; validate geographic limits. Do
+    not guess CRS or transform projected legacy bounds.
+- id: GEX-G-006
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Label the saved derivation method in the valid geographic EX_Extent description.
+    Translate included_source_envelope to a readable explanation. Calculating metadata
+    bounds is not a resource-production lineage step.
+- id: MRS-001
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Deduplicate identifiers from included spatial records and active included
+    manual extents, excluding inactive files. Use crs_auth_code, or an authority:code
+    in crs_input when absent. A name or WKT is not an authority identifier. Emit every
+    distinct accepted native CRS, separately from the WGS84 geographic summary.
+- id: MRS-002
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Split authority and code; emit EPSG or ESRI as codeSpace.
+- id: MRS-003
+  disposition: implemented
+  implementation: R/iso_core_export.R
+  tests: tests/testthat/test-iso-core-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRS-004
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Fallback only when no structured summary/extracted/manual spatial records
+    exist. Accept a numeric EPSG code or EPSG:code, resolve locally through sf/GDAL/PROJ,
+    and export its code, codeSpace and name. Invalid/excluded modern rows never revive
+    a stale legacy CRS.
+- id: MRS-005
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Preserve WKT or PROJ text as evidence; ISO export uses a structured reference-system
+    identifier. An authority:code in crs_input may supply that identifier only when
+    crs_auth_code is absent, as specified by MRS-001.
+- id: MSR-001
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Map included active file/layer spatial types to vector, grid, textTable, tin,
+    stereoModel or video; reject unmapped types. Resolve a file ID or unique legacy
+    relative path within the dataset. Reject duplicate file/layer descriptions. Emit
+    distinct representation codes.
+- id: MSR-002
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Map OGC geometry names and terra family names to point, curve or surface;
+    mixed names of one family retain that family. Unmapped or mixed families use an
+    unknown geometricObjectType nil reason. Preserve original geometry and portable
+    file/layer label in supplementalInformation; do not infer topology.
+- id: MSR-003
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Require a nonnegative integer. Export geometricObjectCount only for simple
+    POINT, LINESTRING or POLYGON, where one feature represents one primitive. Preserve
+    other recorded feature counts as labelled supplementalInformation; multipart feature
+    counts are not primitive counts.
+- id: MSR-004
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Emit row dimension, requiring a positive integer if present; absent size carries
+    an unknown nil reason. Retain portable file/layer identity in dimensionTitle.
+- id: MSR-005
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Emit column dimension, requiring a positive integer if present; absent size
+    carries an unknown nil reason. Retain portable file/layer identity in dimensionTitle.
+- id: MSR-006
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Emit 2 for a single-band row/column grid. For multiband or unknown layer counts
+    the number of independent axes is unknown, so use nilReason unknown on this mandatory
+    property. Unrecorded cell geometry and transformation-parameter availability also
+    use unknown nil reasons.
+- id: MSR-007
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Map y resolution to row and x resolution to column. Require finite positive
+    values. Resolve unit offline from the recorded EPSG/ESRI/OGC authority code; supported
+    metre, degree, radian, international-foot and US-survey-foot units remain distinct.
+    Missing/unsupported CRS or unit blocks populated resolution export. No conversion
+    or guessed units.
+- id: MSR-008
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Preserve the positive integer band/layer count with its portable raster file/layer
+    label. It is not automatically the grid dimension count; see MSR-006.
+- id: MRI-RES-001
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Use only when no included active raster axis resolution is exported. Parse
+    a positive finite numeric distance and explicit m/km/cm/mm/ft unit without conversion.
+    Otherwise retain the original wording as labelled supplementalInformation. Never
+    assume the unit of bare numbers.
+- id: MRI-RES-002
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: These are recommended use/capture scales, not positional accuracy and not
+    a single ISO equivalent-scale denominator.
+- id: MRI-RES-003
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Do not export as ISO data quality or spatial resolution without a defined
+    reference-system operation model.
+- id: CIT-RP-001
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Join authority_tbl to persons_tbl and retain author_order. Join only nonblank
+    name parts; missing people or names block assembly. A recorded affiliation is
+    represented by CI_Organisation/individual; a separately selected organisation
+    is not assumed to employ the person.
+- id: CIT-RP-002
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Map the DataPond role vocabulary to CI_RoleCode; citation authors default
+    to codeListValue='author'.
+- id: CIT-RP-003
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Apply within each exported CI_Individual, including metadata/resource contacts,
+    authors, processors and citation producers. Reviewers use the same contact helper
+    within metadataMaintenance; app users alone do not imply authorship.
+- id: CIT-RP-004
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: CIT-RP-005
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: CIT-RP-006
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Use recorded persons_tbl.organisation_id for affiliation. When an explicit
+    co-responsible organisation differs, emit separate parties rather than invent
+    an affiliation. Match and deduplicate responsibilities by linked IDs and role,
+    never just display names.
+- id: CIT-RP-007
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Preserve as a local abbreviation; use organisation_name_full for CI_Organisation/name.
+- id: CIT-RP-008
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: CIT-RP-009
+  disposition: migration
+  implementation: R/iso_wave3_db.R
+  tests:
+  - tests/testthat/test-iso-wave3.R
+  - tests/testthat/test-keyword-theme-merge.R
+  note: ensure_iso_wave3_schema backfills organisational_unit_name from organisation_department
+    only when blank. CIT-016 qualifies the shared organisation name using that canonical
+    unit and its ancestry; do not append the legacy department a second time.
+- id: CIT-RP-010
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Use the complete legacy address as deliveryPoint only when no normalized postal
+    components are available; never parse legacy address prose into guessed components.
+- id: MRI-POC-001
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-POC-002
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-POC-003
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-ORG-001
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit owners, custodians, originators, publishers, funders, and distributors
+    as repeatable responsibilities with mapped CI_RoleCode values.
+- id: MDB-CONTACT-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Saving a record does not establish metadata authorship. Use explicit metadata_responsibility_tbl
+    assignments; the user link and creation audit stay local.
+- id: MDB-CONTACT-002
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Emit maintenance contacts deduplicated by person ID (or exact legacy full
+    name) and mapped role. A linked person is authoritative; broken links block assembly.
+    Blank/unmapped reviewer roles use explicit nilReason unknown; recorded role text
+    remains in its event note. Reviews never become dataset authors.
+- id: CIT-RP-011
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: The releasing person is an app approval actor, not necessarily the publisher.
+    Only explicitly assigned citation/resource responsibilities establish parties;
+    release audit stays local.
+- id: MRD-001
+  disposition: migration
+  implementation: R/iso_wave2_db.R
+  tests: tests/testthat/test-iso-wave2.R
+  note: ensure_iso_wave2_schema backfills a structured online resource only when none
+    exists. Export the canonical row through MRD-010; do not emit the compatibility
+    mirror separately.
+- id: MRD-002
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Legacy distributor text stays local. Use the linked selected distributor organisation
+    or explicit distributor responsibilities; do not infer a party from a legacy snapshot.
+- id: MRD-002A
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Join the selected distributor organisation and emit CI_RoleCode='distributor';
+    this structured field overrides the legacy text snapshot.
+- id: MRD-003
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Unstructured legacy distributor-other text stays local; explicit linked distributor
+    responsibilities are exported.
+- id: MRD-004
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Export explicitly assigned distributors; a custodian role alone does not establish
+    distribution responsibility. Deduplicate named organisations also selected by
+    MRD-002A.
+- id: MRD-005
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Detected inventory formats classify content but do not establish distribution
+    formats. MRD-011 exports explicitly saved distribution specifications. No inventory
+    fallback is intended.
+- id: MRD-006
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Retain for inventory; format name is the ISO property.
+- id: MRD-007
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: 'Inventory size is not transfer size: package membership, packaging and compression
+    are not recorded here. No transferSize is emitted. A future distribution package
+    model would be a separate capability.'
+- id: MRD-008
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: MRD-009
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Do not expose local filesystem paths as public online-resource linkages.
+- id: MCO-001
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Map public to unrestricted, public_request to otherRestrictions, and approved_partners/internal/embargoed/not_distributable
+    to restricted. Preserve the access-level label in otherConstraints; reject unknown
+    codes.
+- id: MCO-002
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MCO-003
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MCO-004
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MCO-005
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MCO-006
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit CI_RoleCode='rightsHolder'.
+- id: MCO-007
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Use only when no structured rights-holder organisation is linked.
+- id: MCO-008
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Render the recorded redistribution code as its controlled label and preserve
+    permission_reference verbatim in separate otherConstraints; do not infer permission
+    from missing values.
+- id: MCO-009
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: When required_attribution is true, emit the recorded attribution text, or
+    Attribution required if text is missing. Do not invent the attribution wording.
+- id: MCO-010
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Preserve the recorded sensitivity label and reason in legal otherConstraints;
+    if only sensitive_data is true, state Sensitive data. Never infer a national-security
+    classification.
+- id: MCO-011
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MCO-012
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Internal notes are excluded unless explicitly approved for public metadata.
+- id: MCO-013
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Always consider supplementary access text as otherConstraints with an otherRestrictions
+    code and use_limitations as useLimitation, including when a structured licence
+    exists. Deduplicate within each target property after trimming and collapsing
+    whitespace for comparison only; keep first stored wording, case, punctuation and
+    distinct conditions. Do not rewrite database values.
+- id: MCO-014
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Use legacy embargo values only when the corresponding authoritative value
+    is absent; an explicit No embargo status suppresses stale date/reason mirrors.
+- id: MCO-015
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: MRL-001
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-002
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit one LI_Source for every row in source_order; a provisional legacy-backfill
+    row remains one source.
+- id: MRL-003
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-004
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-005
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit a software/tool citation when a stable product name or URI is available;
+    otherwise append to process description.
+- id: MRL-006
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit only portable relative references or public URIs; never publish absolute
+    local paths.
+- id: MRL-007
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Append distinct output text to the process description under an Output label;
+    rationale remains separately authored.
+- id: MRL-011
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-012
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-013
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-014
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Preserve recorded endpoint precision in GML TimePeriod. Missing endpoints
+    use indeterminatePosition unknown; the uncaptured source scope level uses nilReason
+    unknown. Reject invalid dates and reversed comparable calendar ranges.
+- id: MRL-015
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-016
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit gco:Distance with the saved positive value and unit when no equivalent
+    scale is supplied. LI_Source permits only one resolution and MD_Resolution is
+    a choice; when both are recorded, retain scale structurally and append the distance
+    and unit as labelled source description text. Missing units block export, not
+    draft saving.
+- id: MRL-017
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-018
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Emit rationale separately and encode a recorded step date/time as mrl:stepDateTime/gml:TimeInstant/gml:timePosition
+    with a unique gml:id. Preserve the stored precision and timezone; do not emit
+    a gco:DateTime directly inside stepDateTime.
+- id: MRL-019
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRL-020
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Reference the corresponding LI_Source id within the same dataset using xlink:href;
+    never duplicate the source or emit an unqualified href attribute.
+- id: MRL-021
+  disposition: implemented
+  implementation: R/iso_lineage_export.R
+  tests:
+  - tests/testthat/test-lineage-structured.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Require the linked document to be active and belong to the dataset. Emit one
+    additionalDocumentation citation with a stable local ID and link each source through
+    sourceMetadata. An authority link alone exports title/reference, not document
+    notes; notes require the lineage inclusion flag.
+- id: MRL-LEGACY-001
+  disposition: migration
+  implementation: R/db.R
+  tests: tests/testthat/test-lineage-document-authority.R
+  note: Migrate once into a provisional structured source unless already represented
+    or previously backfilled; preserve the original as a hidden snapshot. Never split
+    the text or export the snapshot independently.
+- id: MRL-LEGACY-002
+  disposition: migration
+  implementation: R/db.R
+  tests: tests/testthat/test-lineage-document-authority.R
+  note: Migrate once into a provisional structured step unless already represented
+    or previously backfilled; preserve the original as a hidden snapshot. Never split
+    the text or export the snapshot independently.
+- id: MRL-008
+  disposition: migration
+  implementation: R/db.R
+  tests: tests/testthat/test-lineage-document-authority.R
+  note: One-time migration folds distinct existing notes into lineage_statement under
+    a labelled paragraph. The notes column is then a hidden archival snapshot, never
+    independently exported or re-appended after narrative edits. There is no separate
+    internal-note classification in the current lineage form.
+- id: MRL-009
+  disposition: implemented
+  implementation: R/iso_document_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: For explicitly included documents, use document_name as title and label the
+    saved document_type_label and notes in otherCitationDetails. Do not guess an ISO
+    presentationForm code from a local document type.
+- id: MRI-DOC-001
+  disposition: implemented
+  implementation: R/iso_document_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRI-DOC-002
+  disposition: implemented
+  implementation: R/iso_document_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize an approved document's portable relative reference; reject absolute
+    paths and traversal. This mapping does not copy or establish existence of supporting
+    files. Package copying/resolvability checks belong to the future publishing workflow;
+    document_path remains local.
+- id: MRL-010
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: MMI-001
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Emit one CI_Date per review with type lastRevision inside the single metadataMaintenance
+    property, in saved event order. Preserve timestamp precision and timezone. The
+    maintenance schedule is unknown because it is not recorded; resource frequency
+    is not a substitute.
+- id: MMI-002
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Render a labelled note per event associating its date, reviewer, recorded
+    role, affected sections, reason and summary. These descriptive fields are export-facing;
+    omit blanks. Generic notes and workflow audit fields stay local; no attempt is
+    made to classify fragments of arbitrary prose.
+- id: MMI-003
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Review history has MD_ScopeCode metadata. Preserve the saved app section labels
+    in each event maintenanceNote; app sections are not ISO resource scope codes.
+- id: MMI-004
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: MMI-005
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Use review_date only when review_timestamp is blank; malformed populated timestamps
+    block assembly. Retain recorded year/month/day precision; never manufacture a
+    time. This maintenance fallback does not change the core metadata creation-date
+    policy.
+- id: MMI-006
+  disposition: implemented
+  implementation: R/iso_maintenance_export.R
+  tests: tests/testthat/test-iso-maintenance-export.R
+  note: Use the complete legacy reviewer_name only when reviewer_id is absent, without
+    guessing name parts or affiliations. A populated reviewer_id joined to persons_tbl
+    is authoritative; broken links block assembly.
+- id: MRC-001
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Vector and tabular field catalogues should additionally be exported through
+    an ISO 19110 feature catalogue.
+- id: MRC-002
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Use as the human-readable attribute label; preserve the physical field name
+    as sequenceIdentifier.
+- id: MRC-003
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRC-004
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Preserve a recorded URI as an xlink reference or a recorded unit label as
+    a local GML UnitDefinition. Do not guess a vocabulary identifier or conversion.
+- id: MRC-005
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRC-006
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Serialize the declared source at the declared target; omission and scope conditions
+    follow the implementation and profile.
+- id: MRC-007
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Group and order vector or tabular attributes in an external ISO 19110 feature
+    catalogue linked from MD_FeatureCatalogueDescription.
+- id: MRC-008
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: MRC-009
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: 'Samples and unique counts stay local: samples are not permissible domains
+    or ISO 19157 assertions. Type information is mapped by MRC-015/016; raster value/missing
+    counts by MRC-017.'
+- id: MRI-LIFE-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Keep lifecycle state local. Release does not establish completed production,
+    and archive workflow does not establish offline historical storage. Use explicit
+    data_complete_status for ISO resource progress.
+- id: CIT-LIFE-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: App release time does not establish resource publication. Typed citation dates
+    are authoritative; do not infer a publication event from released_at.
+- id: MRI-LIFE-002
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: LOCAL-ENTRY-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local paths and pond identifiers are excluded from public ISO output.
+- id: MRL-IMPORT-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Import preserves the same resource UUID, already exported by CIT-004. The
+    transferred record is not an upstream source dataset; source numeric IDs and pond
+    IDs stay local.
+- id: MRL-IMPORT-002
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Archive names, bundle versions and copy times describe metadata/data transfer
+    between ponds, not resource production. Do not manufacture a lineage process step
+    from this audit.
+- id: MRL-MANUAL-001
+  disposition: implemented
+  implementation:
+  - R/iso_spatial_export.R
+  - R/iso_core_export.R
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Label saved manual extent name, source note and CRS in the geographic EX_Extent
+    description, only for active included extents listed in the summary contributor_keys
+    and not linked to an inactive file. Never claim a production step or infer who
+    supplied it.
+- id: LOCAL-SPATIAL-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Workflow status is not an ISO 19157 result. Promote it only after defining
+    a quality measure, method, scope, and result.
+- id: LOCAL-FILE-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Local extension or selection context; no independent ISO property. Any shared
+    source value mapped elsewhere follows that explicit mapping.
+- id: LOCAL-LIC-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Template selection and internal template notes stay local. Copied structured
+    licence terms are authoritative. Legacy access_level text has its own fallback
+    mapping MCO-018.
+- id: LOCAL-DOC-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Classification evidence and absolute local paths remain local; approved title/type/notes
+    are mapped through MRI-DOC-001 or MRL-009.
+- id: LOCAL-SPATIAL-002
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: The four numeric WGS84 coordinates map to EX_GeographicBoundingBox; these
+    fields document calculation and review state.
+- id: LOCAL-ATTR-001
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Use to associate attributes with packaged resources; never publish absolute
+    storage paths.
+- id: CIT-ALT-001
+  disposition: implemented
+  implementation: R/iso_wave2_export.R
+  tests:
+  - tests/testthat/test-iso-wave2.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit in sort_order; retain the primary entry_tbl title unchanged.
+- id: MRI-SCALE-002
+  disposition: implemented
+  implementation: R/iso_wave2_export.R
+  tests:
+  - tests/testthat/test-iso-wave2.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit only a positive integer. Existing min_scale and max_scale remain a DataPond
+    capture/use-scale extension.
+- id: MRI-TEMP-003
+  disposition: implemented
+  implementation: R/iso_wave2_export.R
+  tests:
+  - tests/testthat/test-iso-wave2.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit each ordered row as a TimePeriod. Preserve both extent_label and description
+    in EX_Extent description and retain endpoint precision and explicit indeterminatePosition.
+    Revalidate saved date/time values and reject reversed comparable year/month/day
+    ranges. No timestamp or timezone is invented.
+- id: MRI-TEMP-004
+  disposition: local
+  implementation: inst/extdata/iso_crosswalk/v4.1.0/manifest.yml
+  tests: tests/testthat/test-iso-remaining-mappings.R
+  note: Compatibility view only; structured temporal extents are authoritative.
+- id: MRD-010
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit resources in sort_order, preserving URL, protocol, name, description
+    and function. Encode media_type as gcx:MimeFileType/@type on cit:name (use the
+    MIME label as text when name is absent). is_primary remains application selection
+    state, mirrored to entry_tbl.data_distribution_url; do not export the mirror again
+    or expose local inventory paths.
+- id: MRD-011
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit explicit specifications only. Preserve title and version as citation
+    title/edition; encode media_type as gcx:MimeFileType/@type on the title and format_uri
+    as citation onlineResource. MIME type is not a physical mrd:medium.
+- id: MDQ-001
+  disposition: implemented
+  implementation: R/iso_quality_export.R
+  tests: tests/testthat/test-iso-quality-export.R
+  note: Only explicitly saved measures are exported; scan/CRS/profile evidence is
+    not promoted. Emit the concrete MDQ element selected by quality_element_code (ISO
+    19157 MDQ 1.2.0); broad categories alone stop assembly with a clarification message.
+    Derive/verify the compatibility measure_type_code against that selection. Export
+    measure ID/name through DQ_MeasureReference. Validate file/attribute links within
+    the dataset and retain their scope descriptions. Quantitative values use gco:Record/field/Field/value
+    without numeric coercion; unit URIs use xlink:href and labels use a local GML
+    UnitDefinition without guessed conversions. A quantitative explanation is an accompanying
+    DQ_DescriptiveResult. Conformance retains explicit true/false and specification;
+    missing outcome is never false. Descriptive results retain their statement. Reject
+    incompatible populated result fields rather than discard them. Evaluation timestamps
+    retain precision/zone in dateTime before evaluationMethodDescription; year/month/day-only
+    dates are appended to that description with a labelled precision, never fabricated
+    as midnight.
+- id: MCO-016
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Emit embargo status/reason/start/end as labelled otherConstraints, preserving
+    recorded dates, when status is not No. Nest release addressee/statement/dissemination
+    under mco:releasability/mco:MD_Releasability. A dissemination code without addressee
+    or statement remains an ISO validation failure. Canonical values override compatibility
+    mirrors.
+- id: GEX-010
+  disposition: implemented
+  implementation: R/iso_vertical_export.R
+  tests: tests/testthat/test-iso-vertical-export.R
+  note: Emit saved extents in sort_order/id order; revalidate finite ordered bounds,
+    unit and CRS name. Bounds are gco:Real without uom and retain numeric precision/sign.
+    Label, note, unit symbol/URI, CRS name and local reference type are labelled EX_Extent
+    descriptions. Export saved public URI as verticalCRS reference and identifier
+    through verticalCRSId/MD_ReferenceSystem; split explicit AUTH:CODE only. Recognised
+    EPSG references resolve offline and must be standalone vertical CRSs with matching
+    unit and recorded up/down type; embed their WKT2 through mrs:crs/rbc:RS_CRS/rbc:definition.
+    No conversions or inferred datums. Conflicting EPSG IDs/URIs and known unit-URI
+    conflicts block assembly. Custom references stay explicit with unverified-compatibility
+    report warnings; a name alone produces an unknown CRS nilReason rather than a
+    fabricated identifier. Core/distribution/quality/content subset assessments exclude
+    this Wave 3 slice.
+- id: MRI-KEY-014
+  disposition: implemented
+  implementation: R/iso_wave3_export.R
+  tests:
+  - tests/testthat/test-iso-wave3.R
+  - tests/testthat/test-iso-contact-lineage-export.R
+  note: Group only canonical keyword_object, keyword_discipline, and keyword_geo values;
+    treat keyword_topic as an alias of keyword_object and emit the linked thesaurus
+    citation without inferring a thesaurus for free-text terms.
+- id: MRC-015
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Use saved catalogue identity and GFC 2.2. Group active file/layer attributes;
+    qualify feature type names with file paths. Emit aliases as designation, types
+    as TypeName and units as GML definitions. Unknown cardinality, feature definitions,
+    version/date and producer carry nilReason and report warnings. Never treat sample
+    values as permissible domains or assert compliance without evidence. Validate
+    catalogue and metadata citation together.
+- id: CIT-016
+  disposition: implemented
+  implementation: R/iso_contact_export.R
+  tests: tests/testthat/test-iso-contact-lineage-export.R
+  note: Serialize shared contacts in schema order; use normalized email and phone
+    per channel, with legacy person fields only when that channel is absent. Qualify
+    organisation names with recorded unit and ancestor names; reject hierarchy cycles.
+    Never emit positionName or otherProperty on CI_Organisation. Retain unsplit legacy
+    postal text only when normalized postal components are absent.
+- id: MCO-017
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: Use only when the saved licence has no name, identifier or URL. An embargo-only
+    row must not suppress the fallback. Structured licence identity overrides the
+    legacy snapshot; this rule does not suppress supplementary access/use notes.
+- id: MRI-007
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Keep separate from metadata locale and catalogue language. No backfill; omitted
+    values remain missing and validation reports unmet conditions. Neither population
+    mode requires these for draft saving.
+- id: MRC-016
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: One coverage per active raster file/layer. Resolve explicit file IDs or unique
+    legacy relative paths within the dataset; reject ambiguous or cross-dataset references.
+    Band names/types form RecordType and MemberName. Uncaptured content type is explicitly
+    unknown.
+- id: MRC-017
+  disposition: implemented
+  implementation: R/iso_content_export.R
+  tests: tests/testthat/test-iso-content-export.R
+  note: Named RecordType fields identify the ordered Record values and retain file/layer
+    provenance. Counts are profiling evidence, not ISO quality assertions or NoData
+    sentinel codes. No NoData sentinel is currently captured.
+- id: MCO-018
+  disposition: implemented
+  implementation: R/iso_distribution_export.R
+  tests:
+  - tests/testthat/test-iso-distribution-export.R
+  - tests/testthat/test-iso-remaining-mappings.R
+  note: When access_level_code is blank, preserve legacy access_level as labelled
+    Access text. It does not establish a restriction code. The canonical code overrides
+    the legacy snapshot.
+- id: MDB-SCOPE-001
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_core_export.R
+  - R/mod_iso_profile.R
+  tests: tests/testthat/test-iso-nonspatial-dates.R
+  note: For every non-dataset scope, use the title of the described resource as its
+    scope name. Do not invent a new resource or require a second name field. nonGeographicDataset
+    is an explicit user choice, never inferred from a CSV extension or missing geometry.
+- id: GEX-G-007
+  disposition: implemented
+  implementation:
+  - R/iso_profile_export.R
+  - R/iso_core_export.R
+  - R/mod_iso_profile.R
+  tests: tests/testthat/test-iso-nonspatial-dates.R
+  note: Serialize the explicitly supplied area covered as a named geographic extent,
+    without inventing a registry authority or coordinates. A dataset can use this
+    instead of a bounding box; a named-only extent needs no CRS. When coordinates
+    are also supplied their existing validation still applies. Keep optional named
+    and coordinate extents together; never infer coverage from keywords. Nongeographic
+    scope requires neither.

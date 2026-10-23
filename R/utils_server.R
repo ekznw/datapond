@@ -69,13 +69,16 @@ require_active_user_for_write <- function(
   state,
   action = "making changes"
 ) {
-  if (has_active_user_id(state$active_user_id)) {
+  auth <- access_context()
+  identity <- if (!is.null(auth)) access_session(auth$pond, auth$token, "edit") else NULL
+  if (!is.null(identity) && identical(as.integer(state$active_user_id), as.integer(identity$user_id[1])) &&
+      access_allowed("edit", state$data_pond, touch = TRUE)) {
     return(TRUE)
   }
 
   shiny::showNotification(
     paste(
-      "Select an active application user in the configuration panel before",
+      "Sign in with editor or administrator access before",
       paste0(action, ".")
     ),
     type = "warning",
@@ -100,8 +103,8 @@ default_metadata_reviewer_user_id <- function(users, active_user_id = NULL) {
 
 # helper functions for citation and citation key generator
 extract_first_keyword <- function(x) {
-  if (is.null(x) || x == "") return(NULL)
-  parts <- unlist(strsplit(x, "[;,]"))
+  parts <- split_keyword_values(x)
+  if (!length(parts)) return(NULL)
   kw <- trimws(parts[1])
 
   # remove spaces/punctuation + lowercase
@@ -1218,13 +1221,8 @@ first_folder_keyword <- function(x) {
     return("data")
   }
 
-  # Supports selectize vectors and semicolon/comma strings.
-  parts <- unlist(
-    strsplit(
-      x,
-      "[;,]"
-    )
-  )
+  # Commas belong to the primary keyword; semicolons separate terms.
+  parts <- split_keyword_values(x)
 
   if (length(parts) == 0) {
     return("data")
@@ -1415,6 +1413,7 @@ clean_key_part <- function(x, default) {
 
 # function to create folder structure in the data pond
 ensure_pond_structure <- function(base_path) {
+  movement_assert_writable(base_path)
   dirs <- c("dev", "src", "arc")
   for (d in dirs) {
     path <- file.path(base_path, d)
@@ -1476,7 +1475,7 @@ set_version_inputs <- function(session, version_value) {
 
 # keywords ----
 # function to extract first keyword in a string of keywords
-# separated by ';' or ','.
+# separated by ';'. Commas are preserved within a keyword.
 extract_primary_keyword <- function(x) {
   if (is.null(x) || length(x) == 0) {
     return(NULL)
@@ -1492,7 +1491,7 @@ extract_primary_keyword <- function(x) {
   }
   # If multiple values are supplied by selectizeInput, use the first.
   x <- x[1]
-  parts <- unlist(strsplit(x, "[;,]"))
+  parts <- split_keyword_values(x)
   if (length(parts) == 0) {
     return(NULL)
   }
@@ -1508,37 +1507,8 @@ extract_primary_keyword <- function(x) {
 }
 
 load_vocab <- function(path) {
-  if (!file.exists(path)) {
-    warning("Vocab file not found: ", path)
-    # return safe empty structure
-    return(data.table(
-      field_code = character(),
-      option_value = character(),
-      option_label = character()
-    ))
-  }
-  dt <- as.data.table(fread(path, header = TRUE))
-  # basic cleaning
-  dt <- dt[!is.na(field_code) & field_code != ""]
-  # ensure expected columns
-  required_cols <- c("field_code", "option_value", "option_label")
-  missing_cols <- setdiff(required_cols, names(dt))
-  if (length(missing_cols) > 0) {
-    warning(
-      "Missing columns in vocab file: ",
-      paste(missing_cols, collapse = ", ")
-    )
-    return(data.table(
-      field_code = character(),
-      option_value = character(),
-      option_label = character()
-    ))
-  }
-  # sort if present
-  if ("sort_order" %in% names(dt)) {
-    setorder(dt, field_code, sort_order)
-  }
-  dt
+  if (!file.exists(path)) stop("Keyword CSV was not found: ", path)
+  prepare_keyword_vocab_seed(data.table::fread(path, header = TRUE))
 }
 
 # custom function for loading organisations
@@ -1642,7 +1612,6 @@ create_dataset_folder_structure <- function(
     "docs",
     "scripts"
   ),
-  citation_key = NULL,
   data_pond_id = NULL
 ) {
   base_path <- folder_key_text(
@@ -1654,14 +1623,9 @@ create_dataset_folder_structure <- function(
     stop("base_path is required.")
   }
 
-  # Temporary compatibility with any older named calls.
-  # New calls should provide folder_key.
   folder_key <- folder_key_text(
     folder_key,
-    default = folder_key_text(
-      citation_key,
-      default = NULL
-    )
+    default = NULL
   )
 
   if (is.null(folder_key)) {

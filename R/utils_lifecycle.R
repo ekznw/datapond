@@ -140,6 +140,10 @@ discover_dataset_roots <- function(base_path) {
       }
 
       for (child in children) {
+        # Frozen releases are children of a dataset, not competing working
+        # folders. They have their own release registry and integrity checks.
+        if (identical(normalizePath(child, winslash = "/", mustWork = FALSE),
+                      normalizePath(release_store(base_path), winslash = "/", mustWork = FALSE))) next
         folder_uuid <- extract_dataset_uuid_from_folder_name(child)
         has_marker <- file.exists(dataset_marker_path(child))
         if (!is.na(folder_uuid) || has_marker) {
@@ -259,6 +263,17 @@ reconcile_dataset_locations <- function(
       ]
     } else {
       roots[0]
+    }
+
+    if (!is.na(stored_path) && startsWith(stored_path, paste0(normalizePath(release_store(base_path), winslash = "/", mustWork = FALSE), "/")) &&
+        DBI::dbExistsTable(conn, "dataset_release_tbl")) {
+      registered <- DBI::dbGetQuery(conn, "SELECT relative_path FROM dataset_release_tbl WHERE dataset_id=? AND dataset_uuid=?",
+        params = list(as.integer(record$id), uuid))
+      known <- vapply(registered$relative_path, function(p) normalizePath(file.path(base_path, p), winslash = "/", mustWork = FALSE), character(1))
+      if (stored_path %in% known) return(data.table::data.table(id = as.integer(record$id),
+        stored_dataset_path = stored_path, detected_dataset_path = stored_path, stored_stage = "arc", detected_stage = "arc",
+        location_status = if (dir.exists(stored_path)) "frozen_release" else "missing",
+        lifecycle_location_conflict = nrow(matches) > 0L))
     }
 
     status <- if (isTRUE(valid_uuid)) "missing" else "missing_uuid"

@@ -1,0 +1,61 @@
+## Add a methods document to the dataset
+
+Open **Dataset workspace → Lineage → Lineage authority and supporting documents → Add data development template**.
+
+1. Use a saved, unlocked draft in `src/` or `dev/`, while signed in with editor or administrator access.
+2. Choose **Microsoft Word** for colleagues who want to type directly into a report, or **Quarto** for an editable source that can render to PDF, Word and HTML.
+3. Optionally enter a short project name such as `pisr`.
+4. Choose **Add template to dataset folder**. The app creates `data_dev_pisr.docx` or `data_dev_pisr.qmd` at the dataset root. A Quarto copy also receives its portable `data_dev_pisr_theme/` folder.
+
+Existing files are never overwritten. The report is registered in **Supporting documents**, but is not automatically treated as finished lineage evidence. Adding a template needs no rendering software. An active review or lifecycle operation may prevent adding it until that operation is completed or cancelled.
+
+## Write the development history
+
+The common template covers revision history, project summary, main steps, inputs, detailed processing, outputs and quality checks, conclusions and appendices. For each important step record its purpose, inputs, operation, decisions, outputs and checks. Include software versions, packages and run evidence in the report so another person can understand how the data were produced.
+
+Instructional callouts are useful while writing. Keep them during development, then remove or resolve them before declaring the report complete. The draft PISR and PU reports are examples of work in progress, not completed instructions to copy as factual methods.
+
+| Word workflow | Quarto workflow |
+|---|---|
+| Open the `.docx` and replace prompts with your methods. | Edit the `.qmd` in RStudio's visual or source editor, or another text editor. |
+| Use its styles for headings, captions and tables. | Keep the YAML theme references and the adjacent theme folder together. |
+| Save the report and, if needed, export PDF in your editor. | Render to the desired format with Quarto. |
+| Record software/packages manually. | Record software/packages in the report; review any executable code before rendering. |
+
+Word and Quarto copies do **not** synchronise. Decide which source your team maintains. Editing a rendered Word output does not update its QMD source.
+
+::: {.guide-process role="region" aria-label="From a development template to lineage evidence" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Choose one maintained report source, then explicitly make the completed report part of lineage."
+flowchart TD
+  accTitle: From a development template to lineage evidence
+  accDescr: Choose either Word or Quarto as the maintained source. Write and save the Word report, or edit the QMD and render the required outputs. Review the supporting-document record, select the authoritative document and save a lineage summary. Reprepare the metadata PDF when lineage references change.
+  source{"Choose the maintained source"}
+  source -->|Word| word["Write and save the Word report"]
+  source -->|Quarto| qmd["Edit QMD and render required outputs"]
+  word --> record["Review Supporting documents record"]
+  qmd --> record
+  record --> authority["Select authoritative document;<br/>save lineage summary"]
+  authority --> pdf["Reprepare metadata PDF<br/>when lineage references change"]
+```
+
+:::
+
+## Render a Quarto report
+
+In a **terminal**, change to the dataset folder and substitute your actual filename:
+
+```sh
+quarto render data_dev_pisr.qmd --to html
+quarto render data_dev_pisr.qmd --to docx
+quarto render data_dev_pisr.qmd --to pdf
+```
+
+Use [Document tools](document-tools.qmd) to prepare PDF dependencies. Your own executable analysis can have additional requirements and side effects: check the document's execution settings before rendering. DataPond's metadata PDF and frozen-release operations acknowledge and preserve QMD/Rmd documents without executing their analysis.
+
+## Make the completed report part of lineage
+
+Review its record under **Supporting documents**, then select the authoritative document in **Lineage authority and supporting documents**. Save a concise lineage summary in the app, with the detailed method in the report. Review any include-in-lineage choices; a newly added blank template starts unselected.
+
+Existing root `data_dev*.qmd` or `.Rmd` documents can also support lineage. Check the registered document paths after scanning. Keep the document and its styles inside the dataset for portability. Reprepare `metadata.pdf` when its lineage references change, then [review and freeze](releases.qmd) the complete folder.

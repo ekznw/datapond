@@ -1,0 +1,351 @@
+/* Compact navigation keeps the main tabs slightly more prominent than subtabs. */
+.nav-tabs > li > a {
+  padding: 6px 12px;
+  line-height: 1.35;
+}
+#main_panel .tab-content .nav-tabs > li > a {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.flow-field-requirement {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: baseline;
+}
+.flow-field-requirement.mandatory { color: #7A2525; }
+.flow-field-requirement.conditional { color: #65512E; }
+.metadata-requirement-help {
+  display: block;
+  color: #6B6B6B;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+.metadata-requirement-legend {
+  font-size: 12px;
+  margin: 8px 0 12px;
+}
+html[data-datapond-theme="dark"] .metadata-requirement-help { color: var(--dp-muted); }
+
+/* Browser-local display preference. Light mode retains the existing palette. */
+html[data-datapond-theme="dark"] {
+  color-scheme: dark;
+  --dp-bg: #171e1b;
+  --dp-panel: #1c2722;
+  --dp-surface: #222d27;
+  --dp-inset: #29372f;
+  --dp-pane: #1c2722;
+  --dp-pane-alt: #26332c;
+  --dp-raised: #2d3a32;
+  --dp-box-border: #493d35;
+  --dp-border: #65746a;
+  --dp-text: #e8ece7;
+  --dp-muted: #bac5bb;
+  --dp-link: #b4d8b9;
+  --dp-link-hover: #d5f0d9;
+  --dp-selected: #405f4b;
+  --dp-active-tab: #25322b;
+  --dp-session-context: #25322b;
+  --dp-accent: #8fb99b;
+  --dp-focus: #d5bc7b;
+  --dp-active-border: #92b29b;
+  --dp-active-marker: #738b78;
+  --dp-button: #405f4b;
+  --dp-button-border: #87aa91;
+  --dp-button-hover: #52775f;
+  --dp-button-text: #ffffff;
+}
+
+html[data-datapond-theme="dark"][data-datapond-palette="bordo"] {
+  --dp-bg: #322a2d;
+  --dp-panel: #2c2528;
+  --dp-surface: #322a2d;
+  --dp-inset: #413036;
+  --dp-pane: #2c2528;
+  --dp-pane-alt: #382d31;
+  --dp-raised: #413036;
+  --dp-box-border: #1f191b;
+  --dp-border: #715b63;
+  --dp-text: #cbbec2;
+  --dp-muted: #a48e96;
+  --dp-link: #f18eb0;
+  --dp-link-hover: #ffb3cd;
+  --dp-selected: #5c2e3e;
+  --dp-active-tab: #322a2d;
+  --dp-session-context: #322a2d;
+  --dp-accent: #f18eb0;
+  --dp-focus: #f18eb0;
+  --dp-active-border: #bb778f;
+  --dp-active-marker: #f18eb0;
+  --dp-button: #007f99;
+  --dp-button-border: #00aacc;
+  --dp-button-hover: #00aacc;
+  --dp-button-text: #edebff;
+}
+
+html[data-datapond-theme="dark"] body {
+  background: var(--dp-bg);
+  color: var(--dp-text);
+}
+
+html[data-datapond-theme="dark"] .dataset-guide {
+  background: var(--dp-panel) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+}
+
+html[data-datapond-theme="dark"] :is(
+  .pond-config-intro-card, .dataset-guide-folder-card,
+  .dataset-guide-citation-card, .config-section-box, .config-help,
+  .config-current-value, .datapond-optional-details, .overview-abstract-card,
+  .suggested-citation,
+  .panel, .well, .modal-content, .popover, .popover-title,
+  .dropdown-menu, .list-group-item, pre,
+  details, #main_panel details, #main_panel div[style*="background:"]
+) {
+  background: var(--dp-surface) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+}
+
+html[data-datapond-theme="dark"] :is(
+  .config-current-value,
+  .config-section-box .config-help,
+  .pond-management details,
+  .dataset-guide-folder-card,
+  .dataset-guide-citation-card
+) {
+  background: var(--dp-inset) !important;
+}
+
+/* Scrollable workspaces define their light fills in module CSS, so give each
+   pane an explicit dark surface and keep adjacent panes distinguishable. */
+html[data-datapond-theme="dark"] .datapond-attribute-pane {
+  background: var(--dp-pane) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+}
+html[data-datapond-theme="dark"] :is(
+  .datapond-attribute-editor-pane,
+  .datapond-attribute-editor-actions
+) {
+  background: var(--dp-pane-alt) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+}
+html[data-datapond-theme="dark"] .datapond-attribute-pane > h4 {
+  border-color: var(--dp-box-border) !important;
+}
+html[data-datapond-theme="dark"] .suggested-citation {
+  border-left-color: var(--dp-active-marker) !important;
+}
+
+html[data-datapond-theme="dark"] :is(
+  #main_panel > h2, #main_panel > .tabbable > .nav-tabs,
+  .panel-heading, .panel-footer, .input-group-addon
+) {
+  background: var(--dp-raised);
+  color: var(--dp-text);
+  border-color: var(--dp-box-border);
+}
+
+html[data-datapond-theme="dark"] :is(
+  .help-block, .text-muted, .config-intro, .dataset-guide-eyebrow,
+  .dataset-guide-folder-label, .dataset-guide-folder-detail,
+  .dataset-guide-intro, .dataset-guide-citation-empty, .dataset-guide-field-legend,
+  .dataset-guide-citation-card h4, .dataset-guide-step-copy small,
+  .datapond-title-version, .metadata-field-help, .flow-field-help,
+  [style*="color:#666"], [style*="color: #666"],
+  [style*="color:#555"], [style*="color: #555"],
+  [style*="color:#596452"], [style*="color:#625C52" i]
+) { color: var(--dp-muted) !important; }
+
+html[data-datapond-theme="dark"] :is(a, .btn-link, .dataset-guide-step > a) {
+  color: var(--dp-link);
+}
+html[data-datapond-theme="dark"] a:hover { color: var(--dp-link-hover); }
+html[data-datapond-theme="dark"] :is(
+  details > summary,
+  .datapond-optional-details > summary, .close
+) { color: var(--dp-text); text-shadow: none; }
+html[data-datapond-theme="dark"] details > summary::before { color: var(--dp-text); }
+html[data-datapond-theme="dark"] details > summary:hover { background: var(--dp-raised); }
+html[data-datapond-theme="dark"] :is(hr, .modal-header, .modal-footer, .nav-tabs) {
+  border-color: var(--dp-box-border);
+}
+html[data-datapond-theme="dark"] .pond-config-guide .config-subsection {
+  border-color: var(--dp-box-border);
+}
+
+html[data-datapond-theme="dark"] :is(
+  .form-control, .selectize-input, .selectize-input.full,
+  .selectize-input.input-active, .selectize-dropdown,
+  .dataTables_wrapper input, .dataTables_wrapper select
+) {
+  background: var(--dp-bg) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-border) !important;
+}
+html[data-datapond-theme="dark"] .selectize-input input { color: var(--dp-text); }
+html[data-datapond-theme="dark"] ::placeholder { color: var(--dp-muted); opacity: 1; }
+html[data-datapond-theme="dark"] :is(.form-control[disabled], .form-control[readonly]) {
+  background: var(--dp-raised) !important;
+  color: var(--dp-muted) !important;
+}
+html[data-datapond-theme="dark"] :is(
+  .selectize-input > .item, .selectize-dropdown .active,
+  .dropdown-menu > li > a:hover, .dropdown-menu > li > a:focus
+) {
+  background: var(--dp-selected) !important;
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] .dropdown-menu > li > a { color: var(--dp-text); }
+html[data-datapond-theme="dark"] .selectize-control.single .selectize-input:after {
+  border-top-color: var(--dp-muted);
+}
+html[data-datapond-theme="dark"] input { accent-color: var(--dp-accent); }
+html[data-datapond-theme="dark"] :focus-visible {
+  outline: 2px solid var(--dp-focus);
+  outline-offset: 2px;
+}
+
+html[data-datapond-theme="dark"] :is(
+  .btn-default, .pagination > li > a, .pagination > li > span,
+  .nav-tabs > li > a, #main_dataset_tabs > li > a[data-value='parties'],
+  #main_dataset_tabs > li > a[data-value='keyword_admin']
+) {
+  background: var(--dp-raised) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-border) !important;
+}
+html[data-datapond-theme="dark"] :is(
+  .btn-default:hover, .btn-default:focus, .btn-default:active,
+  .nav-tabs > li > a:hover, .nav-tabs > li > a:focus,
+  .nav-tabs > li.active > a, .pagination > .active > a,
+  #main_dataset_tabs > li.active > a[data-value='parties'],
+  #main_dataset_tabs > li.active > a[data-value='keyword_admin'],
+  .dataset-guide-step > a:hover, .dataset-guide-step > a:focus
+) {
+  background: var(--dp-selected) !important;
+  color: #ffffff !important;
+  border-color: var(--dp-active-border) !important;
+}
+html[data-datapond-theme="dark"] .nav-tabs > li.active > a,
+html[data-datapond-theme="dark"] .nav-tabs > li.active > a:hover,
+html[data-datapond-theme="dark"] .nav-tabs > li.active > a:focus,
+html[data-datapond-theme="dark"] #main_dataset_tabs > li.active > a[data-value='parties'],
+html[data-datapond-theme="dark"] #main_dataset_tabs > li.active > a[data-value='keyword_admin'] {
+  background: var(--dp-active-tab) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+  box-shadow: inset 0 -2px 0 var(--dp-active-marker);
+}
+html[data-datapond-theme="dark"] :is(.btn-primary, .btn-success) {
+  background: var(--dp-button);
+  border-color: var(--dp-button-border);
+  color: var(--dp-button-text);
+}
+html[data-datapond-theme="dark"] :is(.btn-primary, .btn-success):hover {
+  background: var(--dp-button-hover);
+}
+
+/* Keep warning/success/error states distinct against the dark surfaces. */
+html[data-datapond-theme="dark"] :is(#main_panel, #config_panel) div:is(
+  [style*="background:#E9DFB5" i], [style*="background:#E4D6B8" i]
+) {
+  background: #483e25 !important; color: #f3dda2 !important; border-color: #b59a5d !important;
+}
+html[data-datapond-theme="dark"] :is(#main_panel, #config_panel) div:is(
+  [style*="background:#D1DDC7" i], [style*="background:#A8B49A" i]
+) {
+  background: #304c38 !important; color: #c9e8ce !important; border-color: #87aa91 !important;
+}
+html[data-datapond-theme="dark"] #config_panel .pond-config-guide .config-session-context {
+  background: var(--dp-session-context) !important;
+  color: var(--dp-text) !important;
+  border-color: var(--dp-box-border) !important;
+}
+html[data-datapond-theme="dark"] :is(#main_panel, #config_panel) div[style*="background:#C98F78" i] {
+  background: #512f2b !important; color: #ffd1c7 !important; border-color: #ca968a !important;
+}
+html[data-datapond-theme="dark"] :is(
+  .alert-warning, .datapond-write-lock-status,
+  .dataset-guide-folder-state, .dataset-guide-step.is-important > a
+) {
+  background: #483e25;
+  color: #f3dda2;
+  border-color: #b59a5d;
+}
+html[data-datapond-theme="dark"] :is(.alert-success, .dataset-guide-folder-state.is-created) {
+  background: #304c38; color: #c9e8ce; border-color: #87aa91;
+}
+html[data-datapond-theme="dark"] :is(.alert-danger, .shiny-output-error) {
+  background: #512f2b; color: #ffd1c7; border-color: #ca968a;
+}
+html[data-datapond-theme="dark"] :is(.alert-info, .shiny-notification) {
+  background: #293f49; color: #d0e6ef; border-color: #89a9b7;
+}
+html[data-datapond-theme="dark"] :is(.text-danger, .flow-field-requirement.mandatory) { color: #ffb9ac; }
+html[data-datapond-theme="dark"] :is(.text-warning, .flow-field-requirement.conditional) { color: #eed293; }
+html[data-datapond-theme="dark"] .text-success { color: #b6dbbd; }
+html[data-datapond-theme="dark"] [style*="color:#526657" i] { color: #b6dbbd !important; }
+html[data-datapond-theme="dark"] code { background: var(--dp-raised); color: #f3c9aa; }
+
+/* DT's inline status colours remain intact with dark text for contrast. */
+html[data-datapond-theme="dark"] :is(.dataTables_wrapper, .dataTables_info, .dataTables_length, .dataTables_filter, .dataTables_paginate) {
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] table.dataTable,
+html[data-datapond-theme="dark"] table.dataTable :is(thead, tfoot, tbody tr) {
+  background: var(--dp-surface);
+  color: var(--dp-text);
+}
+html[data-datapond-theme="dark"] :is(.table, table.dataTable) :is(th, td) {
+  border-color: var(--dp-border) !important;
+}
+html[data-datapond-theme="dark"] table.dataTable :is(td, th):not([style*="background"]) {
+  background: transparent;
+}
+html[data-datapond-theme="dark"] table.dataTable :is(tr, td)[style*="background"] {
+  color: #241f19;
+}
+html[data-datapond-theme="dark"] table.dataTable :is(tr, td)[style*="background"] a {
+  color: #244c36;
+}
+html[data-datapond-theme="dark"] table.dataTable tbody tr.selected a { color: #ffffff !important; }
+html[data-datapond-theme="dark"] table.dataTable tbody tr:hover { background: var(--dp-raised); }
+html[data-datapond-theme="dark"] table.dataTable tbody tr.selected > td {
+  background: var(--dp-selected) !important;
+  color: #ffffff !important;
+}
+html[data-datapond-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--dp-selected); border-color: var(--dp-border);
+}
+
+html[data-datapond-theme="dark"] #population_profile .radio-inline > span { color: var(--dp-muted); }
+html[data-datapond-theme="dark"] #population_profile .radio-inline:hover > span {
+  background: var(--dp-raised);
+}
+html[data-datapond-theme="dark"] #population_profile input:checked + span {
+  background: var(--dp-selected); color: var(--dp-text); border-color: var(--dp-active-border);
+}
+html[data-datapond-theme="dark"] :is(.datepicker, .datepicker-dropdown) {
+  background: var(--dp-surface); color: var(--dp-text);
+}
+html[data-datapond-theme="dark"] .datepicker table tr :is(td.day:hover, th:hover) {
+  background: var(--dp-selected);
+}
+html[data-datapond-theme="dark"] :is(.leaflet-popup-content-wrapper, .leaflet-popup-tip, .leaflet-control-layers) {
+  background: var(--dp-surface); color: var(--dp-text);
+}
+html[data-datapond-theme="dark"][data-datapond-palette="bordo"] .dataset-guide-step-number {
+  background: var(--dp-selected);
+  color: var(--dp-button-text);
+}

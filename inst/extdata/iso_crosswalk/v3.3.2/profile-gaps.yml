@@ -1,0 +1,12 @@
+gaps:
+  - id: GAP-018
+    priority: high
+    iso_target: 'ISO 19115-3 XML instance validation'
+    issue: Core metadata, implemented lineage, explicit distribution, public legal constraints precise quality results, raster content, linked GFC catalogues and explicit contacts/citations/structured lineage details and maintenance/status exports now have passing database-to-XML validation fixtures. Unknown catalogue properties and raster content type are visible limitations. Complete crosswalk coverage and remaining specialist section conformance remain incomplete. A core pass is not complete ISO conformance.
+    recommendation: Extend validated coverage through remaining spatial and workflow-derived lineage mappings; resolve nonspatial geographic discovery and date-only metadata creation rules, and add complete vector, raster and nonspatial conformance fixtures with value coverage checks.
+  - id: GAP-019
+    status: resolved-export
+    priority: high
+    iso_target: 'Supplementary resource constraints'
+    issue: Resolved in crosswalk 3.2.5 and the shared distribution/licensing serializer. Supplementary access/use notes are additive and whitespace-equivalent duplicates are removed within the same property. MCO-017 independently handles legacy licence identity. Existing pond records have not been rewritten or audited for semantic contradictions.
+    recommendation: Regression fixtures cover structured licences with extra notes, duplicates, distinct wording and embargo-only rows. Audit real pond notes before any future destructive cleanup; retain potentially conflicting wording for review rather than guessing equivalence.

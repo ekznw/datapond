@@ -1,0 +1,30 @@
+policy: DataPond portable ISO metadata package
+version: 1.1.0
+scope:
+  - Metadata XML and any generated ISO 19110 feature catalogue.
+  - Explicitly cited active supporting documents and process scripts with local relative links.
+  - Validation report including both XML outcomes, selected policy and package checks.
+selection:
+  authoritative: The assembled metadata citations determine package dependencies.
+  external_urls: Retained without fetching or availability checks.
+  data_files: Not included. Distribution links must identify external resources.
+  unselected_documents: Not copied.
+local_files:
+  root: Saved dataset folder inside the selected pond.
+  paths: Portable relative paths without traversal, URI fragments, queries or percent encoding.
+  containment: Canonical paths must resolve inside the dataset folder; escaping symbolic links fail.
+  conflicts: Generated filenames and case-only duplicate filenames are rejected.
+  copy_integrity: MD5 checksums must match the assessed source bytes; checksums are not signatures.
+publication:
+  staging: Complete sibling directory on the destination filesystem.
+  final_validation: Validate the staged XML and generated catalogue pair under the explicitly selected policy, and rerun the mandatory semantic profile.
+  commit: Single directory rename to a fresh UUID-named package; never replace earlier exports.
+  failure: Remove this attempt's staging directory and leave previous packages untouched.
+  app: Download a ZIP assembled from a newly validated package; no files are saved into the pond.
+limitations:
+  - Saved-record snapshot only; unsaved form edits are not exported.
+  - App report is cleared on dataset/pond changes and normal save/refresh events.
+  - Downloads recheck metadata and file dependencies; a previous report does not authorize a stale export.
+  - Semantic checks are required in addition to either XML policy; unavailable checks block publication.
+  - Passing the package policy is not ISO certification or receiving-catalogue acceptance.
+  - No external document content, factual accuracy or digital signatures are verified.

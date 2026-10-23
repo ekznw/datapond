@@ -364,9 +364,9 @@ mod_licensing_ui <- function(id) {
         style = "margin:0;",
 
         paste(
-          "Work through the questions below rather than choosing",
-          "a licence from an unexplained list. Folder placement may",
-          "provide context, but src/, dev/ or arc/ does not by itself",
+          "Work through the questions to guide license selection. ",
+          "Folder placement may provide context, ",
+          "but src/, dev/ or arc/ does not by itself",
           "determine ownership or redistribution rights."
         )
       )
@@ -382,7 +382,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::selectInput(
           ns("rights_basis_code"),
-          "Who controls the sharing rights?",
+          metadata_field_label("Who controls the sharing rights?", "Mandatory", "Required for a complete sharing assessment; draft saving remains available."),
           choices =
             licensing_rights_basis_choices,
           selected = ""
@@ -403,7 +403,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::selectizeInput(
           ns("rights_holder_organisation_id"),
-          "Rights holder organisation",
+          metadata_field_label("Rights holder organisation", "Conditional", "For a complete assessment, use the owning organisation or identify a rights holder here or below."),
           choices = NULL,
           selected = character(),
           multiple = FALSE,
@@ -415,7 +415,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::textInput(
           ns("rights_holder_other"),
-          "Other or unlisted rights holder",
+          metadata_field_label("Other or unlisted rights holder", "Conditional", "Required for a complete assessment when no rights holder organisation is selected."),
           placeholder = paste(
             "Use only when the rights holder is not",
             "available in the organisation register."
@@ -430,7 +430,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::selectInput(
           ns("access_level_code"),
-          "Who may receive the dataset?",
+          metadata_field_label("Who may receive the dataset?", "Mandatory", "Required for a complete sharing assessment; draft saving remains available."),
           choices =
             licensing_access_level_choices,
           selected = ""
@@ -438,7 +438,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::selectInput(
           ns("redistribution_permission_code"),
-          "What may recipients do?",
+          metadata_field_label("What may recipients do?", "Mandatory", "Required for a complete sharing assessment; draft saving remains available."),
           choices =
             licensing_redistribution_choices,
           selected = ""
@@ -462,7 +462,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::selectInput(
           ns("license_template_id"),
-          "Licence or sharing terms",
+          metadata_field_label("Licence or sharing terms", "Mandatory", "Required for a complete sharing assessment; draft saving remains available."),
           choices = character(),
           selected = character(0)
         ),
@@ -483,7 +483,7 @@ mod_licensing_ui <- function(id) {
 
           shiny::textAreaInput(
             ns("permission_reference"),
-            "Licence or permission reference",
+            metadata_field_label("Licence or permission reference", "Conditional", "Required for a complete assessment when sharing relies on an external licence or permission."),
             placeholder = paste(
               "Identify the provider licence, agreement,",
               "memorandum, letter, email or supporting document",
@@ -536,7 +536,7 @@ mod_licensing_ui <- function(id) {
 
           shiny::textAreaInput(
             ns("attribution_text"),
-            "Required acknowledgement or attribution text",
+            metadata_field_label("Required acknowledgement or attribution text", "Conditional", "Required for a complete assessment when attribution is required; the suggested citation can supply it."),
             placeholder = paste(
               "State the exact wording that must accompany",
               "redistribution or reuse."
@@ -567,7 +567,7 @@ mod_licensing_ui <- function(id) {
 
           shiny::textAreaInput(
             ns("sensitivity_reason"),
-            "Sensitivity reason and handling instructions",
+            metadata_field_label("Sensitivity reason and handling instructions", "Conditional", "Required for a complete assessment when sensitivity handling is not None."),
             placeholder = paste(
               "Describe the sensitive content, mitigation,",
               "approved recipients and any handling requirements."
@@ -584,7 +584,7 @@ mod_licensing_ui <- function(id) {
 
         shiny::textAreaInput(
           ns("use_constraints"),
-          "Additional use or redistribution conditions",
+          metadata_field_label("Additional use or redistribution conditions", "Conditional", "Required for a complete assessment with mixed rights; otherwise optional."),
           placeholder = paste(
             "Record conditions not already represented by",
             "the selected licence or access classification."
@@ -1256,6 +1256,20 @@ mod_licensing_server <- function(
           )
         )
 
+        department <- row_value(
+          c(
+            "organisation_department",
+            "department"
+          )
+        )
+
+        address <- row_value(
+          c(
+            "organisation_address",
+            "address"
+          )
+        )
+
         organisation_id <- row_value(
           c(
             "id",
@@ -1299,10 +1313,19 @@ mod_licensing_server <- function(
           )
         }
 
+        if (nzchar(department)) {
+          label <- paste0(label, " \u2014 ", department)
+        }
+
+        if (nzchar(address)) {
+          label <- paste0(label, " \u2014 Address: ", address)
+        }
+
         label
       }
 
       output$dataset_owner_sync_status <- shiny::renderUI({
+        access_require("read")
         candidates <- dataset_owner_candidates()
 
         use_owner <- isTRUE(
@@ -1414,89 +1437,13 @@ mod_licensing_server <- function(
       })
 
       organisation_choices <- shiny::reactive({
-        orgs <- organisations()
-
-        if (
-          is.null(orgs) ||
-          nrow(as.data.frame(orgs)) == 0L
-        ) {
-          return(
-            stats::setNames(
-              character(),
-              character()
-            )
-          )
-        }
-
-        orgs <- as.data.frame(
-          orgs,
-          stringsAsFactors = FALSE
-        )
-
-        full_name <- if (
-          "organisation_name_full" %in%
-            names(orgs)
-        ) {
-          orgs$organisation_name_full
-        } else {
-          rep("", nrow(orgs))
-        }
-
-        short_name <- if (
-          "organisation_name_short" %in%
-            names(orgs)
-        ) {
-          orgs$organisation_name_short
-        } else {
-          rep("", nrow(orgs))
-        }
-
-        code <- if (
-          "organisation_code" %in%
-            names(orgs)
-        ) {
-          orgs$organisation_code
-        } else {
-          rep("", nrow(orgs))
-        }
-
-        full_name[is.na(full_name)] <- ""
-        short_name[is.na(short_name)] <- ""
-        code[is.na(code)] <- ""
-
-        labels <- ifelse(
-          nzchar(trimws(short_name)),
-          short_name,
-          full_name
-        )
-
-        has_code <- nzchar(
-          trimws(code)
-        )
-
-        labels[has_code] <- paste0(
-          labels[has_code],
-          " [",
-          code[has_code],
-          "]"
-        )
-
-        missing_label <- !nzchar(
-          trimws(labels)
-        )
-
-        labels[missing_label] <- paste(
-          "Organisation",
-          orgs$id[missing_label]
-        )
-
-        stats::setNames(
-          as.character(orgs$id),
-          labels
+        organisation_select_choices(
+          organisations()
         )
       })
 
       shiny::observe({
+        access_require("read")
         if (
           isTRUE(
             loading_record()
@@ -1736,6 +1683,7 @@ mod_licensing_server <- function(
       })
 
       shiny::observe({
+        access_require("read")
         choices <-
           organisation_choices()
 
@@ -1762,6 +1710,7 @@ mod_licensing_server <- function(
       })
 
       shiny::observe({
+        access_require("read")
         dt <- filtered_templates()
 
         if (
@@ -1865,6 +1814,7 @@ mod_licensing_server <- function(
       shiny::observeEvent(
         input$license_template_id,
         {
+          access_require("edit", touch = TRUE)
           template <-
             selected_template()
 
@@ -1919,6 +1869,7 @@ mod_licensing_server <- function(
       )
 
       shiny::observe({
+        access_require("read")
         use_citation <- isTRUE(
           input$required_attribution
         ) &&
@@ -1941,6 +1892,7 @@ mod_licensing_server <- function(
       })
 
       output$licensing_citation_preview <- shiny::renderUI({
+        access_require("read")
         citation <- citation_value()
 
         if (!nzchar(citation)) {
@@ -1964,6 +1916,7 @@ mod_licensing_server <- function(
       })
 
       output$recommended_licence <- shiny::renderUI({
+        access_require("read")
         identifier <- licensing_recommended_identifier(
             input$rights_basis_code,
             input$access_level_code
@@ -2020,6 +1973,7 @@ mod_licensing_server <- function(
       })
 
       output$selected_licence_summary <- shiny::renderUI({
+        access_require("read")
         template <- selected_template()
 
         if (
@@ -2753,6 +2707,7 @@ mod_licensing_server <- function(
 
       output$sharing_assessment_summary <-
         shiny::renderUI({
+          access_require("read")
           vals <- values()
 
           if (!isTRUE(
@@ -3584,6 +3539,7 @@ mod_licensing_server <- function(
       shiny::observeEvent(
         input$save_licensing,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "saving the sharing assessment"

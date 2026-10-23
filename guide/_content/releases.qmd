@@ -1,0 +1,116 @@
+## What a frozen version means
+
+A frozen release preserves a verified set of dataset files and saved metadata under `arc/`. Continuing work or restoring an older draft does not overwrite that release. Use **Dataset lifecycle → Frozen releases**.
+
+The current controls implement local freezing, restoration, checkpoints and recovery. They do not yet implement release publication/withdrawal, a remote published-current pointer or a QGIS plugin. Flow catalogue publication is a separate workflow.
+
+## Prepare the dataset for freezing
+
+Save a meaningful version in `major.minor.patch` form (for example `1.0.0`) and a citation. Finish or cancel an active metadata review. Prepare `metadata.pdf` through **Dataset status → Human-readable metadata → Save PDF to dataset folder & download**. Open the PDF, inspect the complete dataset folder, and check what an external recipient will receive.
+
+```{=html}
+<div class="guide-checklist" role="group" aria-label="Release preparation checklist">
+<strong>Before freezing a version</strong>
+<label><input type="checkbox" data-check="release-saved">Metadata, version and citation are saved.</label>
+<label><input type="checkbox" data-check="release-methods">Methods, inputs, outputs and quality limitations are documented.</label>
+<label><input type="checkbox" data-check="release-pdf">I regenerated and opened the current metadata PDF.</label>
+<label><input type="checkbox" data-check="release-files">The folder contains the intended files and no unwanted temporary material.</label>
+<label><input type="checkbox" data-check="release-rights">The intended distribution complies with the recorded rights and approvals.</label>
+<label><input type="checkbox" data-check="release-editors">External editors and QGIS are closed for this operation.</label>
+</div>
+```
+
+These personal ticks do not replace the confirmation or validation in the app. Freezing includes **every file under the dataset root**, including hidden files and old transport ZIPs. Remove unwanted material deliberately before previewing; the app does not guess what to exclude. Leave enough free space for staging, the archive and any preserved draft.
+
+## Freeze and verify
+
+::: {.guide-process role="region" aria-label="Prepare, preview and freeze a version" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Both freeze choices preserve a verified release; they differ in what happens to the working folder."
+flowchart TD
+  accTitle: Prepare, preview and freeze a version
+  accDescr: Save metadata, version and citation, finish or cancel any review, then prepare and inspect the PDF and folder. Preview the saved dataset. Resolve failed checks and repeat preparation when needed. When checks pass, confirm the review and add release notes. Freeze while keeping the working copy, or freeze and close development. Select and verify the resulting release.
+  save["Save metadata, version and citation;<br/>finish or cancel any active review"] --> prepare["Prepare and inspect PDF and folder"]
+  prepare --> preview["Preview saved dataset"]
+  preview --> checks{"Preview checks pass?"}
+  checks -->|No| fix["Resolve reported issues"]
+  fix --> prepare
+  checks -->|Yes| confirm["Confirm PDF and folder review;<br/>enter release notes"]
+  confirm --> keep["Freeze version;<br/>keep working copy"]
+  confirm --> close["Freeze version and<br/>close development"]
+  keep --> verify["Select and verify the new release"]
+  close --> verify
+```
+
+:::
+
+1. Choose **Preview saved dataset**. Review the file list and checks. Unsafe paths, symbolic links, case-colliding names or stale/changed prepared documents stop the operation.
+2. Confirm in the app that you opened the PDF and reviewed the previewed folder, and enter release notes.
+3. Choose **Freeze version; keep working copy** to continue developing, or **Freeze version and close development** to retire the working folder after verification.
+4. Select the new release and verify it. A frozen version cannot be overwritten; save a different version before making the next release.
+
+Choose an ISO validation policy only when that release requires an ISO package. A requested ISO export failure stops the freeze. For an already frozen matching draft, **Close development using selected release** avoids making another release and checks that its metadata and files still match.
+
+## Distribute the release
+
+```text
+arc/releases/<release-id>/
+  dataset.zip
+  release.json
+  files.json
+  checksums.sha256
+```
+
+Keep the three sidecars with the ZIP when distributing outside DataPond. The app's ZIP download currently downloads the ZIP alone; collect the sidecars from the release folder as well.
+
+The ZIP preserves the dataset in `dataset/`, plus public metadata, `metadata.pdf`, its QMD source and portable theme, `citation.txt`, `README.txt` and a licence summary. Root QMD/Rmd development documents are acknowledged and preserved without execution. Read the recorded rights before sending the files: a successful freeze is not a distribution approval.
+
+Private metadata snapshots remain inside `.metadata_pond/`. Back them up with the catalogue and archive; the public ZIP alone is not all the state needed for in-app restoration. Checksums detect changed files but do not prevent someone modifying them outside the app.
+
+## Restore an older release or roll back a draft
+
+**Restore selected release as draft** restores its saved files and metadata into a new `dev/` folder. The dataset UUID and catalogue ID stay the same, and the frozen release remains unchanged. If a working draft exists, the app first preserves it as a verified private checkpoint.
+
+**Roll back to selected working-draft checkpoint** restores that prior draft and checkpoints the draft it replaces. Check the restored state, make your changes, then save a new version before freezing again. Releases and checkpoints do not expire automatically in this version.
+
+::: {.guide-process role="region" aria-label="Restore a frozen release as a working draft" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Restore changes the working draft while preserving the selected frozen release and the dataset's identity."
+flowchart TD
+  accTitle: Restore a frozen release as a working draft
+  accDescr: Select a frozen release and request restoration as a draft. If checks pass and a working draft exists, preserve it as a verified private checkpoint first. Restore the release files and metadata to a new development folder, inspect the restored draft, and save a new version before freezing again. The original frozen release and dataset UUID remain unchanged.
+  select["Select a frozen release;<br/>Restore selected release as draft"] --> checks{"Restore checks pass?"}
+  checks -->|No| resolve["Resolve reported differences<br/>with the curator, then retry"]
+  resolve --> select
+  checks -->|Yes| existing{"Working draft exists?"}
+  existing -->|Yes| checkpoint["Preserve it as a verified<br/>private checkpoint"]
+  existing -->|No| restore["Restore files and metadata<br/>into a new dev/ folder"]
+  checkpoint --> restore
+  restore --> inspect["Check and edit the restored draft;<br/>save a new version before freezing"]
+```
+
+:::
+
+Restoration can stop when shared people, organisation, licence or vocabulary references have changed. Resolve the reported differences with the curator; do not overwrite shared definitions merely to force the restore.
+
+## Recover an interrupted operation
+
+Use **Recover interrupted lifecycle operation** after an interruption. The app checks its operation journal and preserved files before completing or reconciling the operation. It refuses to interrupt a live process or a lock from another computer. Do not delete locks or staging folders to bypass a refusal; retain the error and ask the maintainer to inspect it.
+
+## Use one extracted consumer cache
+
+The current R helper can cache a release from a **local pond**. It stages the ZIP, verifies it, extracts and verifies the files, then exposes a stable folder named for that release. The transport ZIP is removed by default; `keep_zip = TRUE` deliberately retains it.
+
+```r
+# Replace these values with an existing local pond, release ID and cache folder.
+pond <- "/path/to/pond"
+release_id <- "existing-release-id"
+cache_root <- "/path/to/consumer-cache"
+cached <- datapond::cache_dataset_release(release_id, pond, cache = cache_root)
+datapond::verify_cached_dataset_release(cached)
+file.path(cached, "release", "dataset", "data")
+```
+
+Open the required files under that last path in QGIS manually. Treat cached files as read-only, and copy them to a working dataset before editing. Keeping each release at its own path lets a project refer to a particular version. Remote Flow downloads, automatic cache eviction/project pinning and the QGIS plugin are future work.

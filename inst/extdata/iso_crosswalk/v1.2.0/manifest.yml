@@ -1,0 +1,114 @@
+crosswalk:
+  name: DataPond database-to-ISO metadata crosswalk
+  version: 1.2.0
+  status: implementation-candidate
+  released: 2026-09-04
+  supersedes: 1.1.0
+  current_pointer: ../CURRENT
+
+source_model:
+  package: datapond
+  package_version: 1.2.0.0000
+  git_revision_observed: e72e761
+  database_definition: R/db.R
+  database_definition_sha256: 07e9ca6b957cd522dbb1f04334051d4d6222d40bd857823bd0c3fe5f9e606502
+  dynamic_schema: inst/extdata/metadata_schema.xlsx
+  dynamic_schema_sha256: a257d02a3c626bd04a079b5d2cfd88c28db7b217c493253924b455e56e8c7c15
+  extraction_note: >-
+    Table columns were extracted after init_db() migrations. Active entry_tbl
+    fields from metadata_schema.xlsx are part of the effective model because
+    save_entry_dynamic() adds them on first save.
+
+target_profile:
+  conceptual_standard: ISO 19115-1:2014
+  amendments:
+    - ISO 19115-1:2014/Amd 1:2018
+    - ISO 19115-1:2014/Amd 2:2020
+  xml_implementation: ISO 19115-3:2023
+  implementation_schema_package: 1.3.0
+  data_quality_standard: ISO 19157-1:2023
+  feature_catalogue_standard: ISO 19110:2016
+  resource_scope: dataset
+  output_character_encoding: UTF-8
+  default_locale_language: eng
+
+source_precedence:
+  - Structured relationship and specialist tables override legacy entry_tbl text fields.
+  - dataset_spatial_summary_tbl is authoritative for the WGS84 geographic extent.
+  - data_file_spatial_metadata_tbl is authoritative for native CRS and representation details.
+  - dataset_license_tbl is authoritative for constraints and licence information.
+  - dataset_lineage_tbl is authoritative for the overall lineage statement and workflow state.
+  - dataset_lineage_source_tbl and dataset_lineage_process_step_tbl are authoritative for detailed lineage.
+  - supporting_document_tbl supplies citations only when its inclusion flags permit export.
+  - dataset_topic_category_tbl supplies controlled ISO discovery categories; keyword fields are never inferred as topic categories.
+  - dataset_citation_date_tbl is authoritative for typed resource citation dates; entry_tbl.citation_date remains the primary-publication compatibility field.
+  - metadata_responsibility_tbl is authoritative for metadata-record responsibilities; review history is not metadata authorship.
+  - Legacy entry_tbl fields are fallbacks only where crosswalk.yml says so explicitly.
+
+source_policy:
+  precedence: explicit-mapping-overrides-table-default
+  table_defaults:
+    app_config_tbl: application-only
+    authority_tbl: relationship
+    data_file_scan_tbl: application-only
+    data_file_spatial_metadata_tbl: profile-extension
+    data_file_tbl: profile-extension
+    data_pond_tbl: application-only
+    data_profile_run_tbl: application-only
+    dataset_attribute_tbl: profile-extension
+    dataset_import_tbl: application-only
+    dataset_license_tbl: profile-extension
+    dataset_lineage_tbl: profile-extension
+    dataset_lineage_source_tbl: profile-extension
+    dataset_lineage_process_step_tbl: profile-extension
+    dataset_lineage_step_source_tbl: relationship
+    dataset_manual_spatial_extent_tbl: profile-extension
+    dataset_organisation_tbl: relationship
+    dataset_spatial_summary_tbl: application-derived
+    dataset_topic_category_tbl: profile-extension
+    dataset_citation_date_tbl: profile-extension
+    entry_tbl: application-only
+    keyword_vocab_tbl: application-only
+    license_template_tbl: application-only
+    metadata_review_tbl: application-audit
+    metadata_responsibility_tbl: relationship
+    organisation_tbl: relationship
+    persons_tbl: relationship
+    poc_tbl: relationship
+    supporting_document_tbl: profile-extension
+    user_tbl: application-only
+  always_application_only_patterns:
+    - '(^|\.)id$'
+    - '\.dataset_id$'
+    - '\.data_pond_id$'
+    - '\.(created|updated|hidden|deleted|reviewed|classified|extracted|generated)_by_(user|person)_id$'
+    - '\.(created|updated|hidden|deleted|reviewed|classified|extracted|generated)_at$'
+  rule: >-
+    A source column not named by an explicit mapping inherits its table default.
+    Application-only and audit values are never serialized into ISO metadata.
+
+mapping_contract:
+  required_keys:
+    - id
+    - source
+    - mapping
+    - target
+    - status
+  allowed_mapping_types:
+    - direct
+    - transform
+    - join
+    - constant
+    - extension
+  allowed_statuses:
+    - ready
+    - conditional
+    - deprecated-fallback
+    - extension
+    - gap
+  null_rule: Empty strings and database NULL values are omitted unless an ISO nilReason rule is explicitly defined.
+  repeat_rule: Repeating related rows create repeating ISO properties; values are not concatenated unless a mapping explicitly says so.
+
+artifacts:
+  mappings: crosswalk.yml
+  profile_gaps: profile-gaps.yml

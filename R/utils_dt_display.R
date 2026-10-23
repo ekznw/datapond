@@ -4,6 +4,15 @@
 
 friendly_field_labels <- function() {
   c(
+    keyword_group = "Keyword group",
+    field_code = "Keyword group",
+    option_value = "Stored value",
+    option_label = "Keyword label",
+    approval_status = "Review status",
+    dataset_count = "Datasets using term",
+    previous_label = "Previous label",
+    previous_order = "Previous order",
+    sort_order = "Suggestion order",
     selected = "Selected",
     id = "ID",
     dataset_id = "Dataset ID",
@@ -48,6 +57,14 @@ friendly_field_labels <- function() {
 
     created_at = "Created",
     updated_at = "Updated",
+    lineage_source_mode = "Lineage authority",
+    lineage_status = "Lineage status",
+    lineage_statement = "Lineage summary",
+    document_rel_path = "Document path",
+    document_extension = "File type",
+    document_type_label = "Document type",
+    document_type_auto_text = "Detected document type",
+
 
     review_timestamp = "Review date and time",
     review_date = "Review date",

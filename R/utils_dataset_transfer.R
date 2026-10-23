@@ -1,7 +1,8 @@
 # Portable dataset bundles ----
 
 dataset_transfer_format_version <- function() {
-  1L
+  # Version 5 adds metadata review requests/returns and continuous import history.
+  5L
 }
 
 
@@ -105,10 +106,13 @@ collect_dataset_transfer_payload <- function(
   dataset_id,
   base_path,
   exporting_user_id = NULL,
-  bundle_id = new_uuid()
+  bundle_id = new_uuid(),
+  conn = NULL
 ) {
-  conn <- get_conn(base_path)
-  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  if (is.null(conn)) {
+    conn <- get_conn(base_path)
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  }
 
   entry <- DBI::dbGetQuery(
     conn,
@@ -120,22 +124,29 @@ collect_dataset_transfer_payload <- function(
     stop("The selected dataset record could not be found.", call. = FALSE)
   }
 
-  dataset_tables <- DBI::dbListTables(conn)
+  # Compatibility views (for example temporal coverage) are derived and must
+  # not be copied as mutable dataset tables.
+  dataset_tables <- DBI::dbGetQuery(
+    conn, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+  )$name
   dataset_tables <- dataset_tables[vapply(
     dataset_tables,
     function(table) "dataset_id" %in% DBI::dbListFields(conn, table),
     logical(1)
   )]
-  dataset_tables <- setdiff(dataset_tables, "dataset_import_tbl")
+  dataset_tables <- setdiff(dataset_tables, c("dataset_review_exchange_tbl", release_control_tables()))
 
   scoped <- stats::setNames(
     lapply(dataset_tables, transfer_table_rows, conn = conn, dataset_id = dataset_id),
     dataset_tables
   )
 
-  identity_tables <- c(list(entry), scoped)
+  identity_tables <- c(list(entry), scoped[setdiff(names(scoped), "dataset_import_tbl")])
+  thesauri <- if (DBI::dbExistsTable(conn, "keyword_thesaurus_tbl")) {
+    DBI::dbReadTable(conn, "keyword_thesaurus_tbl")
+  } else data.frame()
   person_ids <- transfer_ids_from_columns(
-    identity_tables,
+    c(identity_tables, list(thesauri)),
     pattern = "person_id$",
     exact = "reviewer_id"
   )
@@ -145,7 +156,8 @@ collect_dataset_transfer_payload <- function(
   )
   user_ids <- unique(c(
     user_ids,
-    transfer_scalar_integer(exporting_user_id)
+    transfer_scalar_integer(exporting_user_id),
+    suppressWarnings(as.integer(scoped$dataset_import_tbl$imported_by_user_id))
   ))
   user_ids <- user_ids[!is.na(user_ids)]
 
@@ -155,7 +167,7 @@ collect_dataset_transfer_payload <- function(
   people <- transfer_reference_rows(conn, "persons_tbl", person_ids)
 
   organisation_ids <- transfer_ids_from_columns(
-    identity_tables,
+    c(identity_tables, list(thesauri)),
     pattern = "organisation_id$"
   )
   organisation_ids <- unique(c(
@@ -168,6 +180,21 @@ collect_dataset_transfer_payload <- function(
     "organisation_tbl",
     organisation_ids
   )
+  # Include all ancestors needed to reconstruct the organisational hierarchy.
+  repeat {
+    parent_ids <- suppressWarnings(as.integer(organisations$parent_organisation_id))
+    parent_ids <- unique(parent_ids[!is.na(parent_ids) & !parent_ids %in% organisations$id])
+    if (!length(parent_ids)) break
+    organisations <- rbind(organisations, transfer_reference_rows(conn, "organisation_tbl", parent_ids))
+  }
+  party_addresses <- if (DBI::dbExistsTable(conn, "party_address_tbl")) {
+    addresses <- DBI::dbReadTable(conn, "party_address_tbl")
+    addresses[
+      (!is.na(addresses$person_id) & addresses$person_id %in% people$id) |
+        (!is.na(addresses$organisation_id) & addresses$organisation_id %in% organisations$id),
+      , drop = FALSE
+    ]
+  } else data.frame()
 
   template_ids <- transfer_ids_from_columns(
     identity_tables,
@@ -247,7 +274,9 @@ collect_dataset_transfer_payload <- function(
     organisation_tbl = organisations,
     persons_tbl = people,
     user_tbl = users,
-    license_template_tbl = license_templates
+    license_template_tbl = license_templates,
+    party_address_tbl = party_addresses,
+    keyword_thesaurus_tbl = thesauri
   )
 }
 
@@ -270,7 +299,9 @@ write_dataset_transfer_database <- function(payload, path) {
     "organisation_tbl",
     "persons_tbl",
     "user_tbl",
-    "license_template_tbl"
+    "license_template_tbl",
+    "party_address_tbl",
+    "keyword_thesaurus_tbl"
   )) {
     rows <- payload[[table]]
     if (!is.null(rows) && nrow(rows) > 0L) {
@@ -287,6 +318,13 @@ create_dataset_transfer_bundle <- function(
   base_path,
   exporting_user_id = NULL
 ) {
+  compression_level <- getOption("datapond.bundle_compression_level", 6L)
+  if (!is.numeric(compression_level) || length(compression_level) != 1L ||
+      is.na(compression_level) || !is.finite(compression_level) ||
+      compression_level < 0L || compression_level > 9L ||
+      compression_level != as.integer(compression_level)) {
+    stop("datapond.bundle_compression_level must be an integer from 0 to 9.", call. = FALSE)
+  }
   payload <- collect_dataset_transfer_payload(
     dataset_id = dataset_id,
     base_path = base_path,
@@ -351,7 +389,7 @@ create_dataset_transfer_bundle <- function(
   suppressWarnings(utils::zip(
     zipfile = temp_archive,
     files = archive_files,
-    flags = "-r9X"
+    flags = paste0("-r", as.integer(compression_level), "X")
   ))
 
   if (!file.exists(temp_archive) || file.info(temp_archive)$size <= 0) {
@@ -498,6 +536,9 @@ transfer_import_organisation <- function(conn, row) {
   if (nrow(existing) > 0L) {
     return(as.integer(existing$id[1]))
   }
+  # Parent identifiers are source-database keys. They are restored after all
+  # organisations have been matched or inserted and the complete map exists.
+  if ("parent_organisation_id" %in% names(row)) row$parent_organisation_id <- NA_integer_
   transfer_insert_row(conn, "organisation_tbl", row)
 }
 
@@ -623,7 +664,8 @@ transfer_import_scoped_table <- function(
   organisation_map,
   user_map,
   file_map,
-  scan_map
+  scan_map,
+  reference_maps = list()
 ) {
   if (is.null(rows) || nrow(rows) == 0L || !DBI::dbExistsTable(conn, table)) {
     return(integer())
@@ -649,6 +691,9 @@ transfer_import_scoped_table <- function(
     if ("latest_scan_id" %in% names(row)) {
       row$latest_scan_id <- transfer_remap_id(row$latest_scan_id, scan_map)
     }
+    for (field in intersect(names(reference_maps), names(row))) {
+      row[[field]] <- transfer_remap_id(row[[field]], reference_maps[[field]])
+    }
     row <- transfer_rewrite_row_paths(row, source_path, target_path)
     new_id <- transfer_insert_row(conn, table, row)
     if (!is.na(source_id)) id_map[as.character(source_id)] <- new_id
@@ -660,14 +705,14 @@ transfer_import_scoped_table <- function(
 import_dataset_transfer_bundle <- function(
   path,
   base_path,
-  importing_user_id
+  importing_user_id,
+  .review = NULL
 ) {
   importing_user_id <- transfer_scalar_integer(importing_user_id)
   if (is.na(importing_user_id)) {
     stop("Select an active user before importing a dataset.", call. = FALSE)
   }
 
-  init_db(base_path)
   archive <- dataset_transfer_archive_index(path)
   extract_dir <- tempfile("datapond-bundle-import-")
   dir.create(extract_dir)
@@ -701,6 +746,16 @@ import_dataset_transfer_bundle <- function(
     stop("This bundle was created by a newer, unsupported Data Pond format.", call. = FALSE)
   }
 
+  kind <- transfer_scalar_text(manifest$review_kind, "transfer")
+  if (kind == "return" && is.null(.review))
+    stop("Use Review returned bundle to inspect and accept this return.", call. = FALSE)
+  if (kind == "request" && !is.null(.review)) stop("This is a request, not a return.")
+  if (!kind %in% c("transfer", "request", "return")) stop("Unknown review bundle purpose.")
+  if (kind %in% c("request", "return")) {
+    if (version != 5L) stop("Review exchange requires bundle format 5.")
+    review_check_archive(archive)
+  }
+
   entry <- DBI::dbReadTable(source_conn, "entry_tbl")
   if (nrow(entry) != 1L) {
     stop("The bundle must contain one dataset database record.", call. = FALSE)
@@ -718,20 +773,43 @@ import_dataset_transfer_bundle <- function(
   people <- read_optional("persons_tbl")
   users <- read_optional("user_tbl")
   license_templates <- read_optional("license_template_tbl")
+  party_addresses <- read_optional("party_address_tbl")
+  thesauri <- read_optional("keyword_thesaurus_tbl")
   scoped_names <- setdiff(
     bundle_tables,
     c(
-      "bundle_manifest_tbl", "entry_tbl", "organisation_tbl",
-      "persons_tbl", "user_tbl", "license_template_tbl"
+      release_control_tables(), "bundle_manifest_tbl", "entry_tbl", "organisation_tbl",
+      "persons_tbl", "user_tbl", "license_template_tbl",
+      "party_address_tbl", "keyword_thesaurus_tbl"
     )
   )
   scoped <- stats::setNames(lapply(scoped_names, read_optional), scoped_names)
+  entry_schema <- DBI::dbGetQuery(source_conn, "PRAGMA table_info(entry_tbl)")
   DBI::dbDisconnect(source_conn)
   source_conn <- NULL
 
+  if (is.null(.review)) init_db(base_path)
   target_conn <- get_conn(base_path)
   on.exit(DBI::dbDisconnect(target_conn), add = TRUE)
   ensure_dataset_import_table(target_conn)
+  # Entry fields are added lazily by the metadata forms. A fresh target pond
+  # may never have opened those forms; intersecting its columns with the bundle
+  # would silently discard purpose, citation, rights and custom schema fields.
+  # Quote identifiers from the bundle and restrict declarations to SQLite types.
+  missing_entry_fields <- setdiff(names(entry), DBI::dbListFields(target_conn, "entry_tbl"))
+  if (is.null(.review)) for (field in missing_entry_fields) {
+    source_type <- toupper(entry_schema$type[match(field, entry_schema$name)])
+    column_type <- if (source_type %in% c("INTEGER", "REAL", "TEXT", "BLOB", "NUMERIC")) {
+      source_type
+    } else {
+      "TEXT"
+    }
+    DBI::dbExecute(target_conn, paste(
+      "ALTER TABLE entry_tbl ADD COLUMN",
+      DBI::dbQuoteIdentifier(target_conn, field),
+      column_type
+    ))
+  }
   target_pond_id <- ensure_data_pond_id(base_path, conn = target_conn)
   importing_user <- DBI::dbGetQuery(
     target_conn,
@@ -747,7 +825,7 @@ import_dataset_transfer_bundle <- function(
     "SELECT id FROM entry_tbl WHERE uuid = ? LIMIT 1",
     params = list(source_uuid)
   )
-  if (nrow(existing_uuid) > 0L) {
+  if (nrow(existing_uuid) > 0L && is.null(.review)) {
     stop(
       "A dataset with UUID ", source_uuid,
       " already exists in this pond; the bundle was not imported.",
@@ -763,6 +841,13 @@ import_dataset_transfer_bundle <- function(
     stop("This exact bundle has already been imported.", call. = FALSE)
   }
 
+  if (!is.null(.review)) {
+    if (nrow(existing_uuid) != 1L || existing_uuid$id[1] != .review$dataset_id)
+      stop("The return does not match the master dataset.")
+    master_entry <- DBI::dbGetQuery(target_conn, "SELECT * FROM entry_tbl WHERE id = ?",
+      params = list(.review$dataset_id))
+    target_dataset_path <- master_entry$dataset_path[1]
+  } else {
   source_parent <- transfer_scalar_text(manifest$source_parent_dir, "dev")
   if (!source_parent %in% c("src", "dev", "arc")) source_parent <- "dev"
   relative_parent <- transfer_scalar_text(
@@ -825,15 +910,39 @@ import_dataset_transfer_bundle <- function(
     data_pond_id = target_pond_id
   )
 
+  }
+
   source_record_path <- transfer_scalar_text(manifest$source_dataset_path)
+  import_scoped <- function(conn, table, ...) {
+    if (!is.null(.review) && table %in% names(.review$protected_maps)) return(.review$protected_maps[[table]])
+    transfer_import_scoped_table(conn, table, ...)
+  }
   result <- DBI::dbWithTransaction(target_conn, {
+    if (!is.null(.review)) {
+      review_begin_accept(target_conn, .review, base_path)
+      for (field in missing_entry_fields) {
+        type <- toupper(entry_schema$type[match(field, entry_schema$name)])
+        if (!type %in% c("INTEGER", "REAL", "TEXT", "BLOB", "NUMERIC")) type <- "TEXT"
+        DBI::dbExecute(target_conn, paste("ALTER TABLE entry_tbl ADD COLUMN", DBI::dbQuoteIdentifier(target_conn, field), type))
+      }
+    }
+
     organisation_map <- integer()
+    existing_organisation_ids <- if (!is.null(.review)) DBI::dbGetQuery(target_conn, "SELECT id FROM organisation_tbl")$id else integer()
     if (nrow(organisations) > 0L) {
       for (i in seq_len(nrow(organisations))) {
         source_id <- as.integer(organisations$id[i])
         organisation_map[as.character(source_id)] <-
           transfer_import_organisation(target_conn, organisations[i, , drop = FALSE])
       }
+      if ("parent_organisation_id" %in% names(organisations)) for (i in seq_len(nrow(organisations))) {
+          if (!is.null(.review) && organisation_map[as.character(organisations$id[i])] %in% existing_organisation_ids) next
+          parent_id <- transfer_remap_id(organisations$parent_organisation_id[i], organisation_map)
+          if (!is.na(parent_id)) DBI::dbExecute(
+            target_conn, "UPDATE organisation_tbl SET parent_organisation_id = ? WHERE id = ?",
+            params = list(parent_id, organisation_map[as.character(organisations$id[i])])
+          )
+        }
     }
 
     person_map <- integer()
@@ -858,6 +967,30 @@ import_dataset_transfer_bundle <- function(
           person_map
         )
       }
+    }
+
+    if (is.null(.review) && nrow(party_addresses) > 0L) for (i in seq_len(nrow(party_addresses))) {
+      address <- party_addresses[i, , drop = FALSE]
+      address$person_id <- transfer_remap_id(address$person_id, person_map)
+      address$organisation_id <- transfer_remap_id(address$organisation_id, organisation_map)
+      if (!is.na(address$person_id) || !is.na(address$organisation_id)) {
+        transfer_insert_row(target_conn, "party_address_tbl", address)
+      }
+    }
+    if (is.null(.review) && nrow(thesauri) > 0L) for (i in seq_len(nrow(thesauri))) {
+      thesaurus <- thesauri[i, , drop = FALSE]
+      thesaurus$field_code <- canonical_keyword_field_code(thesaurus$field_code)
+      thesaurus$responsible_person_id <- transfer_remap_id(thesaurus$responsible_person_id, person_map)
+      thesaurus$responsible_organisation_id <- transfer_remap_id(thesaurus$responsible_organisation_id, organisation_map)
+      existing_thesaurus <- DBI::dbGetQuery(target_conn,
+        "SELECT id FROM keyword_thesaurus_tbl WHERE field_code = ? COLLATE NOCASE",
+        params = list(thesaurus$field_code[1]))
+      target_thesaurus_id <- if (!nrow(existing_thesaurus)) {
+        transfer_insert_row(target_conn, "keyword_thesaurus_tbl", thesaurus)
+      } else as.integer(existing_thesaurus$id[1])
+      DBI::dbExecute(target_conn,
+        "UPDATE keyword_vocab_tbl SET thesaurus_id = ? WHERE field_code = ? COLLATE NOCASE",
+        params = list(target_thesaurus_id, thesaurus$field_code[1]))
     }
 
     license_template_map <- integer()
@@ -894,6 +1027,11 @@ import_dataset_transfer_bundle <- function(
       names(entry_row)[grepl("user_id$", names(entry_row))],
       user_map
     )
+    entry_row <- transfer_map_columns(
+      entry_row,
+      names(entry_row)[grepl("organisation_id$", names(entry_row))],
+      organisation_map
+    )
     entry_row <- transfer_rewrite_row_paths(
       entry_row,
       source_record_path,
@@ -908,31 +1046,75 @@ import_dataset_transfer_bundle <- function(
     entry_row$data_pond_id <- target_pond_id
     entry_row$created_by_user_id <- importing_user_id
     if ("source_dataset_id" %in% names(entry_row)) entry_row$source_dataset_id <- NA_integer_
-    new_dataset_id <- transfer_insert_row(target_conn, "entry_tbl", entry_row)
+    if (is.null(.review)) {
+      new_dataset_id <- transfer_insert_row(target_conn, "entry_tbl", entry_row)
+    } else {
+      new_dataset_id <- .review$dataset_id
+      review_update_entry(target_conn, entry_row, master_entry)
+    }
 
-    scan_map <- transfer_import_scoped_table(
+    scan_map <- import_scoped(
       target_conn, "data_file_scan_tbl", scoped[["data_file_scan_tbl"]],
       new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
       person_map, organisation_map, user_map, integer(), integer()
     )
-    file_map <- transfer_import_scoped_table(
+    file_map <- import_scoped(
       target_conn, "data_file_tbl", scoped[["data_file_tbl"]],
       new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
       person_map, organisation_map, user_map, integer(), scan_map
     )
+    attribute_map <- import_scoped(
+      target_conn, "dataset_attribute_tbl", scoped[["dataset_attribute_tbl"]],
+      new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
+      person_map, organisation_map, user_map, file_map, scan_map
+    )
 
-    imported_first <- c("data_file_scan_tbl", "data_file_tbl")
-    remaining <- setdiff(names(scoped), imported_first)
+    supporting_document_map <- import_scoped(
+      target_conn, "supporting_document_tbl", scoped[["supporting_document_tbl"]],
+      new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
+      person_map, organisation_map, user_map, file_map, scan_map
+    )
+    lineage_source_map <- import_scoped(
+      target_conn, "dataset_lineage_source_tbl", scoped[["dataset_lineage_source_tbl"]],
+      new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
+      person_map, organisation_map, user_map, file_map, scan_map,
+      reference_maps = list(supporting_document_id = supporting_document_map)
+    )
+    lineage_step_map <- import_scoped(
+      target_conn, "dataset_lineage_process_step_tbl",
+      scoped[["dataset_lineage_process_step_tbl"]],
+      new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
+      person_map, organisation_map, user_map, file_map, scan_map
+    )
+    import_scoped(
+      target_conn, "dataset_lineage_step_source_tbl",
+      scoped[["dataset_lineage_step_source_tbl"]],
+      new_dataset_id, target_pond_id, source_record_path, entry_row$dataset_path,
+      person_map, organisation_map, user_map, file_map, scan_map,
+      reference_maps = list(
+        process_step_id = lineage_step_map,
+        source_id = lineage_source_map
+      )
+    )
+
+    imported_first <- c(
+      "data_file_scan_tbl", "data_file_tbl", "supporting_document_tbl",
+      "dataset_lineage_source_tbl", "dataset_lineage_process_step_tbl",
+      "dataset_lineage_step_source_tbl", "dataset_attribute_tbl"
+    )
+    remaining <- setdiff(names(scoped), c(imported_first, "dataset_import_tbl", "dataset_review_exchange_tbl"))
     preferred <- c(
       "authority_tbl", "dataset_organisation_tbl", "poc_tbl",
       "dataset_license_tbl", "dataset_lineage_tbl", "metadata_review_tbl",
-      "supporting_document_tbl", "dataset_attribute_tbl", "data_profile_run_tbl",
+      "data_profile_run_tbl",
       "data_file_spatial_metadata_tbl", "dataset_manual_spatial_extent_tbl",
       "dataset_spatial_summary_tbl"
     )
     remaining <- c(intersect(preferred, remaining), setdiff(remaining, preferred))
     for (table in remaining) {
       table_rows <- scoped[[table]]
+      if (!is.null(.review) && table == "metadata_review_tbl")
+        table_rows <- review_new_history(table_rows, .review$baseline$scoped$metadata_review_tbl)
       if ("license_template_id" %in% names(table_rows)) {
         table_rows$license_template_id <- vapply(
           table_rows$license_template_id,
@@ -941,12 +1123,24 @@ import_dataset_transfer_bundle <- function(
           map = license_template_map
         )
       }
-      transfer_import_scoped_table(
+      reference_maps <- if (identical(table, "dataset_quality_result_tbl")) {
+        list(attribute_id = attribute_map)
+      } else {
+        list()
+      }
+      import_scoped(
         target_conn, table, table_rows, new_dataset_id, target_pond_id,
         source_record_path, entry_row$dataset_path, person_map,
-        organisation_map, user_map, file_map, scan_map
+        organisation_map, user_map, file_map, scan_map,
+        reference_maps = reference_maps
       )
     }
+
+    # Upgrade old bundles only after every structured child row has arrived.
+    # Migrated bundles carry their row markers and are not backfilled again.
+    if (is.null(.review)) apply_legacy_patch_v1(target_conn)
+
+    review_import_history(target_conn, scoped[["dataset_import_tbl"]], new_dataset_id, user_map)
 
     DBI::dbExecute(
       target_conn,
@@ -976,6 +1170,12 @@ import_dataset_transfer_bundle <- function(
         importing_user_id
       )
     )
+
+    if (!is.null(.review)) {
+      review_finish_accept(target_conn, .review, importing_user_id, manifest)
+    } else if (kind == "request") {
+      review_receive_request(target_conn, manifest, new_dataset_id)
+    }
 
     list(
       dataset_id = new_dataset_id,

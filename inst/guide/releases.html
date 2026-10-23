@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Freeze, restore and use releases – DataPond guide</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-29452ab6f4fcb164c43f1a3ab0a1f1e9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    <img src="./assets/datapond-logo.png" alt="" class="navbar-logo light-content">
+    <img src="./assets/datapond-logo.png" alt="" class="navbar-logo dark-content">
+    </a>
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">DataPond guide</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./index.html" aria-current="page"> 
+<span class="menu-text">Start here</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./install.html"> 
+<span class="menu-text">Install</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./offline.html"> 
+<span class="menu-text">Offline edition</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./dataset.html">Working with datasets</a></li><li class="breadcrumb-item"><a href="./releases.html">Freeze, restore and use releases</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Start here</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Getting started</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./install.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install DataPond</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./document-tools.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up document tools</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./first-pond.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Your first pond</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Working with datasets</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Describe a dataset</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./lineage.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lineage and development reports</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./review.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transfer and metadata review</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./releases.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Freeze, restore and use releases</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Help and maintenance</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./access-management.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Manage accounts and deployment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./troubleshooting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Troubleshooting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./maintaining.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Edit and maintain this guide</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#what-a-frozen-version-means" id="toc-what-a-frozen-version-means" class="nav-link active" data-scroll-target="#what-a-frozen-version-means">What a frozen version means</a></li>
+  <li><a href="#prepare-the-dataset-for-freezing" id="toc-prepare-the-dataset-for-freezing" class="nav-link" data-scroll-target="#prepare-the-dataset-for-freezing">Prepare the dataset for freezing</a></li>
+  <li><a href="#freeze-and-verify" id="toc-freeze-and-verify" class="nav-link" data-scroll-target="#freeze-and-verify">Freeze and verify</a></li>
+  <li><a href="#distribute-the-release" id="toc-distribute-the-release" class="nav-link" data-scroll-target="#distribute-the-release">Distribute the release</a></li>
+  <li><a href="#restore-an-older-release-or-roll-back-a-draft" id="toc-restore-an-older-release-or-roll-back-a-draft" class="nav-link" data-scroll-target="#restore-an-older-release-or-roll-back-a-draft">Restore an older release or roll back a draft</a></li>
+  <li><a href="#recover-an-interrupted-operation" id="toc-recover-an-interrupted-operation" class="nav-link" data-scroll-target="#recover-an-interrupted-operation">Recover an interrupted operation</a></li>
+  <li><a href="#use-one-extracted-consumer-cache" id="toc-use-one-extracted-consumer-cache" class="nav-link" data-scroll-target="#use-one-extracted-consumer-cache">Use one extracted consumer cache</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./dataset.html">Working with datasets</a></li><li class="breadcrumb-item"><a href="./releases.html">Freeze, restore and use releases</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Freeze, restore and use releases</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="what-a-frozen-version-means" class="level2">
+<h2 class="anchored" data-anchor-id="what-a-frozen-version-means">What a frozen version means</h2>
+<p>A frozen release preserves a verified set of dataset files and saved metadata under <code>arc/</code>. Continuing work or restoring an older draft does not overwrite that release. Use <strong>Dataset lifecycle → Frozen releases</strong>.</p>
+<p>The current controls implement local freezing, restoration, checkpoints and recovery. They do not yet implement release publication/withdrawal, a remote published-current pointer or a QGIS plugin. Flow catalogue publication is a separate workflow.</p>
+</section>
+<section id="prepare-the-dataset-for-freezing" class="level2">
+<h2 class="anchored" data-anchor-id="prepare-the-dataset-for-freezing">Prepare the dataset for freezing</h2>
+<p>Save a meaningful version in <code>major.minor.patch</code> form (for example <code>1.0.0</code>) and a citation. Finish or cancel an active metadata review. Prepare <code>metadata.pdf</code> through <strong>Dataset status → Human-readable metadata → Save PDF to dataset folder &amp; download</strong>. Open the PDF, inspect the complete dataset folder, and check what an external recipient will receive.</p>
+<div class="guide-checklist" role="group" aria-label="Release preparation checklist">
+<strong>Before freezing a version</strong>
+<label><input type="checkbox" data-check="release-saved">Metadata, version and citation are saved.</label>
+<label><input type="checkbox" data-check="release-methods">Methods, inputs, outputs and quality limitations are documented.</label>
+<label><input type="checkbox" data-check="release-pdf">I regenerated and opened the current metadata PDF.</label>
+<label><input type="checkbox" data-check="release-files">The folder contains the intended files and no unwanted temporary material.</label>
+<label><input type="checkbox" data-check="release-rights">The intended distribution complies with the recorded rights and approvals.</label>
+<label><input type="checkbox" data-check="release-editors">External editors and QGIS are closed for this operation.</label>
+</div>
+<p>These personal ticks do not replace the confirmation or validation in the app. Freezing includes <strong>every file under the dataset root</strong>, including hidden files and old transport ZIPs. Remove unwanted material deliberately before previewing; the app does not guess what to exclude. Leave enough free space for staging, the archive and any preserved draft.</p>
+</section>
+<section id="freeze-and-verify" class="level2">
+<h2 class="anchored" data-anchor-id="freeze-and-verify">Freeze and verify</h2>
+<div class="guide-process" role="region" aria-label="Prepare, preview and freeze a version" tabindex="0">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+  accTitle: Prepare, preview and freeze a version
+  accDescr: Save metadata, version and citation, finish or cancel any review, then prepare and inspect the PDF and folder. Preview the saved dataset. Resolve failed checks and repeat preparation when needed. When checks pass, confirm the review and add release notes. Freeze while keeping the working copy, or freeze and close development. Select and verify the resulting release.
+  save["Save metadata, version and citation;&lt;br/&gt;finish or cancel any active review"] --&gt; prepare["Prepare and inspect PDF and folder"]
+  prepare --&gt; preview["Preview saved dataset"]
+  preview --&gt; checks{"Preview checks pass?"}
+  checks --&gt;|No| fix["Resolve reported issues"]
+  fix --&gt; prepare
+  checks --&gt;|Yes| confirm["Confirm PDF and folder review;&lt;br/&gt;enter release notes"]
+  confirm --&gt; keep["Freeze version;&lt;br/&gt;keep working copy"]
+  confirm --&gt; close["Freeze version and&lt;br/&gt;close development"]
+  keep --&gt; verify["Select and verify the new release"]
+  close --&gt; verify
+</pre>
+</div>
+<p></p><figcaption> Both freeze choices preserve a verified release; they differ in what happens to the working folder.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+</div>
+<ol type="1">
+<li>Choose <strong>Preview saved dataset</strong>. Review the file list and checks. Unsafe paths, symbolic links, case-colliding names or stale/changed prepared documents stop the operation.</li>
+<li>Confirm in the app that you opened the PDF and reviewed the previewed folder, and enter release notes.</li>
+<li>Choose <strong>Freeze version; keep working copy</strong> to continue developing, or <strong>Freeze version and close development</strong> to retire the working folder after verification.</li>
+<li>Select the new release and verify it. A frozen version cannot be overwritten; save a different version before making the next release.</li>
+</ol>
+<p>Choose an ISO validation policy only when that release requires an ISO package. A requested ISO export failure stops the freeze. For an already frozen matching draft, <strong>Close development using selected release</strong> avoids making another release and checks that its metadata and files still match.</p>
+</section>
+<section id="distribute-the-release" class="level2">
+<h2 class="anchored" data-anchor-id="distribute-the-release">Distribute the release</h2>
+<pre class="text"><code>arc/releases/&lt;release-id&gt;/
+  dataset.zip
+  release.json
+  files.json
+  checksums.sha256</code></pre>
+<p>Keep the three sidecars with the ZIP when distributing outside DataPond. The app’s ZIP download currently downloads the ZIP alone; collect the sidecars from the release folder as well.</p>
+<p>The ZIP preserves the dataset in <code>dataset/</code>, plus public metadata, <code>metadata.pdf</code>, its QMD source and portable theme, <code>citation.txt</code>, <code>README.txt</code> and a licence summary. Root QMD/Rmd development documents are acknowledged and preserved without execution. Read the recorded rights before sending the files: a successful freeze is not a distribution approval.</p>
+<p>Private metadata snapshots remain inside <code>.metadata_pond/</code>. Back them up with the catalogue and archive; the public ZIP alone is not all the state needed for in-app restoration. Checksums detect changed files but do not prevent someone modifying them outside the app.</p>
+</section>
+<section id="restore-an-older-release-or-roll-back-a-draft" class="level2">
+<h2 class="anchored" data-anchor-id="restore-an-older-release-or-roll-back-a-draft">Restore an older release or roll back a draft</h2>
+<p><strong>Restore selected release as draft</strong> restores its saved files and metadata into a new <code>dev/</code> folder. The dataset UUID and catalogue ID stay the same, and the frozen release remains unchanged. If a working draft exists, the app first preserves it as a verified private checkpoint.</p>
+<p><strong>Roll back to selected working-draft checkpoint</strong> restores that prior draft and checkpoints the draft it replaces. Check the restored state, make your changes, then save a new version before freezing again. Releases and checkpoints do not expire automatically in this version.</p>
+<div class="guide-process" role="region" aria-label="Restore a frozen release as a working draft" tabindex="0">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+  accTitle: Restore a frozen release as a working draft
+  accDescr: Select a frozen release and request restoration as a draft. If checks pass and a working draft exists, preserve it as a verified private checkpoint first. Restore the release files and metadata to a new development folder, inspect the restored draft, and save a new version before freezing again. The original frozen release and dataset UUID remain unchanged.
+  select["Select a frozen release;&lt;br/&gt;Restore selected release as draft"] --&gt; checks{"Restore checks pass?"}
+  checks --&gt;|No| resolve["Resolve reported differences&lt;br/&gt;with the curator, then retry"]
+  resolve --&gt; select
+  checks --&gt;|Yes| existing{"Working draft exists?"}
+  existing --&gt;|Yes| checkpoint["Preserve it as a verified&lt;br/&gt;private checkpoint"]
+  existing --&gt;|No| restore["Restore files and metadata&lt;br/&gt;into a new dev/ folder"]
+  checkpoint --&gt; restore
+  restore --&gt; inspect["Check and edit the restored draft;&lt;br/&gt;save a new version before freezing"]
+</pre>
+</div>
+<p></p><figcaption> Restore changes the working draft while preserving the selected frozen release and the dataset’s identity.</figcaption> </figure><p></p>
+</div>
+</div>
+</div>
+</div>
+<p>Restoration can stop when shared people, organisation, licence or vocabulary references have changed. Resolve the reported differences with the curator; do not overwrite shared definitions merely to force the restore.</p>
+</section>
+<section id="recover-an-interrupted-operation" class="level2">
+<h2 class="anchored" data-anchor-id="recover-an-interrupted-operation">Recover an interrupted operation</h2>
+<p>Use <strong>Recover interrupted lifecycle operation</strong> after an interruption. The app checks its operation journal and preserved files before completing or reconciling the operation. It refuses to interrupt a live process or a lock from another computer. Do not delete locks or staging folders to bypass a refusal; retain the error and ask the maintainer to inspect it.</p>
+</section>
+<section id="use-one-extracted-consumer-cache" class="level2">
+<h2 class="anchored" data-anchor-id="use-one-extracted-consumer-cache">Use one extracted consumer cache</h2>
+<p>The current R helper can cache a release from a <strong>local pond</strong>. It stages the ZIP, verifies it, extracts and verifies the files, then exposes a stable folder named for that release. The transport ZIP is removed by default; <code>keep_zip = TRUE</code> deliberately retains it.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace these values with an existing local pond, release ID and cache folder.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pond <span class="ot">&lt;-</span> <span class="st">"/path/to/pond"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>release_id <span class="ot">&lt;-</span> <span class="st">"existing-release-id"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>cache_root <span class="ot">&lt;-</span> <span class="st">"/path/to/consumer-cache"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>cached <span class="ot">&lt;-</span> datapond<span class="sc">::</span><span class="fu">cache_dataset_release</span>(release_id, pond, <span class="at">cache =</span> cache_root)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>datapond<span class="sc">::</span><span class="fu">verify_cached_dataset_release</span>(cached)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">file.path</span>(cached, <span class="st">"release"</span>, <span class="st">"dataset"</span>, <span class="st">"data"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Open the required files under that last path in QGIS manually. Treat cached files as read-only, and copy them to a working dataset before editing. Keeping each release at its own path lets a project refer to a particular version. Remote Flow downloads, automatic cache eviction/project pinning and the QGIS plugin are future work.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  'use strict';
+  // The guide stores only tick-box state. It never reads a pond or runs R.
+  document.querySelectorAll('.guide-checklist').forEach(group => {
+    const boxes = [...group.querySelectorAll('input[data-check]')];
+    const status = document.createElement('small');
+    status.setAttribute('role', 'status');
+    group.append(status);
+    let persistent = true;
+    const key = box => 'datapond-guide-v1:' + box.dataset.check;
+    const update = () => {
+      status.textContent = `${boxes.filter(b => b.checked).length} of ${boxes.length} complete. ` +
+        (persistent ? 'Ticks are saved in this browser where available; they do not change DataPond.' : 'Browser storage unavailable; ticks last for this page visit only.');
+    };
+    boxes.forEach(box => {
+      try { box.checked = localStorage.getItem(key(box)) === 'true'; } catch (_) { persistent = false; }
+      box.addEventListener('change', () => {
+        try { localStorage.setItem(key(box), String(box.checked)); } catch (_) { persistent = false; }
+        update();
+      });
+    });
+    const reset = document.createElement('button');
+    reset.type = 'button'; reset.textContent = 'Reset this checklist';
+    reset.addEventListener('click', () => {
+      boxes.forEach(box => {
+        box.checked = false;
+        try { localStorage.removeItem(key(box)); } catch (_) { persistent = false; }
+      });
+      update();
+    });
+    group.append(reset); update();
+  });
+  const search = document.getElementById('guide-search');
+  if (!search) return;
+  // Single-file edition: turn chapter links into local anchors, even when copied.
+  const chapters = ['index', 'install', 'document-tools', 'first-pond', 'dataset', 'lineage', 'review', 'releases', 'access-management', 'troubleshooting', 'maintaining'];
+  document.querySelectorAll('main a[href]').forEach(link => {
+    const match = link.getAttribute('href').match(/^(?:\.\/)?([\w-]+)\.(?:qmd|html)(?:#(.*))?$/);
+    if (match && chapters.includes(match[1])) link.setAttribute('href', '#' + (match[2] || match[1]));
+  });
+  const results = document.getElementById('guide-search-results');
+  const status = document.getElementById('guide-search-status');
+  const sections = [...document.querySelectorAll('main section[id]')].map(section => ({
+    id: section.id,
+    title: section.querySelector('h1,h2,h3')?.textContent.trim() || section.id,
+    // Search direct section content, not all nested chapters a second time.
+    text: [...section.children].filter(el => el.tagName !== 'SECTION').map(el => el.textContent).join(' ').toLowerCase()
+  }));
+  search.addEventListener('input', () => {
+    const words = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    results.replaceChildren();
+    if (!words.length) { status.textContent = 'Search all chapters without an internet connection.'; return; }
+    const matches = sections.filter(section => words.every(word => section.text.includes(word)));
+    matches.slice(0, 20).forEach(section => {
+      const item = document.createElement('li'); const link = document.createElement('a');
+      link.href = '#' + section.id; link.textContent = section.title;
+      item.append(link); results.append(item);
+    });
+    status.textContent = matches.length ? `${matches.length} matching sections${matches.length > 20 ? ' (first 20 shown)' : ''}.` : 'No matching sections. Try a shorter phrase.';
+  });
+});
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>EKZNW · DataPond · Guide for 1.4.0</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Offline-first data stewardship</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

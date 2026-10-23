@@ -8,13 +8,20 @@
 *.tar.gz
 *.Rcheck/
 dist/
+output/
+tmp/
+__pycache__/
+*.py[cod]
 
 # Local development artefacts
 bundle/
 scratch.R
 combined_code_v1.0.20.txt
+migration_archive/
 
 # Legacy standalone-app state (package resources live in inst/extdata)
 data/config.rds
 data/last_data_pond_path
+guide/_site/
+guide/.quarto/
 data/.~lock.*

@@ -1,0 +1,46 @@
+## Start with a saved draft
+
+1. Open the intended pond and sign in with editor or administrator access.
+2. Choose **Start a new dataset**. New records normally begin in `dev/`.
+3. Select the metadata entry profile in Configuration. **Essential — Prickly Porcupine** keeps the initial form smaller. **Full — Armoured Pangolin** exposes more detail. **Show additional metadata fields** lets you add detail as needed; switching profiles preserves entered values.
+4. Enter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at `0.1.0` for a new working draft; use `1.0.0` for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.
+5. Choose **Save dataset** and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.
+
+Do not invent an unknown publication date to satisfy a form. Resolve it with the dataset custodian before saving. A draft passing its save checks does not mean that all release or ISO metadata requirements are complete.
+
+Field labels use **\*** for an entry required for the stated action or completion, and **◇** for an entry required under the condition described below its label. Unmarked entries are optional, but supplied values must still be valid. For example, an embargo end date is required when embargo is Yes; a permission reference is needed to complete an assessment based on external permission. Requirements for a complete assessment or ISO export do not by themselves block a draft save.
+
+Existing versions are preserved when editing. Change the version deliberately when appropriate; changing it does not release or archive the dataset. Lifecycle status is managed separately.
+
+## Put data and supporting material in the right place
+
+Put the actual dataset payload in `data/`. Put supporting reports and scripts at the dataset root or in `docs/` and `scripts/`, as appropriate. Keep portable relative paths in your reports and scripts.
+
+Use the data-file scan to inspect the files. Review the results, then choose **Save live scan to database** to update the saved inventory. A preview alone does not update it. Scanning a custom folder is an inspection action; check that you are saving the managed dataset's scan.
+
+Spatial file inspection can derive useful information, but review the results before relying on them. A map preview does not establish accuracy, licensing or fitness for a particular use.
+
+## Describe what another user needs to know
+
+| Metadata | Practical question to answer |
+|---|---|
+| Title, abstract and purpose | What is this dataset, and what was it created for? |
+| Version and dates | Which revision is this, when was it published, and what period does it describe? |
+| Authors, organisation and contact | Who created it and whom should a recipient contact? |
+| Keywords and geographic/temporal coverage | How can someone find it and assess its coverage? |
+| Spatial reference, resolution and attributes | How should users interpret coordinates, units, fields and codes? |
+| Lineage and quality | How was it made, what was checked, and what limitations remain? |
+| Licensing, access and distribution | Who may obtain it, use it and redistribute it, and under which conditions? |
+| Citation and supporting documents | How should it be cited, and where are the methods and evidence? |
+
+Save edits before generating reports, validating exports or freezing a version. Use **Dataset status** to inspect outstanding metadata work. Add the detailed methods through [Lineage and development reports](lineage.qmd).
+
+## Check the human-readable metadata
+
+In **Dataset status → Human-readable metadata**, choose **Save PDF to dataset folder & download**. This writes `metadata.pdf` and `citation.txt` at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.
+
+Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.
+
+## ISO metadata when required
+
+Use **Dataset status → ISO metadata validation & export** after saving. Inspect the report, correct the relevant fields, then rerun validation. The downloaded ISO package includes metadata and cited local supporting material, not the dataset payload. Additional validation requires Python with `lxml`, and ZIP download requires the `zip` utility. Local validation does not establish receiving-catalogue compatibility or verify that the facts entered are correct.

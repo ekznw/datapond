@@ -1,0 +1,56 @@
+## Edit this guide in Quarto
+
+The maintained sources live in the package repository's `guide/` folder. Open a chapter's `_content/*.qmd` file in RStudio and select **Visual** for a document-like editing experience, or edit its source in any text editor. These shared chapter files supply both the website and offline edition.
+
+| Location | Purpose |
+|---|---|
+| `guide/_content/` | Chapter text shared by both editions |
+| `guide/*.qmd` | Chapter titles, navigation and the combined offline edition |
+| `guide/_quarto.yml` | Website structure and rendering options |
+| `guide/assets/` | Theme, styling, logo and checklist/search behaviour |
+| `scripts/build_user_guide.R` | Render and copy the built guide into the package |
+| `inst/guide/` | Generated HTML shipped with DataPond; edit the sources instead |
+
+The rendered guide is interactive for readers, but browser edits do not save back into the QMD source. Use Quarto's editor/preview workflow to maintain the text. It does not require a Shiny runtime.
+
+## Preview while writing
+
+From a terminal at the repository root:
+
+```sh
+quarto preview guide
+```
+
+Quarto serves the guide locally and refreshes the preview as you save. Native website search works when served by preview or the app. For a file you open directly from disk, use `offline.html`, which embeds its assets and searches its own chapter text.
+
+See Quarto's official [website guide](https://quarto.org/docs/websites/), [search documentation](https://quarto.org/docs/websites/website-search.html) and [HTML options](https://quarto.org/docs/output-formats/html-basics.html) for configuration details. The preview server does not publish the site to the internet.
+
+## Rebuild the copy included in the package
+
+From the repository root, run in a terminal:
+
+```sh
+Rscript scripts/build_user_guide.R
+```
+
+The script reads the package version, renders both editions and copies the completed site into `inst/guide/`. It requires Quarto at build time; colleagues reading the installed guide do not need it. Keep both source edits and generated output in the same release so GitHub installations include the guide without rendering it on the user's computer.
+
+After rebuilding, review navigation, search, mobile layout, links and checklists; check the standalone edition with its file copied elsewhere. Reinstall the package to see the updated bundled guide in a fresh app session.
+
+## Open the installed guide
+
+Use **Configuration → User guide → Open user guide**, or run:
+
+```r
+datapond::open_user_guide()
+```
+
+The R helper opens the self-contained offline edition. `open_user_guide(browse = FALSE)` returns its local path so you can copy it to a colleague. The app link serves the searchable chapter website locally while the app is running.
+
+## Keep process guidance current
+
+When a workflow changes, update the relevant chapter alongside the code. Check instructions against a practice pond, use the exact app labels, and distinguish implemented features from planned ones. Record factual limitations such as metadata-only review scope and the current local release cache.
+
+Process diagrams use native Quarto `{mermaid}` blocks in the shared chapter sources. Edit their labels and branches alongside the surrounding instructions. Keep each diagram focused on one task, include a caption plus Mermaid `accTitle` and `accDescr` text, and retain the written steps for readers who prefer them. See the [Quarto diagram documentation](https://quarto.org/docs/authoring/diagrams.html) and [Mermaid accessibility guidance](https://mermaid.js.org/config/accessibility.html). After rebuilding, check that every diagram renders in both the chapter website and a separately copied `offline.html`, including on a narrow screen.
+
+This repository is the source of truth. A hosted documentation site can later use the same Quarto output without maintaining a second wiki. Hosting and automatic publication have not been configured here.

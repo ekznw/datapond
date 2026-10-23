@@ -1,0 +1,716 @@
+[
+  {
+    "objectID": "troubleshooting.html",
+    "href": "troubleshooting.html",
+    "title": "Troubleshooting",
+    "section": "",
+    "text": "Symptom\nNext step\n\n\n\n\nGitHub installation fails\nRead the first failing dependency in the R output. Check internet/repository access and retry after fixing it.\n\n\nA compiled package fails to install\nCheck Rtools on Windows or the compiler/system libraries reported on Linux/macOS. See installation.\n\n\nA function in this guide is missing\nCheck packageVersion(\"datapond\") and find.package(\"datapond\"). Restart R after updating. Your branch may predate the feature.\n\n\nApp opens but save controls are unavailable\nSign in with editor or administrator access to the intended pond; inspect any review/lifecycle lock message. Connected-pond rows are read-only.\n\n\nLast pond cannot be opened\nReconnect its storage and choose Retry opening pond, or open another existing pond in the recovery dialog.\n\n\nBrowser tab closes but R remains busy\nStop the app in R or use Exit DataPond where offered.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Troubleshooting"
+    ]
+  },
+  {
+    "objectID": "troubleshooting.html#installation-or-startup",
+    "href": "troubleshooting.html#installation-or-startup",
+    "title": "Troubleshooting",
+    "section": "",
+    "text": "Symptom\nNext step\n\n\n\n\nGitHub installation fails\nRead the first failing dependency in the R output. Check internet/repository access and retry after fixing it.\n\n\nA compiled package fails to install\nCheck Rtools on Windows or the compiler/system libraries reported on Linux/macOS. See installation.\n\n\nA function in this guide is missing\nCheck packageVersion(\"datapond\") and find.package(\"datapond\"). Restart R after updating. Your branch may predate the feature.\n\n\nApp opens but save controls are unavailable\nSign in with editor or administrator access to the intended pond; inspect any review/lifecycle lock message. Connected-pond rows are read-only.\n\n\nLast pond cannot be opened\nReconnect its storage and choose Retry opening pond, or open another existing pond in the recovery dialog.\n\n\nBrowser tab closes but R remains busy\nStop the app in R or use Exit DataPond where offered.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Troubleshooting"
+    ]
+  },
+  {
+    "objectID": "troubleshooting.html#documents-and-templates",
+    "href": "troubleshooting.html#documents-and-templates",
+    "title": "Troubleshooting",
+    "section": "Documents and templates",
+    "text": "Documents and templates\nRun datapond::check_document_tools() and read the failed checks. Quarto, XeLaTeX and Python are separate programs. After installation or PATH changes, restart R before testing again. A successful executable check alone does not prove a document renders.\nIf PDF rendering reports missing TeX packages/fonts, run setup while online for a Quarto-managed TinyTeX installation. For system TeX, ask its administrator to install the reported dependencies. If a dataset-specific QMD fails but the checker passes, inspect that QMD’s paths, execution settings and analysis dependencies.\nIf template creation refuses a filename, choose a different project short name or review the existing document. The app deliberately does not replace it. Keep a QMD and its generated theme folder together when transferring the dataset.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Troubleshooting"
+    ]
+  },
+  {
+    "objectID": "troubleshooting.html#freeze-restore-and-review",
+    "href": "troubleshooting.html#freeze-restore-and-review",
+    "title": "Troubleshooting",
+    "section": "Freeze, restore and review",
+    "text": "Freeze, restore and review\n\n\n\n\n\n\n\nSymptom\nNext step\n\n\n\n\nPrepared metadata is stale or changed\nSave metadata, prepare the PDF again, open it and repeat the preview.\n\n\nFreeze preview includes unexpected files\nReview the dataset root, including hidden files and old bundles. Remove unwanted files deliberately, then preview again.\n\n\nRelease version already exists\nKeep it intact and save a new version for the new release.\n\n\nRestore reports changed shared references\nAsk the curator to resolve the listed people/organisation/licence/vocabulary differences.\n\n\nLifecycle operation was interrupted\nUse the recovery control. Keep journals, locks and staging evidence available for diagnosis.\n\n\nMetadata return is stale\nInspect the differences, resolve competing edits, cancel with a reason and issue a new request.\n\n\nA review return has unexpected inventory differences\nCheck whether the reviewer scanned the metadata-only workspace or edited out-of-scope records.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Troubleshooting"
+    ]
+  },
+  {
+    "objectID": "troubleshooting.html#ask-for-help-with-useful-evidence",
+    "href": "troubleshooting.html#ask-for-help-with-useful-evidence",
+    "title": "Troubleshooting",
+    "section": "Ask for help with useful evidence",
+    "text": "Ask for help with useful evidence\nRecord the action, exact error, package version, operating system and whether the problem affects a practice pond or an operational pond. For document problems, include the check output. Review logs before sharing them because paths and metadata can contain sensitive information.\npackageVersion(\"datapond\")\nfind.package(\"datapond\")\nsessionInfo()\nDo not send a full pond database or dataset just to report an installation error. A small reproducible practice example is usually more useful.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Troubleshooting"
+    ]
+  },
+  {
+    "objectID": "releases.html",
+    "href": "releases.html",
+    "title": "Freeze, restore and use releases",
+    "section": "",
+    "text": "A frozen release preserves a verified set of dataset files and saved metadata under arc/. Continuing work or restoring an older draft does not overwrite that release. Use Dataset lifecycle → Frozen releases.\nThe current controls implement local freezing, restoration, checkpoints and recovery. They do not yet implement release publication/withdrawal, a remote published-current pointer or a QGIS plugin. Flow catalogue publication is a separate workflow.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#what-a-frozen-version-means",
+    "href": "releases.html#what-a-frozen-version-means",
+    "title": "Freeze, restore and use releases",
+    "section": "",
+    "text": "A frozen release preserves a verified set of dataset files and saved metadata under arc/. Continuing work or restoring an older draft does not overwrite that release. Use Dataset lifecycle → Frozen releases.\nThe current controls implement local freezing, restoration, checkpoints and recovery. They do not yet implement release publication/withdrawal, a remote published-current pointer or a QGIS plugin. Flow catalogue publication is a separate workflow.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#prepare-the-dataset-for-freezing",
+    "href": "releases.html#prepare-the-dataset-for-freezing",
+    "title": "Freeze, restore and use releases",
+    "section": "Prepare the dataset for freezing",
+    "text": "Prepare the dataset for freezing\nSave a meaningful version in major.minor.patch form (for example 1.0.0) and a citation. Finish or cancel an active metadata review. Prepare metadata.pdf through Dataset status → Human-readable metadata → Save PDF to dataset folder & download. Open the PDF, inspect the complete dataset folder, and check what an external recipient will receive.\n\nBefore freezing a version\nMetadata, version and citation are saved.\nMethods, inputs, outputs and quality limitations are documented.\nI regenerated and opened the current metadata PDF.\nThe folder contains the intended files and no unwanted temporary material.\nThe intended distribution complies with the recorded rights and approvals.\nExternal editors and QGIS are closed for this operation.\n\nThese personal ticks do not replace the confirmation or validation in the app. Freezing includes every file under the dataset root, including hidden files and old transport ZIPs. Remove unwanted material deliberately before previewing; the app does not guess what to exclude. Leave enough free space for staging, the archive and any preserved draft.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#freeze-and-verify",
+    "href": "releases.html#freeze-and-verify",
+    "title": "Freeze, restore and use releases",
+    "section": "Freeze and verify",
+    "text": "Freeze and verify\n\n\n\n\n\n\nflowchart TD\n  accTitle: Prepare, preview and freeze a version\n  accDescr: Save metadata, version and citation, finish or cancel any review, then prepare and inspect the PDF and folder. Preview the saved dataset. Resolve failed checks and repeat preparation when needed. When checks pass, confirm the review and add release notes. Freeze while keeping the working copy, or freeze and close development. Select and verify the resulting release.\n  save[\"Save metadata, version and citation;&lt;br/&gt;finish or cancel any active review\"] --&gt; prepare[\"Prepare and inspect PDF and folder\"]\n  prepare --&gt; preview[\"Preview saved dataset\"]\n  preview --&gt; checks{\"Preview checks pass?\"}\n  checks --&gt;|No| fix[\"Resolve reported issues\"]\n  fix --&gt; prepare\n  checks --&gt;|Yes| confirm[\"Confirm PDF and folder review;&lt;br/&gt;enter release notes\"]\n  confirm --&gt; keep[\"Freeze version;&lt;br/&gt;keep working copy\"]\n  confirm --&gt; close[\"Freeze version and&lt;br/&gt;close development\"]\n  keep --&gt; verify[\"Select and verify the new release\"]\n  close --&gt; verify\n\n\n Both freeze choices preserve a verified release; they differ in what happens to the working folder. \n\n\n\n\n\nChoose Preview saved dataset. Review the file list and checks. Unsafe paths, symbolic links, case-colliding names or stale/changed prepared documents stop the operation.\nConfirm in the app that you opened the PDF and reviewed the previewed folder, and enter release notes.\nChoose Freeze version; keep working copy to continue developing, or Freeze version and close development to retire the working folder after verification.\nSelect the new release and verify it. A frozen version cannot be overwritten; save a different version before making the next release.\n\nChoose an ISO validation policy only when that release requires an ISO package. A requested ISO export failure stops the freeze. For an already frozen matching draft, Close development using selected release avoids making another release and checks that its metadata and files still match.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#distribute-the-release",
+    "href": "releases.html#distribute-the-release",
+    "title": "Freeze, restore and use releases",
+    "section": "Distribute the release",
+    "text": "Distribute the release\narc/releases/&lt;release-id&gt;/\n  dataset.zip\n  release.json\n  files.json\n  checksums.sha256\nKeep the three sidecars with the ZIP when distributing outside DataPond. The app’s ZIP download currently downloads the ZIP alone; collect the sidecars from the release folder as well.\nThe ZIP preserves the dataset in dataset/, plus public metadata, metadata.pdf, its QMD source and portable theme, citation.txt, README.txt and a licence summary. Root QMD/Rmd development documents are acknowledged and preserved without execution. Read the recorded rights before sending the files: a successful freeze is not a distribution approval.\nPrivate metadata snapshots remain inside .metadata_pond/. Back them up with the catalogue and archive; the public ZIP alone is not all the state needed for in-app restoration. Checksums detect changed files but do not prevent someone modifying them outside the app.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#restore-an-older-release-or-roll-back-a-draft",
+    "href": "releases.html#restore-an-older-release-or-roll-back-a-draft",
+    "title": "Freeze, restore and use releases",
+    "section": "Restore an older release or roll back a draft",
+    "text": "Restore an older release or roll back a draft\nRestore selected release as draft restores its saved files and metadata into a new dev/ folder. The dataset UUID and catalogue ID stay the same, and the frozen release remains unchanged. If a working draft exists, the app first preserves it as a verified private checkpoint.\nRoll back to selected working-draft checkpoint restores that prior draft and checkpoints the draft it replaces. Check the restored state, make your changes, then save a new version before freezing again. Releases and checkpoints do not expire automatically in this version.\n\n\n\n\n\n\nflowchart TD\n  accTitle: Restore a frozen release as a working draft\n  accDescr: Select a frozen release and request restoration as a draft. If checks pass and a working draft exists, preserve it as a verified private checkpoint first. Restore the release files and metadata to a new development folder, inspect the restored draft, and save a new version before freezing again. The original frozen release and dataset UUID remain unchanged.\n  select[\"Select a frozen release;&lt;br/&gt;Restore selected release as draft\"] --&gt; checks{\"Restore checks pass?\"}\n  checks --&gt;|No| resolve[\"Resolve reported differences&lt;br/&gt;with the curator, then retry\"]\n  resolve --&gt; select\n  checks --&gt;|Yes| existing{\"Working draft exists?\"}\n  existing --&gt;|Yes| checkpoint[\"Preserve it as a verified&lt;br/&gt;private checkpoint\"]\n  existing --&gt;|No| restore[\"Restore files and metadata&lt;br/&gt;into a new dev/ folder\"]\n  checkpoint --&gt; restore\n  restore --&gt; inspect[\"Check and edit the restored draft;&lt;br/&gt;save a new version before freezing\"]\n\n\n Restore changes the working draft while preserving the selected frozen release and the dataset’s identity. \n\n\n\n\nRestoration can stop when shared people, organisation, licence or vocabulary references have changed. Resolve the reported differences with the curator; do not overwrite shared definitions merely to force the restore.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#recover-an-interrupted-operation",
+    "href": "releases.html#recover-an-interrupted-operation",
+    "title": "Freeze, restore and use releases",
+    "section": "Recover an interrupted operation",
+    "text": "Recover an interrupted operation\nUse Recover interrupted lifecycle operation after an interruption. The app checks its operation journal and preserved files before completing or reconciling the operation. It refuses to interrupt a live process or a lock from another computer. Do not delete locks or staging folders to bypass a refusal; retain the error and ask the maintainer to inspect it.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "releases.html#use-one-extracted-consumer-cache",
+    "href": "releases.html#use-one-extracted-consumer-cache",
+    "title": "Freeze, restore and use releases",
+    "section": "Use one extracted consumer cache",
+    "text": "Use one extracted consumer cache\nThe current R helper can cache a release from a local pond. It stages the ZIP, verifies it, extracts and verifies the files, then exposes a stable folder named for that release. The transport ZIP is removed by default; keep_zip = TRUE deliberately retains it.\n# Replace these values with an existing local pond, release ID and cache folder.\npond &lt;- \"/path/to/pond\"\nrelease_id &lt;- \"existing-release-id\"\ncache_root &lt;- \"/path/to/consumer-cache\"\ncached &lt;- datapond::cache_dataset_release(release_id, pond, cache = cache_root)\ndatapond::verify_cached_dataset_release(cached)\nfile.path(cached, \"release\", \"dataset\", \"data\")\nOpen the required files under that last path in QGIS manually. Treat cached files as read-only, and copy them to a working dataset before editing. Keeping each release at its own path lets a project refer to a particular version. Remote Flow downloads, automatic cache eviction/project pinning and the QGIS plugin are future work.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Freeze, restore and use releases"
+    ]
+  },
+  {
+    "objectID": "maintaining.html",
+    "href": "maintaining.html",
+    "title": "Edit and maintain this guide",
+    "section": "",
+    "text": "The maintained sources live in the package repository’s guide/ folder. Open a chapter’s _content/*.qmd file in RStudio and select Visual for a document-like editing experience, or edit its source in any text editor. These shared chapter files supply both the website and offline edition.\n\n\n\n\n\n\n\nLocation\nPurpose\n\n\n\n\nguide/_content/\nChapter text shared by both editions\n\n\nguide/*.qmd\nChapter titles, navigation and the combined offline edition\n\n\nguide/_quarto.yml\nWebsite structure and rendering options\n\n\nguide/assets/\nTheme, styling, logo and checklist/search behaviour\n\n\nscripts/build_user_guide.R\nRender and copy the built guide into the package\n\n\ninst/guide/\nGenerated HTML shipped with DataPond; edit the sources instead\n\n\n\nThe rendered guide is interactive for readers, but browser edits do not save back into the QMD source. Use Quarto’s editor/preview workflow to maintain the text. It does not require a Shiny runtime.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "maintaining.html#edit-this-guide-in-quarto",
+    "href": "maintaining.html#edit-this-guide-in-quarto",
+    "title": "Edit and maintain this guide",
+    "section": "",
+    "text": "The maintained sources live in the package repository’s guide/ folder. Open a chapter’s _content/*.qmd file in RStudio and select Visual for a document-like editing experience, or edit its source in any text editor. These shared chapter files supply both the website and offline edition.\n\n\n\n\n\n\n\nLocation\nPurpose\n\n\n\n\nguide/_content/\nChapter text shared by both editions\n\n\nguide/*.qmd\nChapter titles, navigation and the combined offline edition\n\n\nguide/_quarto.yml\nWebsite structure and rendering options\n\n\nguide/assets/\nTheme, styling, logo and checklist/search behaviour\n\n\nscripts/build_user_guide.R\nRender and copy the built guide into the package\n\n\ninst/guide/\nGenerated HTML shipped with DataPond; edit the sources instead\n\n\n\nThe rendered guide is interactive for readers, but browser edits do not save back into the QMD source. Use Quarto’s editor/preview workflow to maintain the text. It does not require a Shiny runtime.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "maintaining.html#preview-while-writing",
+    "href": "maintaining.html#preview-while-writing",
+    "title": "Edit and maintain this guide",
+    "section": "Preview while writing",
+    "text": "Preview while writing\nFrom a terminal at the repository root:\nquarto preview guide\nQuarto serves the guide locally and refreshes the preview as you save. Native website search works when served by preview or the app. For a file you open directly from disk, use offline.html, which embeds its assets and searches its own chapter text.\nSee Quarto’s official website guide, search documentation and HTML options for configuration details. The preview server does not publish the site to the internet.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "maintaining.html#rebuild-the-copy-included-in-the-package",
+    "href": "maintaining.html#rebuild-the-copy-included-in-the-package",
+    "title": "Edit and maintain this guide",
+    "section": "Rebuild the copy included in the package",
+    "text": "Rebuild the copy included in the package\nFrom the repository root, run in a terminal:\nRscript scripts/build_user_guide.R\nThe script reads the package version, renders both editions and copies the completed site into inst/guide/. It requires Quarto at build time; colleagues reading the installed guide do not need it. Keep both source edits and generated output in the same release so GitHub installations include the guide without rendering it on the user’s computer.\nAfter rebuilding, review navigation, search, mobile layout, links and checklists; check the standalone edition with its file copied elsewhere. Reinstall the package to see the updated bundled guide in a fresh app session.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "maintaining.html#open-the-installed-guide",
+    "href": "maintaining.html#open-the-installed-guide",
+    "title": "Edit and maintain this guide",
+    "section": "Open the installed guide",
+    "text": "Open the installed guide\nUse Configuration → User guide → Open user guide, or run:\ndatapond::open_user_guide()\nThe R helper opens the self-contained offline edition. open_user_guide(browse = FALSE) returns its local path so you can copy it to a colleague. The app link serves the searchable chapter website locally while the app is running.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "maintaining.html#keep-process-guidance-current",
+    "href": "maintaining.html#keep-process-guidance-current",
+    "title": "Edit and maintain this guide",
+    "section": "Keep process guidance current",
+    "text": "Keep process guidance current\nWhen a workflow changes, update the relevant chapter alongside the code. Check instructions against a practice pond, use the exact app labels, and distinguish implemented features from planned ones. Record factual limitations such as metadata-only review scope and the current local release cache.\nProcess diagrams use native Quarto {mermaid} blocks in the shared chapter sources. Edit their labels and branches alongside the surrounding instructions. Keep each diagram focused on one task, include a caption plus Mermaid accTitle and accDescr text, and retain the written steps for readers who prefer them. See the Quarto diagram documentation and Mermaid accessibility guidance. After rebuilding, check that every diagram renders in both the chapter website and a separately copied offline.html, including on a narrow screen.\nThis repository is the source of truth. A hosted documentation site can later use the same Quarto output without maintaining a second wiki. Hosting and automatic publication have not been configured here.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Edit and maintain this guide"
+    ]
+  },
+  {
+    "objectID": "install.html",
+    "href": "install.html",
+    "title": "Install DataPond",
+    "section": "",
+    "text": "Use a computer where you can install R packages and write to your chosen pond folder. Installation needs internet access to download software and dependencies; everyday metadata work and this guide can run offline.\nInstall R 4.1 or newer from CRAN. An editor such as RStudio Desktop is optional but convenient. Paste the R examples below into the R Console, not a system terminal.\n\nWindowsmacOSLinux\n\n\nInstall R first, then RStudio if desired. If an R dependency needs compilation from source, install the Rtools version matching your R version. A managed work computer may need IT assistance. Restart R after changing system tools.\n\n\nChoose the CRAN R installer for Apple Silicon or Intel as appropriate. Binary packages avoid many compilation requirements. Source builds can require additional compiler and spatial libraries; follow the error for the failing dependency.\n\n\nInstall R using your distribution’s supported route. Spatial dependencies can require GDAL, GEOS, PROJ and udunits2 development libraries. Ask IT to install the appropriate distribution packages; see the official sf installation notes. pak reports system dependencies where supported.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Install DataPond"
+    ]
+  },
+  {
+    "objectID": "install.html#before-you-begin",
+    "href": "install.html#before-you-begin",
+    "title": "Install DataPond",
+    "section": "",
+    "text": "Use a computer where you can install R packages and write to your chosen pond folder. Installation needs internet access to download software and dependencies; everyday metadata work and this guide can run offline.\nInstall R 4.1 or newer from CRAN. An editor such as RStudio Desktop is optional but convenient. Paste the R examples below into the R Console, not a system terminal.\n\nWindowsmacOSLinux\n\n\nInstall R first, then RStudio if desired. If an R dependency needs compilation from source, install the Rtools version matching your R version. A managed work computer may need IT assistance. Restart R after changing system tools.\n\n\nChoose the CRAN R installer for Apple Silicon or Intel as appropriate. Binary packages avoid many compilation requirements. Source builds can require additional compiler and spatial libraries; follow the error for the failing dependency.\n\n\nInstall R using your distribution’s supported route. Spatial dependencies can require GDAL, GEOS, PROJ and udunits2 development libraries. Ask IT to install the appropriate distribution packages; see the official sf installation notes. pak reports system dependencies where supported.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Install DataPond"
+    ]
+  },
+  {
+    "objectID": "install.html#install-the-package-from-github",
+    "href": "install.html#install-the-package-from-github",
+    "title": "Install DataPond",
+    "section": "Install the package from GitHub",
+    "text": "Install the package from GitHub\nFor the stable colleague-facing build:\ninstall.packages(\"pak\")\npak::pak(\"ekznw/datapond\")\npackageVersion(\"datapond\")\nThis installs the R dependencies, including ekznwr from GitHub. It does not install Quarto, Python or a PDF engine simply because they are listed as system requirements. Follow Document tools when you need document generation or releases.\n\n\nAlternative installer and development builds\n\nIf your team uses remotes:\ninstall.packages(\"remotes\")\nremotes::install_github(\"ekznw/datapond\", dependencies = TRUE, upgrade = \"never\")\nFor features that your maintainer has made available on the development branch:\npak::pak(\"ekznw/datapond@develop\")\nConfirm the intended branch with the maintainer when following a development guide. Local changes are not available to colleagues until pushed and released. If GitHub access fails, check the repository address and your organisation’s access arrangements.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Install DataPond"
+    ]
+  },
+  {
+    "objectID": "install.html#launch-and-check",
+    "href": "install.html#launch-and-check",
+    "title": "Install DataPond",
+    "section": "Launch and check",
+    "text": "Launch and check\ndatapond::run_data_pond()\nThe app opens in a browser and R stays busy serving it. Continue with Your first pond. Use Exit DataPond where offered, or stop the running app in R, when finished. Closing only the browser tab may leave R running the app.\n\nReady for your first session\nR is installed and opens.\nDataPond installed without an error.\nThe app opens in my browser.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Install DataPond"
+    ]
+  },
+  {
+    "objectID": "install.html#updating-an-existing-installation",
+    "href": "install.html#updating-an-existing-installation",
+    "title": "Install DataPond",
+    "section": "Updating an existing installation",
+    "text": "Updating an existing installation\nBack up the whole pond before a package upgrade. Stop the app, restart R, run the same installation command, then start DataPond again. Check the version and use its bundled guide. Keep an untouched backup when testing a development build; reinstalling an older package is not a pond rollback procedure.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Install DataPond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html",
+    "href": "first-pond.html",
+    "title": "Your first pond",
+    "section": "",
+    "text": "In Configuration → Open or create a data pond, choose:\n\nOpen existing pond for a folder that already contains a DataPond catalogue. You can also enter its path under Open an existing pond by path.\nCreate new pond for a new workspace. Choose its parent location and a new folder name, check the destination, then choose Create and open pond.\n\nCreate a practice pond first if you are learning. Creating a pond does not copy datasets from another pond. For an unavailable existing drive, reconnect it and choose Retry opening pond; do not create a replacement pond at the missing mount location.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html#open-or-create-a-pond",
+    "href": "first-pond.html#open-or-create-a-pond",
+    "title": "Your first pond",
+    "section": "",
+    "text": "In Configuration → Open or create a data pond, choose:\n\nOpen existing pond for a folder that already contains a DataPond catalogue. You can also enter its path under Open an existing pond by path.\nCreate new pond for a new workspace. Choose its parent location and a new folder name, check the destination, then choose Create and open pond.\n\nCreate a practice pond first if you are learning. Creating a pond does not copy datasets from another pond. For an unavailable existing drive, reconnect it and choose Retry opening pond; do not create a replacement pond at the missing mount location.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html#sign-in-or-request-access",
+    "href": "first-pond.html#sign-in-or-request-access",
+    "title": "Your first pond",
+    "section": "Sign in or request access",
+    "text": "Sign in or request access\nThe workspace requires a local account for this pond. Choose Request access if you do not have one. An administrator verifies the request, chooses a role, and gives you a single-use activation code. Use Activate / recover access to set a passphrase of at least 15 characters, then sign in.\nFor the first administrator, stop the app and run this once in the local R console:\ncode &lt;- datapond::setup_pond_access(\n  \"/path/to/your/pond\", \"your.username\",\n  first_name = \"Your\", last_name = \"Name\"\n)\ncode\nKeep the code private. It expires after 24 hours. To link an existing metadata person, use their verified person_id instead of supplying a new name. Existing seeded names do not automatically grant access.\nViewers browse metadata. Editors can edit and use dataset workflows. Pond administrators also approve accounts, manage shared reference data, and use Flow. Administrators open Configuration → Manage accounts to approve requests, change roles, disable accounts or issue recovery codes. File downloads require editor or administrator access. Sign out through Configuration when finished.\nIf the administrator is locked out, the installation owner can run datapond::recover_pond_access(\"/path/to/your/pond\", \"your.username\") in the trusted local R console. Application login does not prevent someone with direct filesystem or R-console access from changing the underlying data.\nFor administrator procedures, SharePoint caches and future server hosting, see Manage accounts and deployment. Local accounts are separate on each workstation; they do not synchronise through SharePoint.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html#understand-the-folders",
+    "href": "first-pond.html#understand-the-folders",
+    "title": "Your first pond",
+    "section": "Understand the folders",
+    "text": "Understand the folders\nmy_pond/\n  metadata.db       Local catalogue\n  src/              Supplied or reference datasets\n  dev/              Datasets being developed\n  arc/              Archived material and frozen releases\n  .metadata_pond/    Internal settings, snapshots and recovery records\nA working dataset normally has data/, docs/ and scripts/ subfolders. Keep the data development report at the dataset root if that is your project convention. DataPond can acknowledge root QMD/Rmd documents when preparing metadata and releases.\nAvoid manually moving a managed dataset folder or renaming its catalogue database. Use the app’s lifecycle/transfer controls so folder location and catalogue records stay consistent.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html#open-a-connected-pond-for-editing",
+    "href": "first-pond.html#open-a-connected-pond-for-editing",
+    "title": "Your first pond",
+    "section": "Open a connected pond for editing",
+    "text": "Open a connected pond for editing\nConfiguration can connect additional existing ponds with recognisable names. Access to their records requires signing in to the relevant pond. ★ Current identifies the active pond, and Show current pond datasets only narrows the list.\nOpen the required pond from Configuration or the sign-in screen, sign in there, then select its dataset to edit. Login rights are checked separately for every pond. An unavailable connected pond is omitted from results until reconnected and refreshed; its connection is retained.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "first-pond.html#back-up-the-whole-pond",
+    "href": "first-pond.html#back-up-the-whole-pond",
+    "title": "Your first pond",
+    "section": "Back up the whole pond",
+    "text": "Back up the whole pond\nClose the app and external writers before taking a filesystem backup. Preserve metadata.db, dataset folders, arc/ and the hidden .metadata_pond/ directory together. A frozen public ZIP is useful for distribution, but does not contain all private restoration or review state. Test your organisation’s restore procedure on a copy.\nAccount security is stored separately under the installation’s DataPond configuration directory (security/). Back it up privately as well. Dataset bundles do not carry passwords or login rights; moving a pond or using another installation requires local account setup.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Your first pond"
+    ]
+  },
+  {
+    "objectID": "dataset.html",
+    "href": "dataset.html",
+    "title": "Describe a dataset",
+    "section": "",
+    "text": "Open the intended pond and sign in with editor or administrator access.\nChoose Start a new dataset. New records normally begin in dev/.\nSelect the metadata entry profile in Configuration. Essential — Prickly Porcupine keeps the initial form smaller. Full — Armoured Pangolin exposes more detail. Show additional metadata fields lets you add detail as needed; switching profiles preserves entered values.\nEnter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at 0.1.0 for a new working draft; use 1.0.0 for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.\nChoose Save dataset and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.\n\nDo not invent an unknown publication date to satisfy a form. Resolve it with the dataset custodian before saving. A draft passing its save checks does not mean that all release or ISO metadata requirements are complete.\nField labels use * for an entry required for the stated action or completion, and ◇ for an entry required under the condition described below its label. Unmarked entries are optional, but supplied values must still be valid. For example, an embargo end date is required when embargo is Yes; a permission reference is needed to complete an assessment based on external permission. Requirements for a complete assessment or ISO export do not by themselves block a draft save.\nExisting versions are preserved when editing. Change the version deliberately when appropriate; changing it does not release or archive the dataset. Lifecycle status is managed separately.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "dataset.html#start-with-a-saved-draft",
+    "href": "dataset.html#start-with-a-saved-draft",
+    "title": "Describe a dataset",
+    "section": "",
+    "text": "Open the intended pond and sign in with editor or administrator access.\nChoose Start a new dataset. New records normally begin in dev/.\nSelect the metadata entry profile in Configuration. Essential — Prickly Porcupine keeps the initial form smaller. Full — Armoured Pangolin exposes more detail. Show additional metadata fields lets you add detail as needed; switching profiles preserves entered values.\nEnter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at 0.1.0 for a new working draft; use 1.0.0 for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.\nChoose Save dataset and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.\n\nDo not invent an unknown publication date to satisfy a form. Resolve it with the dataset custodian before saving. A draft passing its save checks does not mean that all release or ISO metadata requirements are complete.\nField labels use * for an entry required for the stated action or completion, and ◇ for an entry required under the condition described below its label. Unmarked entries are optional, but supplied values must still be valid. For example, an embargo end date is required when embargo is Yes; a permission reference is needed to complete an assessment based on external permission. Requirements for a complete assessment or ISO export do not by themselves block a draft save.\nExisting versions are preserved when editing. Change the version deliberately when appropriate; changing it does not release or archive the dataset. Lifecycle status is managed separately.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "dataset.html#put-data-and-supporting-material-in-the-right-place",
+    "href": "dataset.html#put-data-and-supporting-material-in-the-right-place",
+    "title": "Describe a dataset",
+    "section": "Put data and supporting material in the right place",
+    "text": "Put data and supporting material in the right place\nPut the actual dataset payload in data/. Put supporting reports and scripts at the dataset root or in docs/ and scripts/, as appropriate. Keep portable relative paths in your reports and scripts.\nUse the data-file scan to inspect the files. Review the results, then choose Save live scan to database to update the saved inventory. A preview alone does not update it. Scanning a custom folder is an inspection action; check that you are saving the managed dataset’s scan.\nSpatial file inspection can derive useful information, but review the results before relying on them. A map preview does not establish accuracy, licensing or fitness for a particular use.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "dataset.html#describe-what-another-user-needs-to-know",
+    "href": "dataset.html#describe-what-another-user-needs-to-know",
+    "title": "Describe a dataset",
+    "section": "Describe what another user needs to know",
+    "text": "Describe what another user needs to know\n\n\n\n\n\n\n\nMetadata\nPractical question to answer\n\n\n\n\nTitle, abstract and purpose\nWhat is this dataset, and what was it created for?\n\n\nVersion and dates\nWhich revision is this, when was it published, and what period does it describe?\n\n\nAuthors, organisation and contact\nWho created it and whom should a recipient contact?\n\n\nKeywords and geographic/temporal coverage\nHow can someone find it and assess its coverage?\n\n\nSpatial reference, resolution and attributes\nHow should users interpret coordinates, units, fields and codes?\n\n\nLineage and quality\nHow was it made, what was checked, and what limitations remain?\n\n\nLicensing, access and distribution\nWho may obtain it, use it and redistribute it, and under which conditions?\n\n\nCitation and supporting documents\nHow should it be cited, and where are the methods and evidence?\n\n\n\nSave edits before generating reports, validating exports or freezing a version. Use Dataset status to inspect outstanding metadata work. Add the detailed methods through Lineage and development reports.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "dataset.html#check-the-human-readable-metadata",
+    "href": "dataset.html#check-the-human-readable-metadata",
+    "title": "Describe a dataset",
+    "section": "Check the human-readable metadata",
+    "text": "Check the human-readable metadata\nIn Dataset status → Human-readable metadata, choose Save PDF to dataset folder & download. This writes metadata.pdf and citation.txt at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.\nRepeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "dataset.html#iso-metadata-when-required",
+    "href": "dataset.html#iso-metadata-when-required",
+    "title": "Describe a dataset",
+    "section": "ISO metadata when required",
+    "text": "ISO metadata when required\nUse Dataset status → ISO metadata validation & export after saving. Inspect the report, correct the relevant fields, then rerun validation. The downloaded ISO package includes metadata and cited local supporting material, not the dataset payload. Additional validation requires Python with lxml, and ZIP download requires the zip utility. Local validation does not establish receiving-catalogue compatibility or verify that the facts entered are correct.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Describe a dataset"
+    ]
+  },
+  {
+    "objectID": "access-management.html",
+    "href": "access-management.html",
+    "title": "Manage accounts and deployment",
+    "section": "",
+    "text": "DataPond login controls actions through the app. SharePoint permissions control access to the shared library, and operating-system permissions control local files. These are separate controls: a DataPond administrator does not automatically become a SharePoint administrator.\n\n\n\n\n\n\n\n\nScenario\nWhere accounts and approvals live\nWho controls the files\n\n\n\n\nColleagues run DataPond locally and obtain data from SharePoint\nEach operating-system user’s DataPond configuration, separately for each local pond path\nSharePoint/library owners control remote access; workstation owners control downloaded copies\n\n\nColleagues use a future shared server through their browsers\nThe server service account’s DataPond configuration, provided all app processes use the same configuration and pond path\nServer operators control storage and the service account’s permissions\n\n\n\nThe first release has no central account synchronisation across workstations. Approving a colleague on your computer does not approve them on theirs. Disabling their account in your installation does not revoke their other installations or erase downloaded data. People who own the local R process and files can use trusted R functions directly; local app roles are not an organisational security boundary against those people.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#decide-where-access-is-managed",
+    "href": "access-management.html#decide-where-access-is-managed",
+    "title": "Manage accounts and deployment",
+    "section": "",
+    "text": "DataPond login controls actions through the app. SharePoint permissions control access to the shared library, and operating-system permissions control local files. These are separate controls: a DataPond administrator does not automatically become a SharePoint administrator.\n\n\n\n\n\n\n\n\nScenario\nWhere accounts and approvals live\nWho controls the files\n\n\n\n\nColleagues run DataPond locally and obtain data from SharePoint\nEach operating-system user’s DataPond configuration, separately for each local pond path\nSharePoint/library owners control remote access; workstation owners control downloaded copies\n\n\nColleagues use a future shared server through their browsers\nThe server service account’s DataPond configuration, provided all app processes use the same configuration and pond path\nServer operators control storage and the service account’s permissions\n\n\n\nThe first release has no central account synchronisation across workstations. Approving a colleague on your computer does not approve them on theirs. Disabling their account in your installation does not revoke their other installations or erase downloaded data. People who own the local R process and files can use trusted R functions directly; local app roles are not an organisational security boundary against those people.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#find-administrators-and-change-access",
+    "href": "access-management.html#find-administrators-and-change-access",
+    "title": "Manage accounts and deployment",
+    "section": "Find administrators and change access",
+    "text": "Find administrators and change access\nSign in to the relevant pond and open Configuration → Manage accounts. The Pond accounts table lists login accounts, roles and statuses. Rows with role admin are administrators; active means activated, while invited means awaiting activation. Seeded metadata people without login accounts do not appear as approved users merely because they exist in Parties.\nSelect an account’s row, then use the controls below it:\n\n\n\n\n\n\n\nTask\nAction\n\n\n\n\nChange permissions\nChoose Role, then Apply role and status\n\n\nSuspend an activated account\nSet Account status to Disabled, then Apply role and status\n\n\nRe-enable an activated account\nSet status to Active, confirm the role, then Apply role and status\n\n\nApprove a new request\nChoose the role and verified metadata person, then Approve pending request\n\n\nReject a request\nSet status to Rejected, then Apply role and status\n\n\nReplace a forgotten password or expired invitation\nSelect an active/invited account and choose Issue activation / recovery code\n\n\nReview access events\nExpand Access audit; times are UTC and actors/targets use account IDs\n\n\n\nChanging a role or status signs the affected account out. The final active/invited administrator cannot be removed. To reopen a rejected request, return it to Pending approval and approve it after verification. An invitation disabled before activation must return to Awaiting activation, followed by a new code.\n\n\n\n\n\n\n\nRole\nAllowed work\n\n\n\n\nViewer\nBrowse the authenticated pond’s metadata and maps\n\n\nEditor\nViewer access plus editing, scans, imports, exports, file/package downloads and dataset workflows, subject to existing ownership rules\n\n\nPond administrator\nEditor access plus account management, shared parties/vocabularies, review acceptance and Flow\n\n\n\nRoles apply to a pond, not individual datasets. Licensing and embargo fields describe policy; they do not enforce separate dataset permissions. Visible metadata can be copied. Grant access only where the person may see the pond’s metadata.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#set-up-and-onboard-people",
+    "href": "access-management.html#set-up-and-onboard-people",
+    "title": "Manage accounts and deployment",
+    "section": "Set up and onboard people",
+    "text": "Set up and onboard people\nThe first administrator must be set up from the trusted R console outside a running Shiny session. For someone already in the metadata catalogue, verify their numeric person ID and use it:\ncode &lt;- datapond::setup_pond_access(\n  data_pond = \"/path/to/your/pond\",\n  username = \"your.username\",\n  person_id = 18L  # Example only: replace with the verified ID in this pond.\n)\ncode\nFor a genuinely new person, replace person_id with first_name, last_name and optionally email. An existing-email error means you should verify and select the existing person, not create a duplicate. Setup refuses to replace an existing account store.\nFor subsequent accounts:\n\nThe colleague selects Request access in the intended installation and pond.\nAn administrator of that same installation and pond selects the request in Manage accounts, verifies identity, assigns a role and links the correct existing metadata person (or chooses Create a new person).\nThe administrator chooses Approve pending request and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.\nThe colleague selects Activate / recover access, enters their username and code, sets a passphrase of at least 15 characters, then signs in.\n\nActivation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use datapond::recover_pond_access(\"/path/to/your/pond\", \"your.username\") in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall.\n\n\n\n\n\n\nflowchart TD\n  accTitle: Onboard a colleague to a pond\n  accDescr: After the first administrator has been set up, a colleague requests access to the intended pond. An administrator of that installation and pond verifies identity, links the metadata person, chooses a role and approves the request. The administrator privately shares a single-use code. The colleague activates access within 24 hours, sets a passphrase of at least 15 characters and signs in. An expired code requires a new code from the administrator.\n  request[\"Colleague: Request access\"] --&gt; verify[\"Administrator: verify identity;&lt;br/&gt;link person and choose role\"]\n  verify --&gt; approve[\"Administrator: Approve pending request\"]\n  approve --&gt; code[\"Share single-use code privately\"]\n  code --&gt; valid{\"Code still valid&lt;br/&gt;within 24 hours?\"}\n  valid --&gt;|No| reissue[\"Administrator: issue a new code\"]\n  reissue --&gt; code\n  valid --&gt;|Yes| activate[\"Colleague: Activate / recover access;&lt;br/&gt;set passphrase of at least 15 characters\"]\n  activate --&gt; signin[\"Colleague: sign in to this pond\"]\n\n\n Account approval and activation happen within the same installation and pond. The administrator shares the code privately.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#scenario-1-local-use-with-sharepoint-and-caching",
+    "href": "access-management.html#scenario-1-local-use-with-sharepoint-and-caching",
+    "title": "Manage accounts and deployment",
+    "section": "Scenario 1: local use with SharePoint and caching",
+    "text": "Scenario 1: local use with SharePoint and caching\nUse SharePoint as the distribution location and keep a clearly designated master pond. Colleagues can work with local metadata and fetch larger datasets when needed. SharePoint access does not sign them in to DataPond, and local DataPond approval does not grant SharePoint access.\n\nPublished catalogue and on-demand files through Flow\nThis workflow is implemented, but all Flow controls currently require a local pond administrator, including remote metadata browsing and downloads. Viewer/editor accounts cannot use this route. A separate restricted consumer role is future work; do not grant administrative access on the master merely to let someone cache data.\n\nThe master custodian opens Flow → Design flows (setup) and enters Flow to — destination. At the bottom of that tab, Publish pond uses the active pond, without saving a flow. Select Also upload registered dataset folders (data, documents and scripts) if the files should accompany the catalogue, then choose Preview pond publication. Review the plan and log in Run flows, then choose Run flow. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.\nOn the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in Flow → Config (setup). Cloud credentials belong to the operating-system account running the app.\nIn Flow → Remote ponds (read-only), enter the configured remote pond folder and an empty Local pond cache folder. Use Connect / refresh metadata only. A SharePoint web URL is not a configured remote path.\nBrowse the cached catalogue offline. Select a dataset and choose Download / update selected dataset when its files are needed; fetching new content requires connectivity and remote permission.\nUse Remove selected download from local pond cache to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.\n\nThe remote cache is read-only in DataPond and does not upload edits. It is authorised by the cloud connection and the local Flow role, not by logging in to the publisher’s DataPond account store. For changes, use a separate working pond and the dataset transfer or metadata review workflow, then have the custodian accept and republish the result. This differs from the frozen-release cache helper, which currently reads release packages from a local pond.\n\n\n\n\n\nflowchart TD\n  accTitle: Publish a catalogue and fetch local copies through Flow\n  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. Removing a local download retains the cached metadata and remote dataset; edits must go through a separate working pond and exchange workflow.\n  master[\"Master custodian: preview publication;&lt;br/&gt;choose whether to include dataset folders\"] --&gt; run[\"Run flow; wait for publication to finish\"]\n  run --&gt; remote[\"SharePoint: published catalogue&lt;br/&gt;and any uploaded dataset folders\"]\n  remote --&gt;|Authorised cloud connection| metadata[\"Consumer: Connect / refresh metadata only\"]\n  metadata --&gt; browse[\"Browse cached metadata offline\"]\n  browse --&gt;|Files needed and published| download[\"While online: Download / update&lt;br/&gt;selected dataset\"]\n  download --&gt; use[\"Use the local read-only copy\"]\n  use --&gt;|Reclaim local space| remove[\"Remove selected download;&lt;br/&gt;retain metadata and remote dataset\"]\n\n\n Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. All Flow actions require a local pond administrator. \n\n\n\nIn Design flows (setup), Choose a destination location lists both Saved folders and Configured remotes. Selecting a remote fills in its library root, such as team_data:; append a dedicated publication folder in Flow to — destination, for example team_data:published/my_pond. To bookmark that full path, use Config (setup) → Saved locations → Save location. If a connection was added outside the app, use Browse locations and libraries → Detect configured libraries and drives in Config to refresh the choices.\n\n\nLeave a publication running\nRunning or queued Flow jobs count as activity and prevent the 30-minute idle timeout while the app remains connected. Keep the app open and the computer awake. Normal idle expiry resumes when the job finishes, fails or is cancelled; waiting at a private cloud sign-in prompt does not extend the session.\nJobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.\nIf publication is interrupted, sign in again, check the active pond and destination, then preview and run publication again with the same dataset-upload choice. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.\n\n\nOneDrive-synced SharePoint folders\nWhere colleagues use OneDrive Files On-Demand instead of Flow, ensure required files are downloaded before offline work. On Windows, Always keep on this device retains files locally; Free up space makes them online-only. Deleting files in the synced folder can delete the shared copies too. These controls belong to OneDrive, not DataPond. See Microsoft’s Files On-Demand guidance.\nFor the working catalogue, use a local pond outside automatic sync and distribute a consistent snapshot or an exchange package. Do not have multiple workstations edit and sync copies of the same live metadata.db: file synchronisation does not merge database transactions. Copying a database while a transaction is active can produce an inconsistent copy; use the app’s publication snapshot or close all database writers before a filesystem copy. This operating recommendation follows SQLite’s guidance on backup and restore during transactions.\n\n\nRemoving local users’ access\nThe library owner removes SharePoint permissions; the relevant installation administrator disables the DataPond account. Previously downloaded metadata and data remain on the workstation. Handle retention or removal through the organisation’s device and data procedures. There is no remote cache wipe or central workstation audit in this release.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#scenario-2-future-server-hosted-access",
+    "href": "access-management.html#scenario-2-future-server-hosted-access",
+    "title": "Manage accounts and deployment",
+    "section": "Scenario 2: future server-hosted access",
+    "text": "Scenario 2: future server-hosted access\nServer hosting is a deployment option to prepare and validate, not a service provisioned by this release. Colleagues would open an HTTPS address; R, the catalogue, cloud connections and caches would run on the server. A browser download creates a separate client copy, while Flow’s local cache would be on the server.\nUse a dedicated service account with persistent, protected local storage. Bootstrap its administrator from an R console running as that service account, using the same configuration directory and canonical pond path as the hosted app. All app processes intended to share accounts must use that same store. Separate OS users, containers with separate configuration directories, or different pond paths do not automatically share accounts.\nIn that arrangement, Manage accounts becomes the shared control point for browser users of that server and pond. Disabling an account revokes its sessions there, but does not affect SharePoint membership or files already downloaded elsewhere. Direct server R/filesystem access remains trusted and should be restricted to operators.\nBefore opening remote access, the operator must configure HTTPS, restrict service-account file/cloud permissions, preserve and back up the account store, and validate concurrent use, session routing and recovery in the chosen hosting environment. Flow administrators operate with that service account’s file and configured cloud access, not each browser user’s SharePoint identity. Do not expose personal cloud credentials through a shared server. SSO, MFA, automatic Microsoft identity-to-role mapping and distributed multi-host account storage are not implemented in this release.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "access-management.html#backups-and-changes-of-machine-or-path",
+    "href": "access-management.html#backups-and-changes-of-machine-or-path",
+    "title": "Manage accounts and deployment",
+    "section": "Backups and changes of machine or path",
+    "text": "Backups and changes of machine or path\nBack up the pond and the account store separately. Locate the latter with:\nfile.path(tools::R_user_dir(\"datapond\", which = \"config\"), \"security\")\nThat private directory contains password hashes, token records and the access audit. Keep it out of shared dataset folders and publication bundles. Take consistent backups with writers stopped, protect them, and test restoration on a copy.\nAccount stores are keyed by canonical pond path under that OS user’s configuration. Moving a pond, changing users or moving to another machine requires local setup or a deliberately managed restoration; copying metadata.db alone transfers neither passwords nor roles. Legacy administrative flags in the portable metadata are not login permissions. The Access audit describes that account store’s events, not all SharePoint activity or changes made by external R scripts.",
+    "crumbs": [
+      "Start here",
+      "Help and maintenance",
+      "Manage accounts and deployment"
+    ]
+  },
+  {
+    "objectID": "document-tools.html",
+    "href": "document-tools.html",
+    "title": "Set up document tools",
+    "section": "",
+    "text": "Task\nAdditional software\n\n\n\n\nRead this guide or edit dataset metadata\nNone beyond the installed app; the standalone guide only needs a browser\n\n\nType methods into the supplied Word template\nWord or a compatible document editor\n\n\nRender development QMD to HTML or Word\nQuarto; the template’s executable analysis may also need its own R/Python packages\n\n\nGenerate the metadata PDF or development PDF\nQuarto and XeLaTeX; document preparation also verifies files with Python 3.9+\n\n\nInventory documents or freeze/restore releases\nPython 3.9+; freezing uses the prepared PDF",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Set up document tools"
+    ]
+  },
+  {
+    "objectID": "document-tools.html#which-tools-do-i-need",
+    "href": "document-tools.html#which-tools-do-i-need",
+    "title": "Set up document tools",
+    "section": "",
+    "text": "Task\nAdditional software\n\n\n\n\nRead this guide or edit dataset metadata\nNone beyond the installed app; the standalone guide only needs a browser\n\n\nType methods into the supplied Word template\nWord or a compatible document editor\n\n\nRender development QMD to HTML or Word\nQuarto; the template’s executable analysis may also need its own R/Python packages\n\n\nGenerate the metadata PDF or development PDF\nQuarto and XeLaTeX; document preparation also verifies files with Python 3.9+\n\n\nInventory documents or freeze/restore releases\nPython 3.9+; freezing uses the prepared PDF",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Set up document tools"
+    ]
+  },
+  {
+    "objectID": "document-tools.html#run-setup-once-while-online",
+    "href": "document-tools.html#run-setup-once-while-online",
+    "title": "Set up document tools",
+    "section": "Run setup once while online",
+    "text": "Run setup once while online\nStop the app and run in R:\ndatapond::setup_document_tools()\nThe helper checks Quarto, XeLaTeX and Python, then tries the metadata PDF and the development template’s PDF, Word and HTML outputs in a temporary folder. It does not modify a dataset or execute its analysis.\nIf Quarto or Python is missing, setup prints installation instructions. Install Quarto and Python as needed, restart R so it sees the new programs, and rerun setup. Installing the R package named quarto is not a substitute for installing the Quarto command-line program.\nWhen XeLaTeX is missing, setup can install Quarto-managed TinyTeX and the required theme packages. It tests an existing system TeX installation without modifying it. If that installation reports missing fonts or packages, ask its administrator to resolve them. An incomplete existing TinyTeX directory is not forcibly replaced.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Set up document tools"
+    ]
+  },
+  {
+    "objectID": "document-tools.html#verify-before-going-offline",
+    "href": "document-tools.html#verify-before-going-offline",
+    "title": "Set up document tools",
+    "section": "Verify before going offline",
+    "text": "Verify before going offline\nresult &lt;- datapond::check_document_tools()\nresult$checks\nresult$ready\nProceed when result$ready is TRUE. This check renders test documents with software/package downloads disabled. The app offers the same action under Configuration → Document tools → Check document tools. A quick check_document_tools(verify = FALSE) only detects programs; it does not prove rendering works.\n\n\n\n\n\n\nflowchart TD\n  accTitle: Check document tools before going offline\n  accDescr: Run setup while online and follow any installation instructions. Restart R after installing tools, then run check_document_tools. If ready is false, resolve the failed checks and check again. A true result means the document toolchain passed its test renders.\n  setup[\"Run setup_document_tools() online\"] --&gt; install[\"Follow any installation instructions;&lt;br/&gt;restart R after installing tools\"]\n  install --&gt; check[\"Run check_document_tools()\"]\n  check --&gt; ready{\"result$ready is TRUE?\"}\n  ready --&gt;|No| fix[\"Resolve the reported failed checks\"]\n  fix --&gt; check\n  ready --&gt;|Yes| offline[\"Document toolchain ready for offline use\"]\n\n\n Complete setup and a rendering check before relying on document generation offline. \n\n\n\n\nThe first online setup can take time and download a TeX distribution. It is an explicit user action, never an automatic part of starting the app. After setup, normal app PDF generation leaves automatic TeX package downloads disabled.\n\n\nCustom software locations\n\nSet DATAPOND_QUARTO (or QUARTO_PATH) to the Quarto executable and DATAPOND_RELEASE_PYTHON to the Python executable. For example, using your actual paths:\nSys.setenv(DATAPOND_QUARTO = \"/path/to/quarto\")\nSys.setenv(DATAPOND_RELEASE_PYTHON = \"/path/to/python3\")\ndatapond::check_document_tools()\nUse .Renviron for persistent settings, then restart R. Use executable paths, not their parent folders.",
+    "crumbs": [
+      "Start here",
+      "Getting started",
+      "Set up document tools"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Start here",
+    "section": "",
+    "text": "Keep the data, its description and its history together. This guide takes you from installing DataPond to handing someone a documented, frozen dataset.",
+    "crumbs": [
+      "Start here"
+    ]
+  },
+  {
+    "objectID": "index.html#a-practical-route-through-the-app",
+    "href": "index.html#a-practical-route-through-the-app",
+    "title": "Start here",
+    "section": "A practical route through the app",
+    "text": "A practical route through the app\nInstall → Open a pond → Sign in → Save a dataset → Add files and lineage → Review metadata → Prepare PDF → Freeze a version.\n\n\n\n\n\nflowchart TD\n  accTitle: A practical route through DataPond\n  accDescr: Install DataPond, open a pond and sign in. Save a draft, add files and lineage, review metadata, then prepare and inspect the PDF. Freeze and verify a release before checking distribution approval and sharing the ZIP with its sidecars.\n  setup[\"Install DataPond, open a pond and sign in\"] --&gt; draft[\"Save a dataset draft\"]\n  draft --&gt; describe[\"Add files, metadata and lineage\"]\n  describe --&gt; review[\"Review metadata\"]\n  review --&gt; pdf[\"Prepare and inspect metadata PDF\"]\n  pdf --&gt; freeze[\"Freeze and verify a version\"]\n  freeze --&gt; share[\"Check distribution approval;&lt;br/&gt;share ZIP and sidecars\"]\n\n\n From a working draft to a verified release. Distribution is a separate decision. \n\n\n\nUse a small practice pond for your first run. A saved draft, a reviewed dataset and a frozen release are different milestones. Freezing records a fixed version; your organisation still decides whether it may be distributed.",
+    "crumbs": [
+      "Start here"
+    ]
+  },
+  {
+    "objectID": "index.html#using-this-guide",
+    "href": "index.html#using-this-guide",
+    "title": "Start here",
+    "section": "Using this guide",
+    "text": "Using this guide\nUse chapter navigation and search to find a task. Code blocks have copy buttons; commands are examples for you to run, never executed by the guide. Installation tabs separate operating systems. Checklists remember your ticks where browser storage permits; they do not inspect or change a dataset and are not an approval record.\nProcess diagrams summarise the written instructions. On a narrow screen, scroll wider diagrams sideways; keyboard users can focus the diagram and use the arrow keys.\nThe Offline edition combines every chapter into one HTML file with its own search. Save that file to read or share without R, Quarto or a running app. External reference links still need an internet connection.",
+    "crumbs": [
+      "Start here"
+    ]
+  },
+  {
+    "objectID": "lineage.html",
+    "href": "lineage.html",
+    "title": "Lineage and development reports",
+    "section": "",
+    "text": "Open Dataset workspace → Lineage → Lineage authority and supporting documents → Add data development template.\n\nUse a saved, unlocked draft in src/ or dev/, while signed in with editor or administrator access.\nChoose Microsoft Word for colleagues who want to type directly into a report, or Quarto for an editable source that can render to PDF, Word and HTML.\nOptionally enter a short project name such as pisr.\nChoose Add template to dataset folder. The app creates data_dev_pisr.docx or data_dev_pisr.qmd at the dataset root. A Quarto copy also receives its portable data_dev_pisr_theme/ folder.\n\nExisting files are never overwritten. The report is registered in Supporting documents, but is not automatically treated as finished lineage evidence. Adding a template needs no rendering software. An active review or lifecycle operation may prevent adding it until that operation is completed or cancelled.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Lineage and development reports"
+    ]
+  },
+  {
+    "objectID": "lineage.html#add-a-methods-document-to-the-dataset",
+    "href": "lineage.html#add-a-methods-document-to-the-dataset",
+    "title": "Lineage and development reports",
+    "section": "",
+    "text": "Open Dataset workspace → Lineage → Lineage authority and supporting documents → Add data development template.\n\nUse a saved, unlocked draft in src/ or dev/, while signed in with editor or administrator access.\nChoose Microsoft Word for colleagues who want to type directly into a report, or Quarto for an editable source that can render to PDF, Word and HTML.\nOptionally enter a short project name such as pisr.\nChoose Add template to dataset folder. The app creates data_dev_pisr.docx or data_dev_pisr.qmd at the dataset root. A Quarto copy also receives its portable data_dev_pisr_theme/ folder.\n\nExisting files are never overwritten. The report is registered in Supporting documents, but is not automatically treated as finished lineage evidence. Adding a template needs no rendering software. An active review or lifecycle operation may prevent adding it until that operation is completed or cancelled.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Lineage and development reports"
+    ]
+  },
+  {
+    "objectID": "lineage.html#write-the-development-history",
+    "href": "lineage.html#write-the-development-history",
+    "title": "Lineage and development reports",
+    "section": "Write the development history",
+    "text": "Write the development history\nThe common template covers revision history, project summary, main steps, inputs, detailed processing, outputs and quality checks, conclusions and appendices. For each important step record its purpose, inputs, operation, decisions, outputs and checks. Include software versions, packages and run evidence in the report so another person can understand how the data were produced.\nInstructional callouts are useful while writing. Keep them during development, then remove or resolve them before declaring the report complete. The draft PISR and PU reports are examples of work in progress, not completed instructions to copy as factual methods.\n\n\n\n\n\n\n\nWord workflow\nQuarto workflow\n\n\n\n\nOpen the .docx and replace prompts with your methods.\nEdit the .qmd in RStudio’s visual or source editor, or another text editor.\n\n\nUse its styles for headings, captions and tables.\nKeep the YAML theme references and the adjacent theme folder together.\n\n\nSave the report and, if needed, export PDF in your editor.\nRender to the desired format with Quarto.\n\n\nRecord software/packages manually.\nRecord software/packages in the report; review any executable code before rendering.\n\n\n\nWord and Quarto copies do not synchronise. Decide which source your team maintains. Editing a rendered Word output does not update its QMD source.\n\n\n\n\n\n\nflowchart TD\n  accTitle: From a development template to lineage evidence\n  accDescr: Choose either Word or Quarto as the maintained source. Write and save the Word report, or edit the QMD and render the required outputs. Review the supporting-document record, select the authoritative document and save a lineage summary. Reprepare the metadata PDF when lineage references change.\n  source{\"Choose the maintained source\"}\n  source --&gt;|Word| word[\"Write and save the Word report\"]\n  source --&gt;|Quarto| qmd[\"Edit QMD and render required outputs\"]\n  word --&gt; record[\"Review Supporting documents record\"]\n  qmd --&gt; record\n  record --&gt; authority[\"Select authoritative document;&lt;br/&gt;save lineage summary\"]\n  authority --&gt; pdf[\"Reprepare metadata PDF&lt;br/&gt;when lineage references change\"]\n\n\n Choose one maintained report source, then explicitly make the completed report part of lineage.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Lineage and development reports"
+    ]
+  },
+  {
+    "objectID": "lineage.html#render-a-quarto-report",
+    "href": "lineage.html#render-a-quarto-report",
+    "title": "Lineage and development reports",
+    "section": "Render a Quarto report",
+    "text": "Render a Quarto report\nIn a terminal, change to the dataset folder and substitute your actual filename:\nquarto render data_dev_pisr.qmd --to html\nquarto render data_dev_pisr.qmd --to docx\nquarto render data_dev_pisr.qmd --to pdf\nUse Document tools to prepare PDF dependencies. Your own executable analysis can have additional requirements and side effects: check the document’s execution settings before rendering. DataPond’s metadata PDF and frozen-release operations acknowledge and preserve QMD/Rmd documents without executing their analysis.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Lineage and development reports"
+    ]
+  },
+  {
+    "objectID": "lineage.html#make-the-completed-report-part-of-lineage",
+    "href": "lineage.html#make-the-completed-report-part-of-lineage",
+    "title": "Lineage and development reports",
+    "section": "Make the completed report part of lineage",
+    "text": "Make the completed report part of lineage\nReview its record under Supporting documents, then select the authoritative document in Lineage authority and supporting documents. Save a concise lineage summary in the app, with the detailed method in the report. Review any include-in-lineage choices; a newly added blank template starts unselected.\nExisting root data_dev*.qmd or .Rmd documents can also support lineage. Check the registered document paths after scanning. Keep the document and its styles inside the dataset for portability. Reprepare metadata.pdf when its lineage references change, then review and freeze the complete folder.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Lineage and development reports"
+    ]
+  },
+  {
+    "objectID": "review.html",
+    "href": "review.html",
+    "title": "Transfer and metadata review",
+    "section": "",
+    "text": "What you want to share\nUse\n\n\n\n\nA working dataset and its files with another pond\nOrdinary Dataset transfer bundle\n\n\nMetadata for a colleague to review and return\nMetadata review exchange\n\n\nStandards-based metadata for a receiving system\nISO metadata validation & export\n\n\nA fixed version for distribution and later verification\nFrozen releases, with its sidecars\n\n\n\nThese packages serve different purposes. A metadata-only request is not a copy of the data, and an ordinary transfer bundle is not a frozen release.\n\n\n\n\n\n\nflowchart TD\n  accTitle: Metadata review request and return\n  accDescr: In the master pond, save metadata and create a review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the master. If the baseline is unchanged and checks pass, a pond administrator can accept it. Otherwise resolve competing work, cancel with a reason and issue a fresh request.\n  request[\"Master: save metadata;&lt;br/&gt;create review request\"] --&gt;|Send request ZIP| import[\"Reviewer: import into a separate pond\"]\n  import --&gt; edit[\"Reviewer: edit and save metadata;&lt;br/&gt;create review return\"]\n  edit --&gt;|Send return ZIP| inspect[\"Master: Inspect return\"]\n  inspect --&gt; checks{\"Baseline unchanged&lt;br/&gt;and checks pass?\"}\n  checks --&gt;|Yes| accept[\"Pond administrator: record decision;&lt;br/&gt;accept reviewed metadata\"]\n  checks --&gt;|No| resolve[\"Resolve competing work;&lt;br/&gt;cancel with a reason\"]\n  resolve --&gt;|Fresh request| request\n\n\n Metadata review is a round trip between the master and a separate review pond. Send both ZIPs through your agreed channel.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Transfer and metadata review"
+    ]
+  },
+  {
+    "objectID": "review.html#choose-the-right-kind-of-exchange",
+    "href": "review.html#choose-the-right-kind-of-exchange",
+    "title": "Transfer and metadata review",
+    "section": "",
+    "text": "What you want to share\nUse\n\n\n\n\nA working dataset and its files with another pond\nOrdinary Dataset transfer bundle\n\n\nMetadata for a colleague to review and return\nMetadata review exchange\n\n\nStandards-based metadata for a receiving system\nISO metadata validation & export\n\n\nA fixed version for distribution and later verification\nFrozen releases, with its sidecars\n\n\n\nThese packages serve different purposes. A metadata-only request is not a copy of the data, and an ordinary transfer bundle is not a frozen release.\n\n\n\n\n\n\nflowchart TD\n  accTitle: Metadata review request and return\n  accDescr: In the master pond, save metadata and create a review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the master. If the baseline is unchanged and checks pass, a pond administrator can accept it. Otherwise resolve competing work, cancel with a reason and issue a fresh request.\n  request[\"Master: save metadata;&lt;br/&gt;create review request\"] --&gt;|Send request ZIP| import[\"Reviewer: import into a separate pond\"]\n  import --&gt; edit[\"Reviewer: edit and save metadata;&lt;br/&gt;create review return\"]\n  edit --&gt;|Send return ZIP| inspect[\"Master: Inspect return\"]\n  inspect --&gt; checks{\"Baseline unchanged&lt;br/&gt;and checks pass?\"}\n  checks --&gt;|Yes| accept[\"Pond administrator: record decision;&lt;br/&gt;accept reviewed metadata\"]\n  checks --&gt;|No| resolve[\"Resolve competing work;&lt;br/&gt;cancel with a reason\"]\n  resolve --&gt;|Fresh request| request\n\n\n Metadata review is a round trip between the master and a separate review pond. Send both ZIPs through your agreed channel.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Transfer and metadata review"
+    ]
+  },
+  {
+    "objectID": "review.html#request-a-metadata-review",
+    "href": "review.html#request-a-metadata-review",
+    "title": "Transfer and metadata review",
+    "section": "Request a metadata review",
+    "text": "Request a metadata review\nIn the master pond, use Pond links / Dataset transfer → Metadata review exchange. Save the dataset, enter the responsible colleague, then choose Create metadata review request. Download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.\nOne request can be active per dataset. Keep the master’s private .metadata_pond/reviews/ records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Transfer and metadata review"
+    ]
+  },
+  {
+    "objectID": "review.html#work-as-the-reviewer",
+    "href": "review.html#work-as-the-reviewer",
+    "title": "Transfer and metadata review",
+    "section": "Work as the reviewer",
+    "text": "Work as the reviewer\nImport the request with Import dataset into a separate local pond that does not already contain the dataset UUID. Use a fresh review pond for a repeated assignment. Sign in to that pond, edit metadata, record the reason/status in Metadata review, and save. Choose Create metadata review return and send the resulting ZIP back.\nThe review workspace contains metadata only. Do not scan its empty data folder or change file inventories/supporting-document records. Use a separate read-only copy of the published data if needed for reference. Data-file edits and changes to shared definitions are outside this review-return workflow.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Transfer and metadata review"
+    ]
+  },
+  {
+    "objectID": "review.html#inspect-and-accept-the-return",
+    "href": "review.html#inspect-and-accept-the-return",
+    "title": "Transfer and metadata review",
+    "section": "Inspect and accept the return",
+    "text": "Inspect and accept the return\nIn the master, select the returned ZIP and choose Inspect return. Read the comparison with the issued baseline. An active pond administrator records the acceptance decision and chooses Accept reviewed metadata into master.\nAcceptance updates the existing record and UUID, preserves previous metadata and appends review history. If the master metadata or files have changed, acceptance stops. Resolve the competing work, cancel the old request with a reason and issue a fresh request; this version does not automatically merge it.\nAn accepted return does not publish itself. Where your team uses Flow, Flow → Publish pond is a separate catalogue publication step. It does not establish a published-current pointer for frozen releases. Follow your team’s distribution approvals before sharing data.",
+    "crumbs": [
+      "Start here",
+      "Working with datasets",
+      "Transfer and metadata review"
+    ]
+  }
+]

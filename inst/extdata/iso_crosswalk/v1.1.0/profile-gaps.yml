@@ -1,0 +1,102 @@
+gaps:
+  - id: GAP-001
+    priority: high
+    iso_target: 'mdb:metadataIdentifier/mcc:MD_Identifier'
+    issue: The metadata record has no stored identifier distinct from the dataset UUID.
+    recommendation: Add entry_tbl.metadata_uuid or a metadata_record_tbl; MDB-001 is an interim deterministic transform.
+
+  - id: GAP-002
+    priority: high
+    iso_target: 'mdb:defaultLocale/lan:PT_Locale'
+    issue: Metadata language and character encoding are not stored.
+    recommendation: Add metadata_language_code and metadata_character_encoding; use eng and UTF-8 only as profile defaults.
+
+  - id: GAP-003
+    priority: high
+    iso_target: 'mdb:metadataScope/mdb:MD_MetadataScope'
+    issue: Resource scope is not stored and is currently assumed to be dataset.
+    recommendation: Add resource_scope_code before supporting series, services, documents, or other resource types.
+
+  - id: GAP-004
+    priority: high
+    iso_target: 'mri:MD_DataIdentification/mri:topicCategory/mri:MD_TopicCategoryCode'
+    issue: No ISO topic category is stored; free keywords are not a safe substitute.
+    recommendation: Add repeatable dataset_topic_category_tbl values constrained to MD_TopicCategoryCode.
+
+  - id: GAP-005
+    priority: high
+    iso_target: 'cit:CI_Citation/cit:date/cit:CI_Date'
+    issue: citation_date assumes publication and cannot represent multiple typed citation dates.
+    recommendation: Add dataset_citation_date_tbl(dataset_id, date_value, date_type_code, date_precision, date_note).
+
+  - id: GAP-006
+    priority: medium
+    iso_target: 'cit:CI_Citation/cit:alternateTitle'
+    issue: Alternate/additional titles in the reference documents are not represented.
+    recommendation: Add a repeatable alternate-title table or a single entry_tbl.alternate_title field if one title is sufficient.
+
+  - id: GAP-007
+    priority: high
+    iso_target: 'mri:MD_DataIdentification/mri:spatialResolution/mri:MD_Resolution/mri:equivalentScale'
+    issue: Existing min_scale and max_scale describe use/capture limits and cannot be mapped to a representative-fraction denominator.
+    recommendation: Add equivalent_scale_denominator as a positive integer and retain the current range as a DataPond extension.
+
+  - id: GAP-009
+    priority: high
+    iso_target: 'ISO 19157-1 DQ_DataQuality'
+    issue: There is no structured quality-result model. Scan and profiling status fields are workflow evidence, not quality results.
+    recommendation: Add repeatable quality records with scope, measure identifier/type, evaluation method/date, result type/value/unit, conformance specification, and pass/fail.
+
+  - id: GAP-010
+    priority: medium
+    iso_target: 'gex:EX_VerticalExtent'
+    issue: Vertical extent, vertical CRS, and vertical units are not stored.
+    recommendation: Add optional vertical minimum, maximum, unit, and vertical CRS fields for applicable resources.
+
+  - id: GAP-011
+    priority: high
+    iso_target: 'cit:CI_OnlineResource and mrd:MD_Format'
+    issue: Online resources and formats lack structured name, description, protocol, function, format version, and media type.
+    recommendation: Add dataset_online_resource_tbl and structured distribution-format records rather than relying on one URL and detected extensions.
+
+  - id: GAP-012
+    priority: medium
+    iso_target: 'mco:MD_Releasability'
+    issue: Embargo status, reason, and end date exist, but there is no start date, addressee, release statement, or controlled dissemination constraint and the fields are split from dataset_license_tbl.
+    recommendation: Consolidate embargo fields into dataset_license_tbl and add embargo_start_date, release_statement, and dissemination_constraint_code while retaining entry_tbl compatibility fields.
+
+  - id: GAP-013
+    priority: high
+    iso_target: 'mdb:contact/cit:CI_Responsibility'
+    issue: Metadata authorship is inferred from the record creator and reviewers rather than explicitly assigned.
+    recommendation: Add metadata_responsibility_tbl(dataset_id, person_id, organisation_id, role_code, is_primary).
+
+  - id: GAP-014
+    priority: medium
+    iso_target: 'mri:descriptiveKeywords/mri:MD_Keywords/mri:thesaurusName'
+    issue: Keyword values record local vocabulary provenance but not an exportable thesaurus citation/version.
+    recommendation: Add vocabulary title, edition/date, URI, and responsible party to keyword vocabulary metadata.
+
+  - id: GAP-015
+    priority: medium
+    iso_target: 'mrc:MD_FeatureCatalogueDescription and ISO 19110:2016'
+    issue: Dataset attributes are rich, but vector and tabular attributes do not have a formal feature-catalogue representation.
+    recommendation: Generate an ISO 19110 feature catalogue and link it from MD_FeatureCatalogueDescription; use MRC sample dimensions only for true coverages.
+
+  - id: GAP-016
+    priority: medium
+    iso_target: 'cit:CI_Organisation and cit:CI_Address'
+    issue: Organisation addresses are stored as one text field and departments are not structurally distinct organizations.
+    recommendation: Normalize address parts and allow parent/child organisational units where detailed contact export is required.
+
+  - id: GAP-017
+    priority: medium
+    iso_target: 'mri:MD_DataIdentification/mri:extent'
+    issue: Temporal values cannot record precision, uncertainty, named time periods, or multiple disjoint extents.
+    recommendation: Replace the single start/end pair with repeatable temporal extents while retaining compatibility views for the current fields.
+
+  - id: GAP-018
+    priority: high
+    iso_target: 'ISO 19115-3 XML instance validation'
+    issue: No serializer or XSD/Schematron conformance test currently consumes this crosswalk.
+    recommendation: Build XML exports for vector, raster, and nonspatial fixtures and validate them against the official ISO/TC 211 schemas and Schematron rules.

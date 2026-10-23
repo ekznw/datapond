@@ -1,0 +1,28 @@
+:root { --guide-border: #cdd4c2; }
+main { max-width: 900px; }
+main table { overflow-wrap: anywhere; }
+h1 { letter-spacing: -.035em; }
+h2 { margin-top: 2rem; }
+.guide-intro { font-size: 1.15rem; max-width: 48rem; }
+.guide-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.guide-card { background: white; border: 1px solid var(--guide-border); border-radius: 12px; padding: 1.2rem; }
+.guide-card h3 { margin-top: 0; font-size: 1.15rem; }
+.guide-card p:last-child { margin-bottom: 0; }
+.guide-checklist { padding: 1.2rem; border: 1px solid var(--guide-border); border-left: 5px solid #71875b; border-radius: 6px; background: #f0f3e9; margin: 1.5rem 0; }
+.guide-checklist label { display: flex; gap: .7rem; align-items: baseline; padding: .3rem 0; cursor: pointer; }
+.guide-checklist input { accent-color: #435b3b; width: 1.1rem; height: 1.1rem; flex: 0 0 auto; }
+.guide-checklist small { display: block; margin-top: .6rem; }
+.guide-checklist button { margin-top: .6rem; }
+.guide-checklist button, #guide-search { border: 1px solid #78866e; border-radius: 4px; background: white; padding: .4rem .6rem; color: #27322b; }
+#guide-search { width: 100%; }
+#guide-search-results { max-height: 22rem; overflow-y: auto; }
+.guide-search-box { background: #f0f3e9; padding: 1rem 1.2rem; border-radius: 8px; margin-bottom: 2rem; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid #b27730; outline-offset: 3px; }
+details { padding: .8rem 1rem; border: 1px solid var(--guide-border); border-radius: 6px; margin: 1rem 0; }
+summary { font-weight: 600; cursor: pointer; }
+.guide-process { overflow-x: auto; margin: 1.5rem 0; }
+.guide-process svg.mermaid-js { min-width: 520px; }
+.guide-process:focus-visible { outline: 3px solid #b27730; outline-offset: 3px; }
+@media print { .guide-process { overflow: visible; } .guide-process svg.mermaid-js { min-width: 0; } }
+@media (max-width: 650px) { .guide-cards { grid-template-columns: 1fr; } }
+@media print { .guide-search-box, .guide-checklist button { display: none; } .guide-card { break-inside: avoid; } }

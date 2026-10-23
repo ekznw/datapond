@@ -1,0 +1,26 @@
+gaps:
+- id: GAP-018
+  priority: high
+  iso_target: ISO 19115-3 XML instance validation
+  issue: All 164 mapping dispositions, nonspatial handling and the declared date
+    policy remain implemented. The app now exposes separate pinned and DataPond
+    outcomes plus package dependency checks. Staged publishing and ZIP downloads
+    include cited local supporting documents and scripts. GAP-018 remains open for
+    broader semantic/code-list checks, conditional value coverage and receiving-catalogue
+    compatibility. The local date policy is not upstream ISO agreement.
+  recommendation: Extend database-to-XML value and semantic checks using the mapping
+    ledger, then test receiving-catalogue requirements. Retain the explicit date-policy
+    distinction pending upstream clarification. External URLs are not fetched.
+- id: GAP-019
+  status: resolved-export
+  priority: high
+  iso_target: Supplementary resource constraints
+  issue: Resolved in crosswalk 3.2.5 and the shared distribution/licensing serializer.
+    Supplementary access/use notes are additive and whitespace-equivalent duplicates
+    are removed within the same property. MCO-017 independently handles legacy licence
+    identity. Existing pond records have not been rewritten or audited for semantic
+    contradictions.
+  recommendation: Regression fixtures cover structured licences with extra notes,
+    duplicates, distinct wording and embargo-only rows. Audit real pond notes before
+    any future destructive cleanup; retain potentially conflicting wording for review
+    rather than guessing equivalence.

@@ -5,7 +5,8 @@ mod_supporting_documents_ui <- function(id) {
     h3("Supporting documents"),
     tags$small(
       style = "color:#666; display:block;",
-      "Scans the dataset folder outside data/. Documents in docs/, scripts/ and the dataset root can be listed and classified."
+      "Scans the dataset folder outside data/. Documents in docs/, scripts/ and the dataset root can be listed and classified.",
+      "Supporting documents are optional unless chosen as the authoritative lineage source; select those documents in Lineage."
     ),
     br(),
     actionButton(
@@ -28,13 +29,13 @@ mod_supporting_documents_ui <- function(id) {
     ),
     br(),
     h4("Edit document classification"),
-    selectInput(ns("doc_select"), "Select document", choices = NULL),
+    selectInput(ns("doc_select"), metadata_field_label("Select document", "Conditional", "Select a document before saving its classification or notes."), choices = NULL),
     selectInput(
       ns("document_type_code"),
-      "Document type",
+      metadata_field_label("Document type", "Conditional", "Choose or accept the document type when saving its classification."),
       choices = supporting_document_type_choices
     ),
-    textInput(ns("document_type_user_text"), "Document type note / override reason"),
+    textInput(ns("document_type_user_text"), metadata_field_label("Document type note / override reason", "Conditional", "Required when changing the automatically assigned document type.")),
     checkboxInput(ns("include_in_lineage"), "Include in lineage", value = FALSE),
     checkboxInput(ns("include_in_metadata"), "Include in metadata record", value = TRUE),
     textAreaInput(ns("notes"), "Notes"),
@@ -215,6 +216,7 @@ mod_supporting_documents_server <- function(id, state) {
     }
 
     observeEvent(input$scan_docs, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "scanning supporting documents"
@@ -318,6 +320,7 @@ mod_supporting_documents_server <- function(id, state) {
     })
 
     observeEvent(input$accept_default_types, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "reviewing supporting-document defaults"
@@ -366,6 +369,7 @@ mod_supporting_documents_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       df <- docs()
       if (is.null(df) || nrow(df) == 0) {
         updateSelectInput(session, "doc_select", choices = character())
@@ -383,6 +387,7 @@ mod_supporting_documents_server <- function(id, state) {
       )
     })
     observeEvent(input$doc_select, {
+      access_require("edit", touch = TRUE)
       row <- selected_document()
 
       if (
@@ -454,6 +459,7 @@ mod_supporting_documents_server <- function(id, state) {
     }, ignoreInit = TRUE)
 
     observeEvent(input$save_doc_edit, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "saving supporting-document metadata"
@@ -597,6 +603,7 @@ mod_supporting_documents_server <- function(id, state) {
     })
 
     output$scan_summary <- renderTable({
+      access_require("read")
       scan_summary()
     }, striped = TRUE)
 
@@ -648,6 +655,7 @@ mod_supporting_documents_server <- function(id, state) {
 
     # render the supporting documents table
     output$tbl_documents <- DT::renderDT({
+      access_require("read")
       req(state$current_dataset_id)
       req(state$data_pond)
 
@@ -791,6 +799,7 @@ mod_supporting_documents_server <- function(id, state) {
     observeEvent(
       input$tbl_documents_rows_selected,
       {
+        access_require("read", touch = TRUE)
         selected_row <-
           input$tbl_documents_rows_selected
 

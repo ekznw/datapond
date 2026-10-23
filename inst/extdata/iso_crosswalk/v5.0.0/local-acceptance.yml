@@ -1,0 +1,45 @@
+gap: GAP-018
+status: resolved-local-validation
+scope_agreed: Complete local validation; no receiving-catalogue target selected.
+crosswalk_version: 5.0.0
+criteria:
+  serializers_and_mapping_dispositions:
+    evidence: tests/testthat/test-iso-remaining-mappings.R
+    acceptance: All 164 mappings have explicit implementation, migration or local dispositions and evidence paths.
+  pinned_xsd_and_rules:
+    evidence: tests/testthat/test-iso-export-validation.R
+    acceptance: Official minimal example passes; missing/conditional values, malformed XML and damaged resources fail or return unavailable.
+  identity_and_date_policy:
+    evidence: tests/testthat/test-iso-nonspatial-dates.R
+    acceptance: Stored precision is preserved; pinned and explicit DataPond outcomes remain distinct.
+  portable_packages:
+    evidence: tests/testthat/test-iso-export-package.R
+    acceptance: Dependencies checked; copy, validation and publication failures preserve prior exports; staged semantics cannot be bypassed.
+  end_to_end_scenarios:
+    evidence: tests/testthat/test-iso-semantic-export.R
+    scenarios:
+      - Vector with generated feature catalogue and three quality result types.
+      - Raster with sample statistics and three quality result types.
+      - Geographic table with explicit named area and no invented coordinates.
+      - Nongeographic table without required bbox or CRS.
+      - Historical year-only creation under the explicit DataPond date policy.
+    acceptance: XML/catalogue, semantic and package checks pass under the declared policy; saved values and false quality outcomes survive.
+  semantic_failures:
+    evidence: tests/testthat/test-iso-semantic-export.R
+    acceptance: Unknown codes, wrong registry URIs, reversed/malformed times, invalid bounds, dangling/duplicate references and unavailable resources block export.
+  combined_sections:
+    evidence:
+      - tests/testthat/test-iso-contact-lineage-export.R
+      - tests/testthat/test-iso-maintenance-export.R
+      - tests/testthat/test-iso-vertical-export.R
+      - tests/testthat/test-iso-remaining-mappings.R
+    acceptance: Rich contacts, sources, steps, maintenance, vertical and spatial cases pass both pinned and semantic checks with value assertions.
+  app_feedback:
+    evidence:
+      - tests/testthat/test-iso-export-package.R
+      - tests/testthat/test-iso-semantic-export.R
+    acceptance: Separate results, actionable issue navigation, stale-report invalidation and download blocking are exercised in Shiny module tests.
+excluded:
+  receiving_catalogue: Not assessed; deferred as GAP-020 until a system/version/profile is selected.
+  certification: No universal ISO certification, factual accuracy or exhaustive combination claim.
+  deployment: Source tests do not imply package installation or an interactive browser acceptance test.

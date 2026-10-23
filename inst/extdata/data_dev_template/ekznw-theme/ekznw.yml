@@ -1,0 +1,31 @@
+# Paths are relative to the document folder containing the copied theme.
+# Reuse in data_dev*.qmd with: metadata-files: [ekznw-theme/ekznw.yml]
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrartcl
+    papersize: a4
+    fontsize: 10pt
+    mainfont: TeX Gyre Heros
+    sansfont: TeX Gyre Heros
+    monofont: TeX Gyre Cursor
+    geometry:
+      - top=22mm
+      - bottom=22mm
+      - left=21mm
+      - right=21mm
+    colorlinks: true
+    linkcolor: "#554838"
+    urlcolor: "#554838"
+    number-sections: true
+    toc: false
+    keep-tex: false
+    latex-auto-install: false
+    include-in-header: ekznw-theme/pdf-header.tex
+  html:
+    embed-resources: true
+    theme: ekznw-theme/style/_ekznw_theme.scss
+    css: ekznw-theme/style/default_overrides.css
+    title-block-banner: true
+    toc: true
+    toc-location: left

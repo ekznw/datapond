@@ -58,6 +58,62 @@ old_config_migrated_marker <- function(data_pond_path) {
   file.path(metadata_pond_dir(data_pond_path), "old_config_migrated")
 }
 
+# Validate before opening so a mistyped path cannot create a new pond.
+# Older ponds may have a catalogue but no identifier yet; switching migrates them.
+validate_existing_data_pond <- function(path) {
+  if (is.null(path) || length(path) != 1L || is.na(path) || !nzchar(trimws(path))) {
+    stop("Select an existing Data Pond folder.", call. = FALSE)
+  }
+  path <- normalizePath(path.expand(trimws(path)), winslash = "/", mustWork = FALSE)
+  movement_assert_writable(path)
+  database <- get_db_path(path)
+  if (!dir.exists(path) || !file.exists(database)) {
+    stop("This folder is not an existing Data Pond. Use Create new pond to make one.", call. = FALSE)
+  }
+  valid <- tryCatch({
+    conn <- DBI::dbConnect(RSQLite::SQLite(), database, flags = RSQLite::SQLITE_RO, synchronous = NULL)
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+    DBI::dbExistsTable(conn, "entry_tbl")
+  }, error = function(e) FALSE)
+  if (!isTRUE(valid)) {
+    stop("This folder does not contain a valid Data Pond metadata catalogue.", call. = FALSE)
+  }
+  path
+}
+
+new_data_pond_path <- function(parent_path, name) {
+  if (is.null(parent_path) || length(parent_path) != 1L || is.na(parent_path) ||
+      !nzchar(trimws(parent_path))) {
+    stop("Choose a location for your new pond.", call. = FALSE)
+  }
+  parent_path <- normalizePath(path.expand(trimws(parent_path)), winslash = "/", mustWork = FALSE)
+  if (!dir.exists(parent_path)) {
+    stop("The location must be an existing parent folder.", call. = FALSE)
+  }
+  if (is.null(name) || length(name) != 1L || is.na(name) || !nzchar(trimws(name))) {
+    stop("Enter a name for your new pond.", call. = FALSE)
+  }
+  name <- trimws(name)
+  if (name %in% c(".", "..") || grepl('[<>:"/\\\\|?*[:cntrl:]]', name) ||
+      grepl("[.]$", name) || grepl("^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])([.]|$)", name, ignore.case = TRUE)) {
+    stop("Use a folder name without path separators or reserved filename characters.", call. = FALSE)
+  }
+  path <- file.path(parent_path, name)
+  if (file.exists(path) || dir.exists(path)) {
+    stop("That name already exists here. Choose another name, or use Open existing pond.", call. = FALSE)
+  }
+  path
+}
+
+create_data_pond_folder <- function(parent_path, name) {
+  path <- new_data_pond_path(parent_path, name)
+  # A non-recursive create also refuses a destination created since validation.
+  if (!dir.create(path, showWarnings = FALSE)) {
+    stop("Could not create the pond folder. Check the location, name and write permissions.", call. = FALSE)
+  }
+  path
+}
+
 default_pond_config <- function() {
   list(
     config_version = 1L,
@@ -92,6 +148,10 @@ ensure_data_pond_id <- function(data_pond_path, conn = NULL,
                                 current_user_id = NULL,
                                 label = NULL) {
   dir.create(metadata_pond_dir(data_pond_path), recursive = TRUE, showWarnings = FALSE)
+  if (!dir.exists(metadata_pond_dir(data_pond_path))) {
+    stop("Cannot access the pond metadata folder. Check that the drive is connected and writable: ",
+         data_pond_path, call. = FALSE)
+  }
 
   id_path <- data_pond_id_file(data_pond_path)
 
@@ -151,8 +211,25 @@ read_pond_config <- function(data_pond_path) {
   }
 
   cfg$dataset_parent_dir <- normalise_dataset_parent_dir(cfg$dataset_parent_dir)
-  cfg$data_pond_id <- ensure_data_pond_id(data_pond_path)
+  # Reading startup settings must not create folders or an identity on a
+  # disconnected drive. Identity creation belongs to pond initialisation.
+  id_path <- data_pond_id_file(data_pond_path)
+  cfg$data_pond_id <- if (file.exists(id_path)) {
+    trimws(readLines(id_path, warn = FALSE, n = 1L)[1])
+  } else {
+    NULL
+  }
   cfg
+}
+
+assert_saved_data_pond_available <- function(path) {
+  # An unmounted volume may leave an empty mount-point directory behind.
+  # Require its catalogue as well, so startup cannot initialise a replacement.
+  if (!dir.exists(path) || !file.exists(get_db_path(path))) {
+    stop("The saved Data Pond folder or metadata catalogue is unavailable: ", path,
+         ". Reconnect the drive or restore access, then retry.", call. = FALSE)
+  }
+  invisible(path)
 }
 
 write_pond_config <- function(data_pond_path, config) {
@@ -192,6 +269,7 @@ load_config <- function(default_path = normalizePath("~/Documents/data_pond", mu
   # 1. Prefer explicit app-local last-used pond pointer.
   last_pond <- read_last_data_pond_path()
   if (!is.null(last_pond) && last_pond != "") {
+    assert_saved_data_pond_available(last_pond)
     cfg <- read_pond_config(last_pond)
     return(cfg)
   }
@@ -212,6 +290,7 @@ load_config <- function(default_path = normalizePath("~/Documents/data_pond", mu
         mustWork = FALSE,
         winslash = "/"
       )
+      assert_saved_data_pond_available(legacy_pond)
       write_last_data_pond_path(legacy_pond)
       return(read_pond_config(legacy_pond))
     }
@@ -224,7 +303,7 @@ load_config <- function(default_path = normalizePath("~/Documents/data_pond", mu
     old_cfg <- readRDS(old)
     pond <- old_cfg$data_pond %||% default_path
     pond <- normalizePath(pond, mustWork = FALSE, winslash = "/")
-    dir.create(metadata_pond_dir(pond), recursive = TRUE, showWarnings = FALSE)
+    assert_saved_data_pond_available(pond)
     cfg <- read_pond_config(pond)
     marker <- old_config_migrated_marker(pond)
     if (!file.exists(marker)) {

@@ -1018,7 +1018,9 @@ list_supporting_document_files <- function(dataset_path) {
   )
   in_data <- grepl("^data/", rel_path, ignore.case = TRUE)
   ext <- tolower(tools::file_ext(all_files))
-  keep <- !in_data & ext %in% supporting_document_exts
+  # The bundled Word style reference is an asset, not a methods document.
+  template_style <- grepl("^data_dev(_[A-Za-z0-9_-]+)?_theme/reference\\.docx$", rel_path)
+  keep <- !in_data & !template_style & ext %in% supporting_document_exts
   if (!any(keep)) {
     return(data.table(
       message = "No supporting documents detected outside the data folder."

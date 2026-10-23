@@ -1,0 +1,79 @@
+# Capture policy complements conceptual mappings; it is not ISO validation.
+version: 1
+assessment_implementation: R/utils_dataset_status.R
+section_classification: R/mod_dataset_status.R
+entry_implementation: R/metadata_population.R
+profiles:
+  rough:
+    label: Prickly Porcupine
+    draft_required: [title, abstract, keyword_object]
+    purpose: Local inventory with enough context to find, contact and assess reuse.
+    entry_required: [title, abstract, keyword_object]
+    lineage: A summary is sufficient; explicitly selected document authority still requires a linked document or valid source.
+    rights: Keep the sharing assessment and existing embargo checks; detailed releasability is optional.
+  full:
+    label: Armoured Pangolin
+    draft_required: [title, citation_date, version, purpose, abstract, keyword_object]
+    draft_conditional: ISO topic category for the scopes checked by metadata_scope_requires_geographic_discovery.
+    purpose: Existing DataPond metadata assessment with conditional specialist detail.
+    entry_required: [title, version, purpose, abstract, keyword_object]
+    lineage: Summary plus structured detail or authoritative supporting documentation.
+    rights: Assess detailed embargo and releasability when applicable.
+  shared_rules:
+    - Citation dates are assessed once from dataset_citation_date_tbl.
+    - data_complete_status describes resource progress and is not required descriptive metadata.
+    - Population targets never change export validation or fabricate missing facts.
+    - Neither profile means ISO conformant; GAP-018 remains open.
+    - One session-wide population selector controls entry visibility, draft saving, folder creation and Dataset status. It is not stored as dataset readiness.
+    - Both save actions use the same population validation; malformed supplied versions, invalid temporal ranges and inconsistent sharing/access values still fail.
+    - Controls stay mounted when hidden; all populated fields and repeatable rows are saved in either profile.
+    - Unknown publication dates remain blank; the app does not substitute today.
+    - Saving a draft is separate from inventory completion. Lifecycle and pond overview retain full completion pending the next implementation item.
+groups:
+  - id: publication_date
+    canonical: [dataset_citation_date_tbl.date_value, dataset_citation_date_tbl.date_type_code]
+    compatibility: [entry_tbl.citation_date]
+    capture: Primary publication date once in Citation; additional typed dates only when known.
+    mappings: [CIT-002, CIT-002-COMPAT]
+  - id: theme_keywords
+    canonical: [entry_tbl.keyword_object]
+    compatibility: [entry_tbl.keyword_topic]
+    capture: One theme editor; merge legacy terms without creating a second keyword group.
+    mappings: [MRI-KW-001, MRI-KW-003]
+  - id: temporal_coverage
+    canonical: [dataset_temporal_extent_tbl.start_value, dataset_temporal_extent_tbl.end_value]
+    compatibility: [entry_tbl.temporal_coverage_start_date, entry_tbl.temporal_coverage_end_date]
+    capture: One repeatable period editor; precision and indeterminate positions remain meaningful.
+    mappings: [MRI-TEMP-003, MRI-TEMP-004, GEX-T-001, GEX-T-002]
+  - id: online_resources
+    canonical: [dataset_online_resource_tbl.resource_url]
+    compatibility: [entry_tbl.data_distribution_url]
+    capture: Enter URLs in Online access; the saved primary URL is a read-only summary.
+    mappings: [MRD-010, MRD-001]
+  - id: embargo
+    canonical: [dataset_license_tbl.embargo_status, dataset_license_tbl.embargo_reason, dataset_license_tbl.embargo_end_date]
+    compatibility: [entry_tbl.embargo_status, entry_tbl.embargo_reason, entry_tbl.embargo_end_date]
+    capture: One embargo editor, canonical licensing storage and compatibility mirrors.
+    mappings: [MCO-016, MCO-014]
+  - id: lineage_sources
+    canonical: [dataset_lineage_source_tbl.description]
+    compatibility: [dataset_lineage_tbl.source_description, dataset_lineage_tbl.source_datasets_text]
+    capture: Detailed source rows or document citations; old flat text is read-only in the app.
+    mappings: [MRL-002, MRL-LEGACY-001]
+  - id: lineage_processes
+    canonical: [dataset_lineage_process_step_tbl.description, dataset_lineage_process_step_tbl.tool_software_reference, dataset_lineage_process_step_tbl.script_reference, dataset_lineage_process_step_tbl.output_description]
+    compatibility: [dataset_lineage_tbl.process_description, dataset_lineage_tbl.processing_tools, dataset_lineage_tbl.processing_scripts, dataset_lineage_tbl.output_description, entry_tbl.software_desc]
+    capture: Edit process rows; old lineage flat text is read-only. The entry software fallback is retained pending a pond audit.
+    mappings: [MRL-004, MRL-005, MRL-006, MRL-007, MRL-LEGACY-002, MRI-006]
+distinct_concepts:
+  - Resource UUID and metadata UUID identify different objects.
+  - ISO topic categories and theme keywords are different vocabularies.
+  - Publication date and observation coverage describe different events.
+  - Resource contact, metadata contact, author and record reviewer are separate roles even when held by one person.
+  - Representative scale, creation/use scale range and raster cell size are not interchangeable.
+  - Abstract describes the resource; purpose explains why it was created.
+  - Lineage describes production; explicit quality results describe evaluated fitness.
+  - Additional operational access/use notes may supplement structured licensing; they are not automatically duplicate licence text.
+retention:
+  rule: No compatibility columns are dropped in this version.
+  prerequisite_for_removal: Audit populated ponds, report conflicting values, resolve precedence, and verify transfers and exports before a major migration.

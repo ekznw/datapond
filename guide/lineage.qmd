@@ -1,0 +1,5 @@
+---
+title: "Lineage and development reports"
+---
+
+{{< include _content/lineage.qmd >}}

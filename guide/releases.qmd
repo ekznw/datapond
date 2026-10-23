@@ -1,0 +1,5 @@
+---
+title: "Freeze, restore and use releases"
+---
+
+{{< include _content/releases.qmd >}}

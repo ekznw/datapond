@@ -1,0 +1,57 @@
+## Open or create a pond
+
+In **Configuration → Open or create a data pond**, choose:
+
+- **Open existing pond** for a folder that already contains a DataPond catalogue. You can also enter its path under **Open an existing pond by path**.
+- **Create new pond** for a new workspace. Choose its parent location and a new folder name, check the destination, then choose **Create and open pond**.
+
+Create a practice pond first if you are learning. Creating a pond does not copy datasets from another pond. For an unavailable existing drive, reconnect it and choose **Retry opening pond**; do not create a replacement pond at the missing mount location.
+
+## Sign in or request access
+
+The workspace requires a local account for this pond. Choose **Request access** if you do not have one. An administrator verifies the request, chooses a role, and gives you a single-use activation code. Use **Activate / recover access** to set a passphrase of at least 15 characters, then sign in.
+
+For the first administrator, stop the app and run this once in the local R console:
+
+```r
+code <- datapond::setup_pond_access(
+  "/path/to/your/pond", "your.username",
+  first_name = "Your", last_name = "Name"
+)
+code
+```
+
+Keep the code private. It expires after 24 hours. To link an existing metadata person, use their verified `person_id` instead of supplying a new name. Existing seeded names do not automatically grant access.
+
+**Viewers** browse metadata. **Editors** can edit and use dataset workflows. **Pond administrators** also approve accounts, manage shared reference data, and use Flow. Administrators open **Configuration → Manage accounts** to approve requests, change roles, disable accounts or issue recovery codes. File downloads require editor or administrator access. Sign out through Configuration when finished.
+
+If the administrator is locked out, the installation owner can run `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted local R console. Application login does not prevent someone with direct filesystem or R-console access from changing the underlying data.
+
+For administrator procedures, SharePoint caches and future server hosting, see [Manage accounts and deployment](access-management.qmd). Local accounts are separate on each workstation; they do not synchronise through SharePoint.
+
+## Understand the folders
+
+```text
+my_pond/
+  metadata.db       Local catalogue
+  src/              Supplied or reference datasets
+  dev/              Datasets being developed
+  arc/              Archived material and frozen releases
+  .metadata_pond/    Internal settings, snapshots and recovery records
+```
+
+A working dataset normally has `data/`, `docs/` and `scripts/` subfolders. Keep the data development report at the dataset root if that is your project convention. DataPond can acknowledge root QMD/Rmd documents when preparing metadata and releases.
+
+Avoid manually moving a managed dataset folder or renaming its catalogue database. Use the app's lifecycle/transfer controls so folder location and catalogue records stay consistent.
+
+## Open a connected pond for editing
+
+Configuration can connect additional existing ponds with recognisable names. Access to their records requires signing in to the relevant pond. **★ Current** identifies the active pond, and **Show current pond datasets only** narrows the list.
+
+Open the required pond from Configuration or the sign-in screen, sign in there, then select its dataset to edit. Login rights are checked separately for every pond. An unavailable connected pond is omitted from results until reconnected and refreshed; its connection is retained.
+
+## Back up the whole pond
+
+Close the app and external writers before taking a filesystem backup. Preserve `metadata.db`, dataset folders, `arc/` and the hidden `.metadata_pond/` directory together. A frozen public ZIP is useful for distribution, but does not contain all private restoration or review state. Test your organisation's restore procedure on a copy.
+
+Account security is stored separately under the installation’s DataPond configuration directory (`security/`). Back it up privately as well. Dataset bundles do not carry passwords or login rights; moving a pond or using another installation requires local account setup.

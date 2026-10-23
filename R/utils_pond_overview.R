@@ -397,40 +397,64 @@ build_pond_overview_data <- function(
 }
 
 
-filter_pond_overview_data <- function(overview, search_text = NULL) {
-  if (is.null(overview) || nrow(as.data.frame(overview)) == 0L) {
-    return(data.table::as.data.table(overview))
-  }
-  search_text <- trimws(as.character(search_text[1] %||% ""))
-  if (!nzchar(search_text)) {
-    return(data.table::as.data.table(overview))
-  }
-
-  dt <- data.table::as.data.table(data.table::copy(overview))
+pond_overview_search_index <- function(overview) {
+  dt <- data.table::as.data.table(overview)
+  if (!nrow(dt)) return(character())
   fields <- intersect(
     c(
       "display_title", "authors", "organisations", "poc",
       "citation_key", "pond_location", "lifecycle_label",
       "metadata_readiness", "next_action", "dataset_path",
-      "record_owner", "record_visibility", "location_status"
+      "record_owner", "record_visibility", "location_status",
+      "title", "pond_name", "connection_type", "uuid", "stage", "availability"
     ),
     names(dt)
   )
-  haystack <- apply(
+  if (!length(fields)) return(rep("", nrow(dt)))
+  tolower(apply(
     as.data.frame(dt[, ..fields]),
     1L,
     function(row) paste(row[!is.na(row)], collapse = " ")
-  )
+  ))
+}
+
+filter_pond_overview_data <- function(overview, search_text = NULL) {
+  dt <- data.table::as.data.table(overview)
+  if (!nrow(dt)) return(dt)
+  search_text <- trimws(as.character(search_text[1] %||% ""))
+  if (is.na(search_text) || !nzchar(search_text)) return(dt)
+  haystack <- if (".search_text" %in% names(dt)) dt$.search_text else pond_overview_search_index(dt)
   terms <- strsplit(tolower(search_text), "\\s+")[[1L]]
-  keep <- vapply(
-    terms,
-    function(term) grepl(term, tolower(haystack), fixed = TRUE),
-    logical(length(haystack))
-  )
-  if (is.null(dim(keep))) {
-    keep <- matrix(keep, ncol = 1L)
+  keep <- rep(TRUE, length(haystack))
+  for (term in terms) keep <- keep & grepl(term, haystack, fixed = TRUE)
+  dt[keep]
+}
+
+# Connected rows intentionally have no active-pond record id: ids are only
+# unique within a pond and must never be passed into the current editor.
+merge_pond_overview_inventory <- function(current, connected = NULL, pond_name, pond_path) {
+  current <- data.table::as.data.table(data.table::copy(current))
+  if (nrow(current)) {
+    current[, `:=`(active_pond = TRUE, pond_name = pond_name, connection_type = "Current pond",
+      open_path = pond_path, availability = "Current pond", refreshed = "Current catalogue")]
+    current[, record_key := paste("current", pond_path, id, sep = "|")]
   }
-  dt[apply(keep, 1L, all)]
+  other <- data.table::as.data.table(data.table::copy(connected))
+  if (nrow(other)) {
+    other[, `:=`(active_pond = FALSE, id = NA_integer_, display_title = title,
+      authors = NA_character_, organisations = NA_character_,
+      overview_class = "Connected pond (read-only)",
+      lifecycle_label = pond_stage_label(stage), metadata_readiness = "Not assessed here",
+      next_action = ifelse(connection_type == "Local pond", "Open pond to view / edit", "Open in Flow to inspect / download"),
+      spatial_extent = "Not mapped here")]
+    other[, record_key := paste(connection_type, open_path, uuid, dataset_path, sep = "|")]
+  }
+  rows <- data.table::rbindlist(list(current, other), fill = TRUE, use.names = TRUE)
+  if (nrow(rows)) {
+    for (field in c("citation_date", "version")) if (!field %in% names(rows)) rows[, (field) := NA_character_]
+    rows[, .search_text := pond_overview_search_index(rows)]
+  }
+  rows
 }
 
 
@@ -458,6 +482,9 @@ pond_overview_inventory_display <- function(overview) {
   overview <- data.table::as.data.table(
     data.table::copy(overview)
   )
+  if (!"active_pond" %in% names(overview)) overview[, active_pond := TRUE]
+  if (!"pond_name" %in% names(overview)) overview[, pond_name := "Current pond"]
+  for (field in c("availability", "refreshed")) if (!field %in% names(overview)) overview[, (field) := NA_character_]
 
   overview[
     ,
@@ -472,7 +499,10 @@ pond_overview_inventory_display <- function(overview) {
       `Spatial extent` = spatial_extent,
       Version = version,
       `Citation date` = citation_date,
-      Organisations = organisations
+      Organisations = organisations,
+      Pond = ifelse(active_pond, paste0("\u2605 Current \u2014 ", pond_name), pond_name),
+      `Files / cache` = availability,
+      `Metadata refreshed` = refreshed
     )
   ]
 }
@@ -507,7 +537,10 @@ pond_overview_responsive_column_defs <- function() {
     list(responsivePriority = 6L, targets = 6L),
     list(responsivePriority = 7L, targets = 8L),
     list(responsivePriority = 8L, targets = 10L),
-    list(responsivePriority = 9L, targets = 7L)
+    list(responsivePriority = 9L, targets = 7L),
+    list(className = "all", responsivePriority = 4L, targets = 11L),
+    list(responsivePriority = 10L, targets = 12L),
+    list(responsivePriority = 11L, targets = 13L)
   )
 }
 
@@ -515,6 +548,8 @@ pond_overview_responsive_column_defs <- function() {
 pond_overview_responsive_table_options <- function() {
   list(
     pageLength = 15L,
+    deferRender = TRUE,
+    order = list(),
     scrollX = FALSE,
     autoWidth = FALSE,
     dom = "Bfrtip",
@@ -527,4 +562,37 @@ pond_overview_responsive_table_options <- function() {
 
 pond_overview_table_extensions <- function() {
   c("Buttons", "Responsive")
+}
+
+# Fetch only the selected connected record's abstract from local metadata.
+# Never fetch dataset files or contact the remote service for a preview.
+read_connected_overview_abstract <- function(selected) {
+  access_require("read", selected$open_path)
+  path <- selected$open_path
+  if (identical(selected$connection_type, "Remote cache (read-only)")) {
+    current <- movement_cache_current(path)
+    if (is.null(current)) stop("The metadata cache is unavailable. Refresh it in Flow.")
+    path <- current$directory
+  }
+  conn <- DBI::dbConnect(RSQLite::SQLite(), get_db_path(path), flags = RSQLite::SQLITE_RO, synchronous = NULL)
+  on.exit(DBI::dbDisconnect(conn))
+  fields <- DBI::dbListFields(conn, "entry_tbl")
+  if (!"abstract" %in% fields) return(NULL)
+  query <- paste0("SELECT ", if ("uuid" %in% fields) "uuid" else "NULL AS uuid", ", abstract FROM entry_tbl WHERE id = ?")
+  row <- DBI::dbGetQuery(conn, query,
+    params = list(selected$source_record_id))
+  if (!nrow(row) || (!is.na(selected$uuid) && !identical(row$uuid[1], selected$uuid)))
+    stop("This cached record has changed. Refresh the overview and select it again.")
+  row$abstract[1]
+}
+
+pond_overview_selection_outline <- function(map, overview, selected_id) {
+  if (length(selected_id) != 1L || is.na(selected_id) || !nrow(overview)) return(map)
+  row <- overview[overview$id %in% selected_id, ]
+  if (nrow(row) != 1L || !isTRUE(row$bbox_available) ||
+      !all(is.finite(c(row$west, row$south, row$east, row$north))) ||
+      row$east <= row$west || row$north <= row$south) return(map)
+  leaflet::addRectangles(map, lng1 = row$west, lat1 = row$south, lng2 = row$east, lat2 = row$north,
+    group = "overview_selection", color = "#3F5146", weight = 5, opacity = 1, fillOpacity = 0,
+    options = leaflet::pathOptions(pane = "pond_bbox_selected", interactive = FALSE, pointerEvents = "none"))
 }

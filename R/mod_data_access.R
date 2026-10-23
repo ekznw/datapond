@@ -1,6 +1,7 @@
 # mod_data_access.R
 # Dataset-level distribution, access-condition and embargo metadata.
-# Values are returned to the main save workflow and stored in entry_tbl.
+# Compatibility values are stored in entry_tbl; embargo/release values are
+# authoritative in dataset_license_tbl.
 
 mod_data_access_ui <- function(id) {
   ns <- shiny::NS(id)
@@ -34,14 +35,17 @@ mod_data_access_ui <- function(id) {
       "Distribution"
     ),
 
-    shiny::textInput(
-      ns("data_distribution_url"),
-      "Distribution URL",
-      value = "",
-      placeholder = paste(
-      "Enter a stable catalogue, repository, download",
-      "or dataset request URL when available."
-    )),
+    metadata_optional_details(
+      "Saved primary online resource",
+      htmltools::tagQuery(
+      shiny::textInput(
+        ns("data_distribution_url"),
+        "Primary distribution URL",
+        value = "",
+        placeholder = "Add a primary structured online resource below."
+      )
+      )$find("input")$addAttrs(readonly = "readonly")$allTags()
+    ),
 
     shiny::selectizeInput(
       ns("data_distributor_organisation_id"),
@@ -124,11 +128,41 @@ mod_data_access_ui <- function(id) {
       ),
 
       shiny::dateInput(
+        ns("embargo_start_date"),
+        "Embargo start date",
+        value = NULL,
+        format = "yyyy-mm-dd"
+      ),
+
+      shiny::dateInput(
         ns("embargo_end_date"),
-        "Embargo end date",
+        metadata_field_label("Embargo end date", "Conditional", "Required to save when the dataset is embargoed, including draft saves."),
         value = NULL,
         format = "yyyy-mm-dd"
       )
+    ),
+
+    shiny::textInput(
+      ns("release_addressee"),
+      "Release addressee or eligible audience",
+      placeholder = "For example: approved research partners"
+    ),
+
+    shiny::selectInput(
+      ns("dissemination_constraint_code"),
+      "Dissemination constraint",
+      choices = c(
+        "Not specified" = "", "None" = "none", "Internal" = "internal",
+        "Approved recipients" = "approvedRecipients", "Contractual" = "contractual",
+        "Statutory" = "statutory", "Confidential" = "confidential"
+      )
+    ),
+
+    shiny::textAreaInput(
+      ns("release_statement"),
+      "Release statement",
+      placeholder = "State when, how, and to whom the resource may be released.",
+      rows = 3
     )
   )
 }
@@ -236,6 +270,7 @@ mod_data_access_server <- function(id, state) {
 
       # Ensure the columns exist whenever the active data pond changes.
       shiny::observe({
+        access_require("read")
         base_path <- state$data_pond
         shiny::req(base_path)
 
@@ -297,109 +332,8 @@ mod_data_access_server <- function(id, state) {
 
 
       organisation_choices <- reactive({
-        organisations <- organisation_records()
-
-        if (
-          is.null(organisations) ||
-          nrow(organisations) == 0L
-        ) {
-          return(
-            stats::setNames(
-              character(),
-              character()
-            )
-          )
-        }
-
-        full_name <- if (
-          "organisation_name_full" %in%
-            names(organisations)
-        ) {
-          organisations$organisation_name_full
-        } else {
-          rep(
-            "",
-            nrow(organisations)
-          )
-        }
-
-        short_name <- if (
-          "organisation_name_short" %in%
-            names(organisations)
-        ) {
-          organisations$organisation_name_short
-        } else {
-          rep(
-            "",
-            nrow(organisations)
-          )
-        }
-
-        code <- if (
-          "organisation_code" %in%
-            names(organisations)
-        ) {
-          organisations$organisation_code
-        } else {
-          rep(
-            "",
-            nrow(organisations)
-          )
-        }
-
-        full_name <- ifelse(
-          is.na(full_name),
-          "",
-          trimws(
-            as.character(full_name)
-          )
-        )
-
-        short_name <- ifelse(
-          is.na(short_name),
-          "",
-          trimws(
-            as.character(short_name)
-          )
-        )
-
-        code <- ifelse(
-          is.na(code),
-          "",
-          trimws(
-            as.character(code)
-          )
-        )
-
-        display_name <- ifelse(
-          nzchar(short_name),
-          short_name,
-          full_name
-        )
-
-        has_code <- nzchar(code)
-
-        display_name[has_code] <- paste0(
-          display_name[has_code],
-          " [",
-          code[has_code],
-          "]"
-        )
-
-        missing_label <- !nzchar(
-          display_name
-        )
-
-        display_name[missing_label] <- paste0(
-          "Organisation ",
-          organisations$id[missing_label]
-        )
-
-        stats::setNames(
-          as.character(
-            organisations$id
-          ),
-          display_name
+        organisation_select_choices(
+          organisation_records()
         )
       })
 
@@ -482,7 +416,26 @@ mod_data_access_server <- function(id, state) {
         )
       })
 
+      rights_values <- reactive({
+        date_text <- function(x) {
+          value <- safe_embargo_date(x)
+          if (is.null(value)) NA_character_ else format(value, "%Y-%m-%d")
+        }
+        list(
+          embargo_status = normalise_embargo_status(input$embargo_status, default = "No"),
+          embargo_reason = data_access_scalar(input$embargo_reason, default = NA_character_),
+          embargo_start_date = date_text(input$embargo_start_date),
+          embargo_end_date = date_text(input$embargo_end_date),
+          release_addressee = data_access_scalar(input$release_addressee, default = NA_character_),
+          release_statement = data_access_scalar(input$release_statement, default = NA_character_),
+          dissemination_constraint_code = data_access_scalar(
+            input$dissemination_constraint_code, default = NA_character_
+          )
+        )
+      })
+
       observe({
+        access_require("read")
         choices <- organisation_choices()
 
         current_selection <- isolate(
@@ -514,6 +467,7 @@ mod_data_access_server <- function(id, state) {
       shiny::observeEvent(
         input$embargo_status,
         {
+          access_require("edit", touch = TRUE)
           if (
             identical(
               input$embargo_status,
@@ -531,6 +485,12 @@ mod_data_access_server <- function(id, state) {
               "embargo_end_date",
               value = NULL
             )
+
+            shiny::updateDateInput(
+              session,
+              "embargo_start_date",
+              value = NULL
+            )
           }
         },
         ignoreInit = TRUE
@@ -538,6 +498,7 @@ mod_data_access_server <- function(id, state) {
 
       validate <- function(strict = FALSE) {
         vals <- values()
+        rights <- rights_values()
         missing <- character()
 
         # Draft dataset records may be saved with incomplete access metadata.
@@ -570,6 +531,17 @@ mod_data_access_server <- function(id, state) {
               )
             )
           )
+        }
+
+        if (
+          identical(vals$embargo_status, "Yes") &&
+          !is.na(rights$embargo_start_date) && !is.na(rights$embargo_end_date) &&
+          as.Date(rights$embargo_start_date) > as.Date(rights$embargo_end_date)
+        ) {
+          return(list(
+            valid = FALSE,
+            message = "Embargo start date cannot be later than the end date."
+          ))
         }
 
         if (
@@ -694,10 +666,20 @@ mod_data_access_server <- function(id, state) {
           value = NULL
         )
 
+        shiny::updateDateInput(
+          session,
+          "embargo_start_date",
+          value = NULL
+        )
+
+        shiny::updateTextInput(session, "release_addressee", value = "")
+        shiny::updateSelectInput(session, "dissemination_constraint_code", selected = "")
+        shiny::updateTextAreaInput(session, "release_statement", value = "")
+
         invisible(TRUE)
       }
 
-      load_record <- function(rec) {
+      load_record <- function(rec, rights = NULL) {
         if (
           is.null(rec) ||
           nrow(as.data.frame(rec)) == 0L
@@ -711,22 +693,28 @@ mod_data_access_server <- function(id, state) {
           stringsAsFactors = FALSE
         )
 
+        rights <- if (is.null(rights) || nrow(as.data.frame(rights)) == 0L) {
+          NULL
+        } else {
+          as.data.frame(rights, stringsAsFactors = FALSE)
+        }
+        rights_value <- function(field, default = "") {
+          if (!is.null(rights) && field %in% names(rights)) {
+            value <- data_access_scalar(rights[[field]], default = "")
+            if (nzchar(value)) return(value)
+          }
+          data_access_record_value(rec, field, default = default)
+        }
+
         embargo_status <- normalise_embargo_status(
-          data_access_record_value(
-            rec,
-            "embargo_status",
-            default = "No"
-          ),
+          rights_value("embargo_status", default = "No"),
           default = "No"
         )
 
-        embargo_end_text <- data_access_record_value(
-          rec,
-          "embargo_end_date",
-          default = ""
-        )
+        embargo_end_text <- rights_value("embargo_end_date", default = "")
 
         embargo_end_date <- safe_embargo_date(embargo_end_text)
+        embargo_start_date <- safe_embargo_date(rights_value("embargo_start_date", default = ""))
 
         stored_distributor_id <- suppressWarnings(
           as.integer(
@@ -869,17 +857,27 @@ mod_data_access_server <- function(id, state) {
         shiny::updateTextAreaInput(
           session,
           "embargo_reason",
-          value = data_access_record_value(
-            rec,
-            "embargo_reason",
-            default = ""
-          )
+          value = rights_value("embargo_reason", default = "")
         )
 
         shiny::updateDateInput(
           session,
           "embargo_end_date",
           value = embargo_end_date
+        )
+
+        shiny::updateDateInput(session, "embargo_start_date", value = embargo_start_date)
+        shiny::updateTextInput(
+          session, "release_addressee",
+          value = if (is.null(rights)) "" else data_access_scalar(rights$release_addressee, default = "")
+        )
+        shiny::updateSelectInput(
+          session, "dissemination_constraint_code",
+          selected = if (is.null(rights)) "" else data_access_scalar(rights$dissemination_constraint_code, default = "")
+        )
+        shiny::updateTextAreaInput(
+          session, "release_statement",
+          value = if (is.null(rights)) "" else data_access_scalar(rights$release_statement, default = "")
         )
 
         invisible(TRUE)
@@ -900,11 +898,15 @@ mod_data_access_server <- function(id, state) {
           base_path = state$data_pond
         )
 
-        load_record(rec)
+        load_record(
+          rec,
+          get_dataset_release_rights(as.integer(dataset_id[1]), state$data_pond)
+        )
       }
 
       list(
         values = values,
+        rights_values = rights_values,
         validate = validate,
         clear = clear,
         load = load,

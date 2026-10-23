@@ -221,8 +221,9 @@ remove_connected_pond <- function(
 connected_pond_database_signature <- function(path) {
   database <- get_db_path(path)
   if (!file.exists(database)) return(NA_character_)
-  info <- file.info(database)
-  paste(as.numeric(info$mtime[1]), info$size[1], sep = ":")
+  # WAL commits can change the catalogue without touching the main db file.
+  info <- file.info(c(database, paste0(database, "-wal")))
+  paste(as.numeric(info$mtime), info$size, collapse = ":")
 }
 
 
@@ -238,6 +239,7 @@ connected_pond_stage <- function(dataset_path, pond_path) {
 
 
 read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
+  access_require("read", path)
   identity <- read_data_pond_identity_read_only(path)
   conn <- DBI::dbConnect(
     RSQLite::SQLite(),
@@ -286,6 +288,7 @@ read_connected_pond_inventory_cached <- function(
   force = FALSE,
   include_hidden = FALSE
 ) {
+  access_require("read", path)
   path <- normalizePath(path.expand(path[1]), mustWork = FALSE, winslash = "/")
   signature <- connected_pond_database_signature(path)
   key <- paste(path, isTRUE(include_hidden), sep = "|")
@@ -390,4 +393,40 @@ cross_pond_duplicate_datasets <- function(catalogue) {
     ),
     by = duplicate_key
   ][order(-needs_resolution, title)]
+}
+
+# Combine local connections and verified Flow caches for the overview. Reading
+# this inventory never contacts a remote or promotes a cache to an editable pond.
+build_connected_overview_inventory <- function(local_catalogue, remote_ponds, include_hidden = FALSE) {
+  rows <- list()
+  unavailable <- character()
+  local <- as.data.frame(local_catalogue)
+  if (nrow(local)) rows[[1L]] <- data.frame(
+    pond_name = local$pond_name, connection_type = "Local pond", title = local$title,
+    stage = local$stage, version = local$version, citation_key = local$citation_key, citation_date = local$citation_date,
+    uuid = local$uuid, source_record_id = local$id, dataset_path = local$dataset_path, availability = "Local catalogue",
+    refreshed = "Current local catalogue", open_path = local$data_pond_path,
+    stringsAsFactors = FALSE
+  )
+  for (saved in remote_ponds) {
+    tryCatch({
+      current <- movement_cache_current(saved$cache)
+      if (is.null(current)) stop("No verified metadata cache; refresh this pond in Flow.")
+      inventory <- movement_cache_inventory(saved$cache, include_hidden = include_hidden)
+      if (!nrow(inventory)) next
+      paths <- vapply(inventory$relative_path, function(path) {
+        if (is.na(path)) "" else movement_join(current$state$remote, path)
+      }, character(1))
+      rows[[length(rows) + 1L]] <- data.frame(
+        pond_name = saved$name, connection_type = "Remote cache (read-only)", title = inventory$title,
+        stage = inventory$stage, version = inventory$version, citation_key = inventory$citation_key, citation_date = inventory$citation_date,
+        uuid = inventory$uuid, source_record_id = inventory$id, dataset_path = paths, availability = inventory$cached,
+        refreshed = current$state$refreshed, open_path = saved$cache,
+        stringsAsFactors = FALSE
+      )
+    }, error = function(e) {
+      unavailable <<- c(unavailable, paste0(saved$name, ": ", conditionMessage(e)))
+    })
+  }
+  list(data = data.table::rbindlist(rows, fill = TRUE, use.names = TRUE), unavailable = unavailable)
 }

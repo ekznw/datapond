@@ -21,7 +21,7 @@ test_that("dataset workflow panel exposes identity, actions and ordered shortcut
   }
 
   expect_match(html, "Name the folder", fixed = TRUE)
-  expect_match(html, "Use these shortcuts in order", fixed = TRUE)
+  expect_match(html, "Creating the folder performs the initial save", fixed = TRUE)
   expect_match(html, "datapond-requires-active-user", fixed = TRUE)
 })
 
@@ -80,6 +80,9 @@ test_that("main application provides collapsible guide and stable workflow tabs"
   server_source <- paste(deparse(body(datapond:::server)), collapse = "\n")
   expect_match(server_source, "workflow_tab_targets", fixed = TRUE)
   expect_match(server_source, "guide_create_dataset_folder", fixed = TRUE)
+  expect_match(server_source, "request_dataset_save", fixed = TRUE)
+  expect_match(server_source, "automatic = TRUE", fixed = TRUE)
+  expect_match(server_source, "dataset_folder_creation", fixed = TRUE)
   expect_match(server_source, "main_dataset_tabs", fixed = TRUE)
   expect_match(server_source, "dataset_edit_sections", fixed = TRUE)
 })

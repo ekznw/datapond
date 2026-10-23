@@ -1,0 +1,265 @@
+{
+  "pond": "/mnt/pjg_dta/bspi_data/bspi_xdrive",
+  "total_files": 40,
+  "total_bytes": 6551727,
+  "categories": {
+    "Manifests and verification evidence": {
+      "files": 16,
+      "bytes": 3188637
+    },
+    "Migration scripts": {
+      "files": 15,
+      "bytes": 81128
+    },
+    "Database backups": {
+      "files": 6,
+      "bytes": 3260416
+    },
+    "Intake result summaries": {
+      "files": 3,
+      "bytes": 21546
+    }
+  },
+  "files": [
+    {
+      "path": ".metadata_pond/imports/arc-soils-update-20261016.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 36067,
+      "sha256": "e8991de90b67ad946d175afbe0275747404e3ab078297fefa28b6b4063f25f06"
+    },
+    {
+      "path": ".metadata_pond/imports/marine-cba-20261016.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 9390,
+      "sha256": "9e507e762ef2874a3a04ddf94d3aea731723241392ba8a7fc55edcec6839a388"
+    },
+    {
+      "path": ".metadata_pond/imports/remaining-datasets-20261016.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 168054,
+      "sha256": "0a6a2ee49c9a650d73ebc6e76c60ef41603baab30370a9a3e38e87135dc7b553"
+    },
+    {
+      "path": ".metadata_pond/imports/soils-earthworms-20261016.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 10102,
+      "sha256": "0152a815c0339c91b718d369fbb3226840d168fa69270c8771f5bf3eb9542347"
+    },
+    {
+      "path": ".metadata_pond/imports/storage-cleanup-20261016.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 455270,
+      "sha256": "9714a939a3f08a884962d11f128e448ae73c3c3ca5ff9c844161fe6c978198bd"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/apply.py",
+      "category": "Migration scripts",
+      "bytes": 5718,
+      "sha256": "cbaf613b5f426bc87ff0b841069d2bd6627619028634f50f449e1c512022d5e2"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/archive_io.py",
+      "category": "Migration scripts",
+      "bytes": 2400,
+      "sha256": "1c2cb53582c743917c042fec0fd25fe1ae68a1fd1a2cda7a321645d3352367af"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/asset-check.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 1642,
+      "sha256": "760e1464d4cc1f8ec1952720ed1b1db7892c85d8a979af0643869fc7f07032a0"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/asset_dedup.py",
+      "category": "Migration scripts",
+      "bytes": 2745,
+      "sha256": "c3f17d1f242941614bf5f86490a524fa6ef9ae6fa4dcd3dbf36f469f0c47b86b"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/catalog.py",
+      "category": "Migration scripts",
+      "bytes": 2343,
+      "sha256": "d9d1356f8e0c4c3d6bedad2de4e74d2fd7fc4e4647b061babea5e39209e5cdff"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/dedup-decisions.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 24042,
+      "sha256": "9b5afff29017393becee26b4369e77be49d86c30a74e50c356e0efa803f9e250"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/extract.py",
+      "category": "Migration scripts",
+      "bytes": 728,
+      "sha256": "1229c1d7f147528bd6db9356ca0ff0476dd3351d50543f900d7b5336a075dd02"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/extracted.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 522164,
+      "sha256": "8eefa5b0b654ed944c91baf0abdccb8ef098e08cac694e541dce36b64a7e8a10"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/finalize_plan.py",
+      "category": "Migration scripts",
+      "bytes": 4347,
+      "sha256": "dd0b57b14cd10124cd8b64ce3cdcecc11e2c9877ab1168d029207d2f2389689a"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/inventory.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 150820,
+      "sha256": "52fb67eb63d3791342a0357197fca9fe3dad20577a1ba497a63ce58645e58ae9"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/leaf-audit.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 614933,
+      "sha256": "d0def9ca4e3ec500ecf9868671e6aecec0536aea02f7caa7d01232cbad78e23c"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/manifest.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 1011018,
+      "sha256": "46e03182fe6bec4aa93aa5f530c5201de9d2a931db07231476e5550e7bd49aa4"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/nested.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 152139,
+      "sha256": "2a2665d9ae944f42bd8646f9f4a2153d03ded362e2ad66e0cf2e56ac64428f42"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/nested.py",
+      "category": "Migration scripts",
+      "bytes": 956,
+      "sha256": "9bfa41a1241476a9a4e73433e27397cd7d3a4f86d44aae448be47004889f22ce"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/partial-projection.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 998,
+      "sha256": "e49c49a07c7aff3e8eaf0855f3b73d84adc05034e0aeab2ce9737aade9260df5"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/partial_projection.py",
+      "category": "Migration scripts",
+      "bytes": 2300,
+      "sha256": "3e0d68ba323a492067f602a36dbeb8342b0374789e83feea2bb0d3e720d44e39"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/populate.R",
+      "category": "Migration scripts",
+      "bytes": 11249,
+      "sha256": "d6e477a65d42c66dbf34bf63ca077b3990bcd9b1b5cb247c76b6cb4f4acd8a05"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/prepare.py",
+      "category": "Migration scripts",
+      "bytes": 12933,
+      "sha256": "5b54440bf1d2a95813c5b42deeb548a40e8f8ce1aee8cc0b908c4eceb715c0ce"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/rasters.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 28911,
+      "sha256": "5c75f9e7420a3f1171bea60f458b1edf2089b31bff0df6eb8f7d1e786a91d50a"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/rasters.py",
+      "category": "Migration scripts",
+      "bytes": 2474,
+      "sha256": "16ff38883f7a55aeb4fdf5dbc3ab9093d2fdd0d9c8a760f5da13c1ba7fdae177"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/restore_matching_crs.py",
+      "category": "Migration scripts",
+      "bytes": 1146,
+      "sha256": "5090390bad98c2f8c0ff7b6cabce218e53e822e26214f6b0a6244f0c3b776b44"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/specs.py",
+      "category": "Migration scripts",
+      "bytes": 26253,
+      "sha256": "6317a1250ecadc398ffd5fee901beae98687a49fd503ce49b0db1b8a47079a70"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/texts.py",
+      "category": "Migration scripts",
+      "bytes": 1669,
+      "sha256": "bfbd1b2932019830ac13a2fc236f6ac9baf0a9f86304fcdc6ea92a5ecd316fe2"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/vector-checks.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 2686,
+      "sha256": "b5147cec5a068270eee8160fdaea94cf44e02b12694c361b5126ac37dfae5be1"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/vector_checks.py",
+      "category": "Migration scripts",
+      "bytes": 3867,
+      "sha256": "ceb859318c18c2a2536bba12440cd94d42d562236e923fc1356bc9803995917a"
+    },
+    {
+      "path": ".metadata_pond/imports/temp2-20261016/water-equivalence.json",
+      "category": "Manifests and verification evidence",
+      "bytes": 401,
+      "sha256": "127113cc41cae9b98a04340a4f40665b6ff72c3e6271bffa3d915b26d9883262"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-arc-soils-update-20261016T122906.db",
+      "category": "Database backups",
+      "bytes": 413696,
+      "sha256": "eee839664bb49e64ed39173c751cec2ba95c29e778999af67361cec7c0fcc13c"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-marine-cba-20261016T123846.db",
+      "category": "Database backups",
+      "bytes": 483328,
+      "sha256": "7ed6dc3c36ffd42f9891744cf7058cb8afc565b85ea318525713563ea6f80ceb"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-remaining-datasets-20261016T125151.db",
+      "category": "Database backups",
+      "bytes": 512000,
+      "sha256": "ffeddc80468a97f1fb7fa28a38ecef383eb70eec2b81c24f10c556734b325f0f"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-soils-earthworms-20261016T120925.db",
+      "category": "Database backups",
+      "bytes": 401408,
+      "sha256": "e1de676e0e63b90643f8bb6875d9cc6096a485c38083e7a81a487e42946978c8"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-storage-cleanup-20261016T131054.db",
+      "category": "Database backups",
+      "bytes": 716800,
+      "sha256": "92e9a5326bfe49213f4ab0545c81dd165582341cf9c5dda92d88336ac292029e"
+    },
+    {
+      "path": ".metadata_pond/intake_backups/before-temp2-20261016T135851.db",
+      "category": "Database backups",
+      "bytes": 733184,
+      "sha256": "fe4617e4cddf8010a237543e34f8419745ce711150617467d738be7d465a1e25"
+    },
+    {
+      "path": ".metadata_pond/marine-cba-intake-result.json",
+      "category": "Intake result summaries",
+      "bytes": 317,
+      "sha256": "03802fc68eec129d03ae789c7d1713f5bd1b1d5fe2ca7b4a1622e4574adeba5a"
+    },
+    {
+      "path": ".metadata_pond/remaining-intake-result.json",
+      "category": "Intake result summaries",
+      "bytes": 2640,
+      "sha256": "354334e60bd3a213301c649684c8ca335caa39bbfa3151bfd883c03f5305e53d"
+    },
+    {
+      "path": ".metadata_pond/temp2-intake-result.json",
+      "category": "Intake result summaries",
+      "bytes": 18589,
+      "sha256": "21f523ae21c240eaf029ba63eb1a40a8fd3b9928e808435d85a8cee498f527ac"
+    }
+  ]
+}

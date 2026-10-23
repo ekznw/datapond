@@ -229,6 +229,7 @@ mod_dataset_lifecycle_ui <- function(id) {
     shiny::h2(
       "Dataset lifecycle"
     ),
+    mod_dataset_releases_ui(shiny::NS(id)("releases")),
 
     shiny::tags$div(
       style = paste(
@@ -344,7 +345,7 @@ mod_dataset_lifecycle_ui <- function(id) {
 
           shiny::selectInput(
             ns("lifecycle_status"),
-            "Lifecycle status",
+            metadata_field_label("Lifecycle status", "Mandatory", "Choose the status to save; Draft is selected by default."),
             choices = c(
               "Draft" = "draft",
               "Released" = "released",
@@ -381,7 +382,7 @@ mod_dataset_lifecycle_ui <- function(id) {
 
           shiny::selectInput(
             ns("target_stage"),
-            "Move unlocked draft folder to",
+            metadata_field_label("Move unlocked draft folder to", "Conditional", "Choose a destination when moving an unlocked draft folder."),
             choices = c(
               "Source (src/)" = "src",
               "Development (dev/)" = "dev",
@@ -469,13 +470,18 @@ mod_dataset_lifecycle_ui <- function(id) {
 mod_dataset_lifecycle_server <- function(
   id,
   state,
-  schema_grouped
+  schema_grouped,
+  on_restored = function() NULL
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       refresh_token <- shiny::reactiveVal(0L)
       folder_verification_result <- shiny::reactiveVal(NULL)
+      mod_dataset_releases_server("releases", state, on_changed = function() {
+        refresh_selected_state()
+        on_restored()
+      })
 
 
       valid_dataset_context <- shiny::reactive({
@@ -552,17 +558,7 @@ mod_dataset_lifecycle_server <- function(
           return(NA_character_)
         }
 
-        tolower(
-          basename(
-            dirname(
-              normalizePath(
-                path,
-                mustWork = FALSE,
-                winslash = "/"
-              )
-            )
-          )
-        )
+        dataset_lifecycle_stage(path, state$data_pond)
       })
 
 
@@ -1017,6 +1013,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       output$folder_verification_result <- shiny::renderUI({
+        access_require("read")
         result <- folder_verification_result()
 
         if (is.null(result)) {
@@ -1049,6 +1046,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$verify_selected_folder,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "verifying the selected dataset folder"
@@ -1121,6 +1119,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$verify_all_folders,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "verifying all pond dataset folders"
@@ -1204,6 +1203,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       output$current_lifecycle_summary <- shiny::renderUI({
+        access_require("read")
         record <- current_lifecycle()
         earth <- app_earth_palette()
 
@@ -1315,6 +1315,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       output$current_lifecycle_table <- DT::renderDT({
+        access_require("read")
         record <- current_lifecycle()
 
         if (
@@ -1441,6 +1442,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       output$folder_comparison_table <- DT::renderDT({
+        access_require("read")
         comparison <- folder_comparison()
 
         if (
@@ -1600,6 +1602,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       output$lifecycle_dashboard <- DT::renderDT({
+        access_require("read")
         dashboard <- lifecycle_dashboard_data()
 
         if (
@@ -1870,6 +1873,7 @@ mod_dataset_lifecycle_server <- function(
 
 
       shiny::observe({
+        access_require("read")
         record <- current_lifecycle()
 
         if (
@@ -1957,6 +1961,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$lifecycle_status,
         {
+          access_require("edit", touch = TRUE)
           status <- lifecycle_clean_text(
             input$lifecycle_status,
             default = "draft"
@@ -1980,6 +1985,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$save_lifecycle,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "saving lifecycle status"
@@ -2111,6 +2117,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$move_folder,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "moving the dataset folder"
@@ -2208,6 +2215,7 @@ mod_dataset_lifecycle_server <- function(
       shiny::observeEvent(
         input$rename_folder,
         {
+          access_require("edit", touch = TRUE)
           if (!require_active_user_for_write(
             state,
             "renaming the dataset folder"

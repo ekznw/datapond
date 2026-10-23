@@ -1,0 +1,151 @@
+## Decide where access is managed
+
+DataPond login controls actions through the app. SharePoint permissions control access to the shared library, and operating-system permissions control local files. These are separate controls: a DataPond administrator does not automatically become a SharePoint administrator.
+
+| Scenario | Where accounts and approvals live | Who controls the files |
+|---|---|---|
+| Colleagues run DataPond locally and obtain data from SharePoint | Each operating-system user's DataPond configuration, separately for each local pond path | SharePoint/library owners control remote access; workstation owners control downloaded copies |
+| Colleagues use a future shared server through their browsers | The server service account's DataPond configuration, provided all app processes use the same configuration and pond path | Server operators control storage and the service account's permissions |
+
+**The first release has no central account synchronisation across workstations.** Approving a colleague on your computer does not approve them on theirs. Disabling their account in your installation does not revoke their other installations or erase downloaded data. People who own the local R process and files can use trusted R functions directly; local app roles are not an organisational security boundary against those people.
+
+## Find administrators and change access
+
+Sign in to the relevant pond and open **Configuration → Manage accounts**. The **Pond accounts** table lists login accounts, roles and statuses. Rows with role `admin` are administrators; `active` means activated, while `invited` means awaiting activation. Seeded metadata people without login accounts do not appear as approved users merely because they exist in **Parties**.
+
+Select an account's row, then use the controls below it:
+
+| Task | Action |
+|---|---|
+| Change permissions | Choose **Role**, then **Apply role and status** |
+| Suspend an activated account | Set **Account status** to **Disabled**, then **Apply role and status** |
+| Re-enable an activated account | Set status to **Active**, confirm the role, then **Apply role and status** |
+| Approve a new request | Choose the role and verified metadata person, then **Approve pending request** |
+| Reject a request | Set status to **Rejected**, then **Apply role and status** |
+| Replace a forgotten password or expired invitation | Select an active/invited account and choose **Issue activation / recovery code** |
+| Review access events | Expand **Access audit**; times are UTC and actors/targets use account IDs |
+
+Changing a role or status signs the affected account out. The final active/invited administrator cannot be removed. To reopen a rejected request, return it to **Pending approval** and approve it after verification. An invitation disabled before activation must return to **Awaiting activation**, followed by a new code.
+
+| Role | Allowed work |
+|---|---|
+| Viewer | Browse the authenticated pond's metadata and maps |
+| Editor | Viewer access plus editing, scans, imports, exports, file/package downloads and dataset workflows, subject to existing ownership rules |
+| Pond administrator | Editor access plus account management, shared parties/vocabularies, review acceptance and Flow |
+
+Roles apply to a pond, not individual datasets. Licensing and embargo fields describe policy; they do not enforce separate dataset permissions. Visible metadata can be copied. Grant access only where the person may see the pond's metadata.
+
+## Set up and onboard people
+
+The first administrator must be set up from the trusted R console outside a running Shiny session. For someone already in the metadata catalogue, verify their numeric person ID and use it:
+
+```r
+code <- datapond::setup_pond_access(
+  data_pond = "/path/to/your/pond",
+  username = "your.username",
+  person_id = 18L  # Example only: replace with the verified ID in this pond.
+)
+code
+```
+
+For a genuinely new person, replace `person_id` with `first_name`, `last_name` and optionally `email`. An existing-email error means you should verify and select the existing person, not create a duplicate. Setup refuses to replace an existing account store.
+
+For subsequent accounts:
+
+1. The colleague selects **Request access** in the intended installation and pond.
+2. An administrator of that same installation and pond selects the request in **Manage accounts**, verifies identity, assigns a role and links the correct existing metadata person (or chooses **Create a new person**).
+3. The administrator chooses **Approve pending request** and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.
+4. The colleague selects **Activate / recover access**, enters their username and code, sets a passphrase of at least 15 characters, then signs in.
+
+Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall.
+
+::: {.guide-process role="region" aria-label="Onboard a colleague to a pond" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Account approval and activation happen within the same installation and pond. The administrator shares the code privately."
+flowchart TD
+  accTitle: Onboard a colleague to a pond
+  accDescr: After the first administrator has been set up, a colleague requests access to the intended pond. An administrator of that installation and pond verifies identity, links the metadata person, chooses a role and approves the request. The administrator privately shares a single-use code. The colleague activates access within 24 hours, sets a passphrase of at least 15 characters and signs in. An expired code requires a new code from the administrator.
+  request["Colleague: Request access"] --> verify["Administrator: verify identity;<br/>link person and choose role"]
+  verify --> approve["Administrator: Approve pending request"]
+  approve --> code["Share single-use code privately"]
+  code --> valid{"Code still valid<br/>within 24 hours?"}
+  valid -->|No| reissue["Administrator: issue a new code"]
+  reissue --> code
+  valid -->|Yes| activate["Colleague: Activate / recover access;<br/>set passphrase of at least 15 characters"]
+  activate --> signin["Colleague: sign in to this pond"]
+```
+
+:::
+
+## Scenario 1: local use with SharePoint and caching
+
+Use SharePoint as the distribution location and keep a clearly designated master pond. Colleagues can work with local metadata and fetch larger datasets when needed. SharePoint access does not sign them in to DataPond, and local DataPond approval does not grant SharePoint access.
+
+### Published catalogue and on-demand files through Flow
+
+This workflow is implemented, but **all Flow controls currently require a local pond administrator**, including remote metadata browsing and downloads. Viewer/editor accounts cannot use this route. A separate restricted consumer role is future work; do not grant administrative access on the master merely to let someone cache data.
+
+1. The master custodian opens **Flow → Design flows (setup)** and enters **Flow to — destination**. At the bottom of that tab, **Publish pond** uses the active pond, without saving a flow. Select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue, then choose **Preview pond publication**. Review the plan and log in **Run flows**, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
+2. On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in **Flow → Config (setup)**. Cloud credentials belong to the operating-system account running the app.
+3. In **Flow → Remote ponds (read-only)**, enter the configured remote pond folder and an empty **Local pond cache** folder. Use **Connect / refresh metadata only**. A SharePoint web URL is not a configured remote path.
+4. Browse the cached catalogue offline. Select a dataset and choose **Download / update selected dataset** when its files are needed; fetching new content requires connectivity and remote permission.
+5. Use **Remove selected download from local pond cache** to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.
+
+The remote cache is read-only in DataPond and does not upload edits. It is authorised by the cloud connection and the local Flow role, not by logging in to the publisher's DataPond account store. For changes, use a separate working pond and the [dataset transfer or metadata review workflow](review.qmd), then have the custodian accept and republish the result. This differs from the [frozen-release cache helper](releases.qmd), which currently reads release packages from a local pond.
+
+```{mermaid}
+%%| fig-cap: "Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. All Flow actions require a local pond administrator."
+flowchart TD
+  accTitle: Publish a catalogue and fetch local copies through Flow
+  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. Removing a local download retains the cached metadata and remote dataset; edits must go through a separate working pond and exchange workflow.
+  master["Master custodian: preview publication;<br/>choose whether to include dataset folders"] --> run["Run flow; wait for publication to finish"]
+  run --> remote["SharePoint: published catalogue<br/>and any uploaded dataset folders"]
+  remote -->|Authorised cloud connection| metadata["Consumer: Connect / refresh metadata only"]
+  metadata --> browse["Browse cached metadata offline"]
+  browse -->|Files needed and published| download["While online: Download / update<br/>selected dataset"]
+  download --> use["Use the local read-only copy"]
+  use -->|Reclaim local space| remove["Remove selected download;<br/>retain metadata and remote dataset"]
+```
+
+In **Design flows (setup)**, **Choose a destination location** lists both **Saved folders** and **Configured remotes**. Selecting a remote fills in its library root, such as `team_data:`; append a dedicated publication folder in **Flow to — destination**, for example `team_data:published/my_pond`. To bookmark that full path, use **Config (setup) → Saved locations → Save location**. If a connection was added outside the app, use **Browse locations and libraries → Detect configured libraries and drives** in Config to refresh the choices.
+
+### Leave a publication running
+
+Running or queued Flow jobs count as activity and prevent the 30-minute idle timeout while the app remains connected. Keep the app open and the computer awake. Normal idle expiry resumes when the job finishes, fails or is cancelled; waiting at a private cloud sign-in prompt does not extend the session.
+
+Jobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.
+
+If publication is interrupted, sign in again, check the active pond and destination, then preview and run publication again with the same dataset-upload choice. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.
+
+### OneDrive-synced SharePoint folders
+
+Where colleagues use OneDrive Files On-Demand instead of Flow, ensure required files are downloaded before offline work. On Windows, **Always keep on this device** retains files locally; **Free up space** makes them online-only. Deleting files in the synced folder can delete the shared copies too. These controls belong to OneDrive, not DataPond. See [Microsoft's Files On-Demand guidance](https://support.microsoft.com/en-us/onedrive/save-disk-space-with-onedrive-files-on-demand-for-windows).
+
+For the working catalogue, use a local pond outside automatic sync and distribute a consistent snapshot or an exchange package. Do not have multiple workstations edit and sync copies of the same live `metadata.db`: file synchronisation does not merge database transactions. Copying a database while a transaction is active can produce an inconsistent copy; use the app's publication snapshot or close all database writers before a filesystem copy. This operating recommendation follows [SQLite's guidance on backup and restore during transactions](https://www.sqlite.org/howtocorrupt.html).
+
+### Removing local users' access
+
+The library owner removes SharePoint permissions; the relevant installation administrator disables the DataPond account. Previously downloaded metadata and data remain on the workstation. Handle retention or removal through the organisation's device and data procedures. There is no remote cache wipe or central workstation audit in this release.
+
+## Scenario 2: future server-hosted access
+
+Server hosting is a deployment option to prepare and validate, not a service provisioned by this release. Colleagues would open an HTTPS address; R, the catalogue, cloud connections and caches would run on the server. A browser download creates a separate client copy, while Flow's local cache would be on the server.
+
+Use a dedicated service account with persistent, protected local storage. Bootstrap its administrator from an R console running as that service account, using the same configuration directory and canonical pond path as the hosted app. All app processes intended to share accounts must use that same store. Separate OS users, containers with separate configuration directories, or different pond paths do not automatically share accounts.
+
+In that arrangement, **Manage accounts** becomes the shared control point for browser users of that server and pond. Disabling an account revokes its sessions there, but does not affect SharePoint membership or files already downloaded elsewhere. Direct server R/filesystem access remains trusted and should be restricted to operators.
+
+Before opening remote access, the operator must configure HTTPS, restrict service-account file/cloud permissions, preserve and back up the account store, and validate concurrent use, session routing and recovery in the chosen hosting environment. Flow administrators operate with that service account's file and configured cloud access, not each browser user's SharePoint identity. Do not expose personal cloud credentials through a shared server. SSO, MFA, automatic Microsoft identity-to-role mapping and distributed multi-host account storage are not implemented in this release.
+
+## Backups and changes of machine or path
+
+Back up the pond and the account store separately. Locate the latter with:
+
+```r
+file.path(tools::R_user_dir("datapond", which = "config"), "security")
+```
+
+That private directory contains password hashes, token records and the access audit. Keep it out of shared dataset folders and publication bundles. Take consistent backups with writers stopped, protect them, and test restoration on a copy.
+
+Account stores are keyed by canonical pond path under that OS user's configuration. Moving a pond, changing users or moving to another machine requires local setup or a deliberately managed restoration; copying `metadata.db` alone transfers neither passwords nor roles. Legacy administrative flags in the portable metadata are not login permissions. The **Access audit** describes that account store's events, not all SharePoint activity or changes made by external R scripts.

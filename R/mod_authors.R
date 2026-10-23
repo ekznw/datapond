@@ -67,7 +67,7 @@ mod_authors_ui <- function(id) {
 
     selectInput(
       ns("author_select"),
-      "Select author",
+      metadata_field_label("Select author", "Conditional", "Select a person when adding an individual author."),
       choices = NULL
     ),
 
@@ -197,6 +197,7 @@ mod_authors_server <- function(id, state) {
       })
 
       observe({
+        access_require("read")
         current_selection <- isolate(
           input$author_select
         )
@@ -224,6 +225,7 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$add_author,
         {
+          access_require("edit", touch = TRUE)
           req(
             input$author_select
           )
@@ -282,6 +284,7 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$move_up,
         {
+          access_require("edit", touch = TRUE)
           selected_row <- input$author_table_rows_selected
           df <- author_list()
           if (length(selected_row) != 1L || selected_row <= 1L) return()
@@ -293,6 +296,7 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$move_down,
         {
+          access_require("edit", touch = TRUE)
           selected_row <- input$author_table_rows_selected
           df <- author_list()
           if (length(selected_row) != 1L || selected_row >= nrow(df)) return()
@@ -304,6 +308,7 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$remove_author,
         {
+          access_require("edit", touch = TRUE)
           selected_row <- input$author_table_rows_selected
           df <- author_list()
           if (length(selected_row) != 1L) return()
@@ -315,6 +320,7 @@ mod_authors_server <- function(id, state) {
       )
 
       output$author_table <- DT::renderDT({
+        access_require("read")
         df <- author_list()
         display_df <- data.frame(
           Order = df$author_order,

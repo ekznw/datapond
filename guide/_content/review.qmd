@@ -1,0 +1,48 @@
+## Choose the right kind of exchange
+
+| What you want to share | Use |
+|---|---|
+| A working dataset and its files with another pond | Ordinary **Dataset transfer** bundle |
+| Metadata for a colleague to review and return | **Metadata review exchange** |
+| Standards-based metadata for a receiving system | **ISO metadata validation & export** |
+| A fixed version for distribution and later verification | **Frozen releases**, with its sidecars |
+
+These packages serve different purposes. A metadata-only request is not a copy of the data, and an ordinary transfer bundle is not a frozen release.
+
+::: {.guide-process role="region" aria-label="Metadata review request and return" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Metadata review is a round trip between the master and a separate review pond. Send both ZIPs through your agreed channel."
+flowchart TD
+  accTitle: Metadata review request and return
+  accDescr: In the master pond, save metadata and create a review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the master. If the baseline is unchanged and checks pass, a pond administrator can accept it. Otherwise resolve competing work, cancel with a reason and issue a fresh request.
+  request["Master: save metadata;<br/>create review request"] -->|Send request ZIP| import["Reviewer: import into a separate pond"]
+  import --> edit["Reviewer: edit and save metadata;<br/>create review return"]
+  edit -->|Send return ZIP| inspect["Master: Inspect return"]
+  inspect --> checks{"Baseline unchanged<br/>and checks pass?"}
+  checks -->|Yes| accept["Pond administrator: record decision;<br/>accept reviewed metadata"]
+  checks -->|No| resolve["Resolve competing work;<br/>cancel with a reason"]
+  resolve -->|Fresh request| request
+```
+
+:::
+
+## Request a metadata review
+
+In the master pond, use **Pond links / Dataset transfer → Metadata review exchange**. Save the dataset, enter the responsible colleague, then choose **Create metadata review request**. Download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.
+
+One request can be active per dataset. Keep the master's private `.metadata_pond/reviews/` records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.
+
+## Work as the reviewer
+
+Import the request with **Import dataset** into a separate local pond that does not already contain the dataset UUID. Use a fresh review pond for a repeated assignment. Sign in to that pond, edit metadata, record the reason/status in **Metadata review**, and save. Choose **Create metadata review return** and send the resulting ZIP back.
+
+The review workspace contains metadata only. Do not scan its empty data folder or change file inventories/supporting-document records. Use a separate read-only copy of the published data if needed for reference. Data-file edits and changes to shared definitions are outside this review-return workflow.
+
+## Inspect and accept the return
+
+In the master, select the returned ZIP and choose **Inspect return**. Read the comparison with the issued baseline. An active pond administrator records the acceptance decision and chooses **Accept reviewed metadata into master**.
+
+Acceptance updates the existing record and UUID, preserves previous metadata and appends review history. If the master metadata or files have changed, acceptance stops. Resolve the competing work, cancel the old request with a reason and issue a fresh request; this version does not automatically merge it.
+
+An accepted return does not publish itself. Where your team uses Flow, **Flow → Publish pond** is a separate catalogue publication step. It does not establish a published-current pointer for frozen releases. Follow your team's distribution approvals before sharing data.
