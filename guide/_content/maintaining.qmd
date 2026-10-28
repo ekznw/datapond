@@ -39,7 +39,7 @@ After rebuilding, review navigation, search, mobile layout, links and checklists
 
 ## Open the installed guide
 
-Use **Configuration → User guide → Open user guide**, or run:
+Use the **?** button beside the configuration gear, or run:
 
 ```r
 datapond::open_user_guide()

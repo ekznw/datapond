@@ -279,6 +279,27 @@ test_that("main overview lists remote caches and opens them in Flow without swit
     do.call(session$setInputs, defaults)
     rows <- overview_inventory_data()
     expect_setequal(rows$title, c("Current rivers", "Remote soils"))
+    # Capture any catalogue writes made by the initial workspace observers.
+    auth$tick <- auth$tick + 1L
+    session$flushReact()
+    updates <- new.env(); updates$overview <- 0L; updates$connections <- 0L
+    overview_watcher <- shiny::observe({
+      overview_inventory_data()
+      updates$overview <- updates$overview + 1L
+    })
+    connection_watcher <- shiny::observe({
+      connected_pond_registry_display()
+      updates$connections <- updates$connections + 1L
+    })
+    session$flushReact()
+    before <- c(updates$overview, updates$connections)
+    for (i in 1:3) {
+      auth$tick <- auth$tick + 1L
+      session$flushReact()
+    }
+    expect_identical(c(updates$overview, updates$connections), before)
+    overview_watcher$destroy()
+    connection_watcher$destroy()
     expect_equal(rows[active_pond == TRUE, title], "Current rivers")
     expect_true(is.na(rows[active_pond == FALSE, id]))
     display <- pond_overview_inventory_display(rows)
@@ -388,10 +409,19 @@ test_that("overview previews leave editors and full map rendering untouched unti
     session$setInputs(dataset_table_rows_selected = which(overview_inventory_data()$id == 1L))
     expect_equal(state$current_dataset_id, 2L)
     expect_equal(overview_current_id(), 1L)
+    expect_false(select_overview_table_rows(which(overview_inventory_data()$id == 1L)))
     expect_equal(input$title, "Unsaved editor text")
     expect_equal(counts$hydration, 1L)
     expect_identical(output$overview_editor_ready, "false")
-    expect_null(output$dataset_record_controls)
+    expect_false(is.null(output$dataset_record_controls))
+
+    # Delayed editor updates must not reclaim an explicit Overview selection.
+    state$current_dataset_id <- 1L
+    session$flushReact()
+    state$current_dataset_id <- 2L
+    session$flushReact()
+    expect_equal(overview_current_id(), 1L)
+
     session$setInputs(main_dataset_tabs = "dataset_workspace")
     expect_equal(state$current_dataset_id, 1L)
     expect_equal(counts$hydration, 2L)
@@ -399,6 +429,10 @@ test_that("overview previews leave editors and full map rendering untouched unti
     DBI::dbExecute(conn, "UPDATE entry_tbl SET abstract = NULL WHERE id = 1")
     DBI::dbDisconnect(conn)
     session$setInputs(refresh_pond_overview = 1L)
+    expect_match(output$overview_dataset_abstract$html, "Select a dataset", fixed = TRUE)
+    expect_null(selected_dataset_citation_record())
+    expect_null(overview_record_id())
+    session$setInputs(dataset_table_rows_selected = which(overview_inventory_data()$id == 1L))
     expect_match(output$overview_dataset_abstract$html, "No abstract recorded.", fixed = TRUE)
   })
 })

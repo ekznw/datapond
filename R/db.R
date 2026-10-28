@@ -4320,6 +4320,7 @@ supporting_document_type_choices <- c(
   "Method statement" = "method_statement",
   "Script" = "script",
   "Data dictionary" = "data_dictionary",
+  "Dataset intake notes" = "dataset_intake_notes",
   "Metadata note" = "metadata_note",
   "Map layout" = "map_layout",
   "Legal document" = "legal_document",

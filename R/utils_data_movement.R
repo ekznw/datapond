@@ -114,7 +114,7 @@ movement_transfer_plan <- function(source, destination, mode = "copy", excludes 
   if (!movement_remote(destination) && file.exists(get_db_path(destination)))
     stop("Do not overwrite a working pond. Choose a dedicated backup folder or publish its catalogue.")
   if (!movement_remote(source) && file.exists(get_db_path(source)))
-    stop("For a whole pond, open Flow > Run flows and use Publish pond. This creates a consistent database snapshot of the active pond.")
+    stop("For a whole pond, open Flow > Run Flows and use Publish pond. This creates a consistent database snapshot of the active pond.")
   excludes <- trimws(excludes[nzchar(trimws(excludes))])
   if (any(grepl("[\r\n]", excludes))) stop("Enter one exclusion pattern per line.")
   args <- c(mode, source, destination, "--stats", "1s", "--stats-one-line", "--log-level", "INFO",

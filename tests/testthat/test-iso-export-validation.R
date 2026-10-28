@@ -1,6 +1,6 @@
 iso_validation_example <- function() {
   datapond:::iso_validation_resource(
-    "extdata", "iso_validation", "1.3.0", "upstream", "schemas.isotc211.org",
+    "xsd", "1.3.0", "schemas.isotc211.org",
     "19115", "-1", "mdb", "1.3.0", "examples", "D.1Minimal.xml"
   )
 }
@@ -99,7 +99,7 @@ test_that("missing tooling and damaged pinned resources are unavailable, never p
   example <- iso_validation_example()
   resource <- datapond:::iso_validation_resource
   local_mocked_bindings(iso_validation_resource = function(...) {
-    if (identical(list(...)[[1]], "extdata")) bundle else resource(...)
+    if (identical(list(...)[[1]], "xsd")) bundle else resource(...)
   }, .package = "datapond")
   report <- datapond:::validate_iso_metadata_xml(example)
   expect_identical(report$status, "unavailable")

@@ -13,7 +13,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import urlopen
 import xml.etree.ElementTree as ET
 
-ROOT = Path("inst/extdata/iso_validation/1.3.0")
+ROOT = Path("inst/xsd/1.3.0")
 BASE = "https://schemas.isotc211.org/19115/-1/"
 MODULES = "cit gex lan mas mcc mco mda mdb mex mmi mpc mrc mrd mri mrl mrs msr srv".split()
 RULE_MODULES = "cit gex mco mdb mex mmi mrc mrd mri mrl mrs srv".split()
@@ -31,7 +31,7 @@ def fetch(url):
         raise ValueError(f"Unexpected upstream dependency: {url}")
     # Some official imports still use HTTP. Fetch securely without changing bytes.
     download_url = parsed._replace(scheme="https").geturl()
-    relative = Path("upstream") / parsed.hostname / parsed.path.lstrip("/")
+    relative = Path(parsed.hostname) / parsed.path.lstrip("/")
     destination = ROOT / relative
     if relative.as_posix() in PINNED_PATHS:
         data = destination.read_bytes()

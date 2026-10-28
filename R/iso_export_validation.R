@@ -61,7 +61,7 @@ validate_iso_metadata_xml <- function(
     stop("Supply an XML document or an existing XML file.", call. = FALSE)
   }
   runner <- iso_validation_resource("iso", "validate_metadata.py")
-  bundle <- iso_validation_resource("extdata", "iso_validation", "1.3.0")
+  bundle <- iso_validation_resource("xsd", "1.3.0")
   result <- tryCatch(processx::run(
     python, c(runner, normalizePath(path, mustWork = TRUE), "--bundle", bundle, "--kind", kind),
     error_on_status = FALSE, timeout = 60000, windows_hide_window = TRUE

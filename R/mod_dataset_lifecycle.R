@@ -184,6 +184,7 @@ lifecycle_summary_card <- function(
     width = width,
 
     shiny::tags$div(
+      class = "lifecycle-summary-card",
       style = paste(
         "min-height:92px;",
         "padding:10px 12px;",
@@ -194,23 +195,23 @@ lifecycle_summary_card <- function(
       ),
 
       shiny::tags$div(
+        class = "lifecycle-summary-label",
         style = paste(
           "font-size:12px;",
           "font-weight:600;",
           "text-transform:uppercase;",
           "letter-spacing:0.04em;",
-          "color:#625C52;",
           "margin-bottom:5px;"
         ),
         title
       ),
 
       shiny::tags$div(
+        class = "lifecycle-summary-value",
         style = paste(
           "font-size:16px;",
           "font-weight:600;",
           "line-height:1.3;",
-          "color:#403B35;",
           "overflow-wrap:anywhere;"
         ),
         value
@@ -221,7 +222,7 @@ lifecycle_summary_card <- function(
 
 
 # UI ----
-mod_dataset_lifecycle_ui <- function(id) {
+mod_dataset_lifecycle_ui <- function(id, record_controls = NULL) {
   ns <- shiny::NS(id)
   earth <- app_earth_palette()
 
@@ -229,7 +230,29 @@ mod_dataset_lifecycle_ui <- function(id) {
     shiny::h2(
       "Dataset lifecycle"
     ),
-    mod_dataset_releases_ui(shiny::NS(id)("releases")),
+    shiny::tags$div(
+      class = "lifecycle-help-cards",
+      shiny::tags$section(class = "lifecycle-help-card",
+        shiny::h3("Work on a draft"),
+        shiny::p("Select a dataset in Pond overview, then open Dataset lifecycle. These controls apply to the loaded dataset shown below."),
+        shiny::p("Save metadata in Create / edit dataset before previewing a release. Prepare and download the current metadata PDF, then review it and the dataset files.")
+      ),
+      shiny::tags$section(class = "lifecycle-help-card",
+        shiny::h3("Freeze a version"),
+        shiny::p("Preview the saved dataset, confirm your review and enter release notes. Freeze version; keep working copy creates a verified ZIP in arc/ so development can continue."),
+        shiny::p("Freeze version and close development retires the working folder after verification. A frozen release is not automatically published. Restore a release to resume work as a draft.")
+      ),
+      shiny::tags$section(class = "lifecycle-help-card",
+        shiny::h3("Manage status and folders"),
+        shiny::p("Saving Draft, Released or Archived changes the recorded lifecycle status; it does not move the folder or create a frozen release. Released and archived records are locked."),
+        shiny::p("Move or rename folders separately, while the dataset is an unlocked draft. Folder verification checks identity and location and applies safe same-root path repairs.")
+      ),
+      shiny::tags$section(class = "lifecycle-help-card",
+        shiny::h3("Delete or restore a record"),
+        shiny::p("Delete record (recoverable) hides the catalogue record until you restore it. To find it again, enable Show hidden datasets in Pond overview, select it and return here."),
+        shiny::p("Hard-delete permanently removes metadata and linked catalogue rows and is restricted to administrators. Records with frozen releases cannot be hard-deleted. Neither action deletes dataset files.")
+      )
+    ),
 
     shiny::tags$div(
       style = paste(
@@ -261,6 +284,8 @@ mod_dataset_lifecycle_ui <- function(id) {
     shiny::uiOutput(
       ns("current_lifecycle_summary")
     ),
+
+    mod_dataset_releases_ui(ns("releases")),
 
     shiny::tags$div(
       style = paste(
@@ -440,6 +465,8 @@ mod_dataset_lifecycle_ui <- function(id) {
     DT::DTOutput(
       ns("folder_comparison_table")
     ),
+
+    record_controls,
 
     shiny::hr(),
 
@@ -1323,7 +1350,7 @@ mod_dataset_lifecycle_server <- function(
             nrow(as.data.frame(record)) == 0L
         ) {
           return(
-            DT::datatable(
+            datapond_datatable(
               data.frame(
                 Message =
                   "Select a saved dataset to view lifecycle details.",
@@ -1406,7 +1433,7 @@ mod_dataset_lifecycle_server <- function(
           check.names = FALSE
         )
 
-        table_widget <- DT::datatable(
+        table_widget <- datapond_datatable(
           display,
           rownames = FALSE,
           selection = "none",
@@ -1459,7 +1486,7 @@ mod_dataset_lifecycle_server <- function(
           names(comparison) <- "Message"
 
           return(
-            DT::datatable(
+            datapond_datatable(
               comparison,
               rownames = FALSE,
               selection = "none",
@@ -1535,7 +1562,7 @@ mod_dataset_lifecycle_server <- function(
 
         palette <- lifecycle_display_palette()
 
-        table_widget <- DT::datatable(
+        table_widget <- datapond_datatable(
           as.data.frame(
             display,
             stringsAsFactors = FALSE
@@ -1610,7 +1637,7 @@ mod_dataset_lifecycle_server <- function(
             nrow(as.data.frame(dashboard)) == 0L
         ) {
           return(
-            DT::datatable(
+            datapond_datatable(
               data.frame(
                 Message =
                   "No datasets are available in the active data pond.",
@@ -1638,7 +1665,7 @@ mod_dataset_lifecycle_server <- function(
           )
 
           return(
-            DT::datatable(
+            datapond_datatable(
               message_table,
               rownames = FALSE,
               selection = "none",
@@ -1677,7 +1704,7 @@ mod_dataset_lifecycle_server <- function(
 
         palette <- lifecycle_display_palette()
 
-        table_widget <- DT::datatable(
+        table_widget <- datapond_datatable(
           as.data.frame(
             display,
             stringsAsFactors = FALSE

@@ -29,7 +29,7 @@ flowchart TD
 
 ## Request a metadata review
 
-In the master pond, use **Pond links / Dataset transfer → Metadata review exchange**. Save the dataset, enter the responsible colleague, then choose **Create metadata review request**. Download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.
+In the master pond, use **Pond links / Dataset transfer → Metadata review exchange**. Save the dataset and enter the responsible colleague. **Include the dataset folder in the review request** is selected by default: supporting documents, data, other subfolders and root files (including hidden files) travel with the metadata. Existing DataPond transfer ZIPs and temporary transfer metadata are excluded; files outside the dataset folder are not included. Clear the option for a smaller, metadata-only request. Choose **Create metadata review request**, download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.
 
 One request can be active per dataset. Keep the master's private `.metadata_pond/reviews/` records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.
 
@@ -37,7 +37,7 @@ One request can be active per dataset. Keep the master's private `.metadata_pond
 
 Import the request with **Import dataset** into a separate local pond that does not already contain the dataset UUID. Use a fresh review pond for a repeated assignment. Sign in to that pond, edit metadata, record the reason/status in **Metadata review**, and save. Choose **Create metadata review return** and send the resulting ZIP back.
 
-The review workspace contains metadata only. Do not scan its empty data folder or change file inventories/supporting-document records. Use a separate read-only copy of the published data if needed for reference. Data-file edits and changes to shared definitions are outside this review-return workflow.
+If the sender included the dataset folder, supporting documents and data are available in the imported review workspace for reference. Otherwise the workspace contains metadata only: do not scan its empty data folder. Review returns contain metadata only, even when the request included files. Changes to files, file inventories, supporting-document records and shared definitions are outside this review-return workflow and will not be accepted into the master.
 
 ## Inspect and accept the return
 

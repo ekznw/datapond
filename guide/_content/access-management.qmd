@@ -35,6 +35,10 @@ Changing a role or status signs the affected account out. The final active/invit
 
 Roles apply to a pond, not individual datasets. Licensing and embargo fields describe policy; they do not enforce separate dataset permissions. Visible metadata can be copied. Grant access only where the person may see the pond's metadata.
 
+To browse another local pond from the current **Pond overview**, add it under **Pond connections**, select it, enter that pond's username and password, and choose **Sign in to selected catalogue**. Leave **Show current pond datasets only** unchecked. Connected access is read-only and lasts for the current app session, subject to session expiry and account revocation. Sign out, switching ponds, or closing the session clears connected sign-ins. Switch to the target pond and sign in there to edit records. A pond labelled **Sign-in required** has not yet been authenticated; an unavailable folder must first be reconnected.
+
+The local launcher uses `http://127.0.0.1:5751` by default so its browser address remains stable. Both sign-in forms support browser password-manager autofill. Save your credentials in your browser and select the appropriate saved account for the pond; ponds share the same local website address. To use another fixed port, run `datapond::run_data_pond(port = 5752)` or set `options(datapond.port = 5752)` in your R startup configuration. If the port is occupied, stop the other app instance or choose another port. Passing `port = NULL` restores Shiny's automatic port selection.
+
 ## Set up and onboard people
 
 The first administrator must be set up from the trusted R console outside a running Shiny session. For someone already in the metadata catalogue, verify their numeric person ID and use it:
@@ -86,9 +90,22 @@ Use SharePoint as the distribution location and keep a clearly designated master
 
 This workflow is implemented, but **all Flow controls currently require a local pond administrator**, including remote metadata browsing and downloads. Viewer/editor accounts cannot use this route. A separate restricted consumer role is future work; do not grant administrative access on the master merely to let someone cache data.
 
-1. The master custodian opens **Flow → Design flows (setup)** and enters **Flow to — destination**. At the bottom of that tab, **Publish pond** uses the active pond, without saving a flow. Select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue, then choose **Preview pond publication**. Review the plan and log in **Run flows**, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
-2. On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in **Flow → Config (setup)**. Cloud credentials belong to the operating-system account running the app.
-3. In **Flow → Remote ponds (read-only)**, enter the configured remote pond folder and an empty **Local pond cache** folder. Use **Connect / refresh metadata only**. A SharePoint web URL is not a configured remote path.
+The introduction cards and tabs follow this order. **Read remote pond** opens first:
+
+| Tab | Use it to |
+| --- | --- |
+| **1. Read remote pond** | Browse a published pond, refresh cached metadata and download selected datasets. The remote pond stays read-only. |
+| **2. Run Flows** | Preview and run saved flows, or publish the active pond using its saved publication settings. |
+| **3. Define connections** | Connect remote libraries, save named local folders and choose transfer limits. |
+| **4. Design flow** | Choose source, destination and copy/mirror options, then save a reusable flow. |
+
+The two setup tabs use muted sand colours. Complete connection and flow setup before running a new routine. **Show Define connections tab** hides or restores the connection tab without clearing its settings; it starts hidden when saved flows exist. Pond publication has its own settings in **Run Flows** and does not require a saved routine.
+
+To publish and consume a pond:
+
+1. The master custodian opens **Flow → Run Flows → Publish pond** and enters **Publication destination**. The source is the active pond. Select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue. **Save publication settings** remembers the destination and upload choice for this pond; **Preview / retry pond publication** saves them too. Review the plan and log, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
+2. On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in **Flow → Define connections**. Cloud credentials belong to the operating-system account running the app.
+3. In **Flow → Read remote pond**, enter the configured remote pond folder and an empty **Local pond cache** folder. Use **Connect / refresh metadata only**. A SharePoint web URL is not a configured remote path.
 4. Browse the cached catalogue offline. Select a dataset and choose **Download / update selected dataset** when its files are needed; fetching new content requires connectivity and remote permission.
 5. Use **Remove selected download from local pond cache** to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.
 
@@ -108,7 +125,7 @@ flowchart TD
   use -->|Reclaim local space| remove["Remove selected download;<br/>retain metadata and remote dataset"]
 ```
 
-In **Design flows (setup)**, **Choose a destination location** lists both **Saved folders** and **Configured remotes**. Selecting a remote fills in its library root, such as `team_data:`; append a dedicated publication folder in **Flow to — destination**, for example `team_data:published/my_pond`. To bookmark that full path, use **Config (setup) → Saved locations → Save location**. If a connection was added outside the app, use **Browse locations and libraries → Detect configured libraries and drives** in Config to refresh the choices.
+For ordinary file transfers, **Design flow → Choose a destination location** lists both **Saved folders** and **Configured remotes**. Selecting a remote fills in its library root, such as `team_data:`; append the destination subfolder in **Flow to — destination**. Whole-pond publication instead uses **Run Flows → Publish pond → Publication destination**, for example `team_data:published/my_pond`. To bookmark a full path, use **Define connections → Saved locations → Save location**. If a connection was added outside the app, use **Browse locations and libraries → Detect configured libraries and drives** in **Define connections** to refresh the choices.
 
 ### Leave a publication running
 
@@ -116,7 +133,7 @@ Running or queued Flow jobs count as activity and prevent the 30-minute idle tim
 
 Jobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.
 
-If publication is interrupted, sign in again, check the active pond and destination, then preview and run publication again with the same dataset-upload choice. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.
+If publication is interrupted, sign in again and open **Run Flows → Publish pond**. The destination and dataset-upload choice are restored for the active pond. Check them, choose **Preview / retry pond publication**, then **Run flow**. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.
 
 ### OneDrive-synced SharePoint folders
 

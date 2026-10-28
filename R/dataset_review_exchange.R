@@ -1,5 +1,5 @@
-# Metadata-only review exchange. Working datasets remain ordinary transfer bundles;
-# review bundles carry an explicit purpose and can never overwrite through import.
+# Metadata review exchange. Requests can include dataset files for reference;
+# returns contain metadata only and can never overwrite through ordinary import.
 review_ensure_schema <- function(conn) {
   DBI::dbExecute(conn, "CREATE TABLE IF NOT EXISTS dataset_review_exchange_tbl (
     review_id TEXT PRIMARY KEY, dataset_id INTEGER NOT NULL, role TEXT NOT NULL,
@@ -124,11 +124,19 @@ review_files <- function(path) {
   values <- vapply(paths, function(file) digest::digest(file = file, algo = "sha256"), character(1))
   stats::setNames(as.list(unname(values)), files)
 }
-review_check_archive <- function(archive) {
+review_check_archive <- function(archive, manifest = NULL) {
+  if (!is.null(manifest) &&
+      identical(transfer_scalar_text(manifest$review_kind), "request") &&
+      identical(transfer_scalar_integer(manifest$review_include_files), 1L)) {
+    return(invisible(TRUE))
+  }
   if (!identical(archive$names, archive$metadata))
     stop("A metadata review bundle must contain only its metadata database; file payloads are not accepted.")
 }
-review_write_bundle <- function(payload, directory, kind) {
+review_write_bundle <- function(payload, directory, kind, include_files = FALSE) {
+  if (isTRUE(include_files) && !identical(kind, "request"))
+    stop("Only review requests can include dataset files.")
+  if (identical(kind, "request")) payload$manifest$review_include_files <- as.integer(isTRUE(include_files))
   dir.create(directory, recursive = TRUE, showWarnings = FALSE)
   stage <- tempfile("review-package-"); dir.create(stage)
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
@@ -136,17 +144,33 @@ review_write_bundle <- function(payload, directory, kind) {
   if (!grepl("^[^/\\\\]+$", root) || root %in% c(".", "..")) stop("Invalid dataset folder name.")
   relative <- file.path(root, ".datapond_transfer", "dataset_metadata.sqlite")
   dir.create(dirname(file.path(stage, relative)), recursive = TRUE)
+  archive_files <- relative
+  if (isTRUE(include_files)) {
+    source <- payload$manifest$source_dataset_path[1]
+    snapshot <- review_files(source)
+    if (!identical(review_hash(snapshot), payload$manifest$files_hash[1]))
+      stop("Dataset files changed while issuing the review. Retry after saving and closing file editors.")
+    for (name in names(snapshot)) {
+      target <- file.path(stage, root, name)
+      dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+      if (!isTRUE(file.copy(file.path(source, name), target, copy.date = TRUE)))
+        stop(paste("Could not include dataset file:", name))
+    }
+    if (!identical(review_files(file.path(stage, root)), snapshot))
+      stop("Dataset files changed while copying the review request. Retry after saving and closing file editors.")
+    archive_files <- c(archive_files, file.path(root, names(snapshot)))
+  }
   write_dataset_transfer_database(payload, file.path(stage, relative))
   dest <- normalizePath(directory, mustWork = TRUE)
   archive <- file.path(dest, paste0(kind, "-", payload$manifest$bundle_id[1], ".zip"))
   old <- setwd(stage); on.exit(setwd(old), add = TRUE)
-  status <- utils::zip(archive, relative, flags = "-q6X")
+  status <- utils::zip(archive, archive_files, flags = "-q6X")
   if (!identical(as.integer(status), 0L) || !file.exists(archive)) stop("Could not write review bundle.")
-  review_check_archive(dataset_transfer_archive_index(archive))
+  review_check_archive(dataset_transfer_archive_index(archive), payload$manifest)
   archive
 }
 review_read_bundle <- function(path) {
-  archive <- dataset_transfer_archive_index(path); review_check_archive(archive)
+  archive <- dataset_transfer_archive_index(path)
   temp <- tempfile("review-read-"); dir.create(temp)
   on.exit(unlink(temp, recursive = TRUE))
   utils::unzip(path, files = archive$metadata, exdir = temp)
@@ -162,6 +186,7 @@ review_read_bundle <- function(path) {
       !identical(payload$manifest$bundle_format[1], "datapond_dataset_bundle") ||
       is.na(payload$manifest$bundle_format_version[1]) || payload$manifest$bundle_format_version[1] != 5L ||
       !identical(payload$manifest$source_dataset_uuid[1], payload$entry_tbl$uuid[1])) stop("Invalid review bundle identity or format.")
+  review_check_archive(archive, payload$manifest)
   for (rows in payload$scoped) {
     if (!"dataset_id" %in% names(rows) || any(is.na(rows$dataset_id)) || any(rows$dataset_id != payload$entry_tbl$id[1]))
       stop("Review bundle contains records belonging to another dataset.")
@@ -175,7 +200,9 @@ review_manifest <- function(payload, request, kind) {
   payload
 }
 
-issue_dataset_review <- function(dataset_id, base_path, user_id, assignee) {
+issue_dataset_review <- function(dataset_id, base_path, user_id, assignee, include_files = FALSE) {
+  if (!is.logical(include_files) || length(include_files) != 1L || is.na(include_files))
+    stop("Choose whether to include dataset files in the review request.")
   if (!non_empty_scalar(assignee)) stop("Name the colleague responsible for this review.")
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn))
   review_require_user(conn, user_id); review_ensure_schema(conn)
@@ -199,7 +226,8 @@ issue_dataset_review <- function(dataset_id, base_path, user_id, assignee) {
       issued_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), issued_by_user_id = as.integer(user_id))
     dir.create(directory, recursive = TRUE)
     saveRDS(payload, file.path(directory, "baseline.rds"))
-    archive <- review_write_bundle(review_manifest(payload, request, "request"), directory, "request")
+    archive <- review_write_bundle(review_manifest(payload, request, "request"), directory, "request",
+      include_files = include_files)
     if (!identical(request$files_hash[1], review_hash(review_files(payload$entry_tbl$dataset_path[1]))))
       stop("Dataset files changed while issuing the review. Retry after saving and closing file editors.")
     transfer_insert_row(conn, "dataset_review_exchange_tbl", request, drop = character())

@@ -23,6 +23,8 @@ stage <- tempfile("datapond-guide-", tmpdir = "inst")
 dir.create(stage)
 files <- list.files(site, full.names = TRUE, all.files = FALSE)
 if (!all(file.copy(files, stage, recursive = TRUE))) stop("Could not stage the rendered guide: ", stage)
+source("scripts/normalize_user_guide.R")
+normalize_user_guide(stage)
 dest <- "inst/guide"
 previous <- tempfile("datapond-guide-previous-", tmpdir = "inst")
 had_previous <- dir.exists(dest)

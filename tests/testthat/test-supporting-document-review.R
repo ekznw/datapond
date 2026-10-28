@@ -12,6 +12,35 @@ supporting_document_status <- function(pond, dataset_id) {
   ]
 }
 
+test_that("document table and review form select the same row including missing files", {
+  local_trusted_access_fixture()
+  pond <- tempfile("supporting-doc-selection-")
+  datapond:::init_db(pond)
+  on.exit(unlink(pond, recursive = TRUE), add = TRUE)
+  conn <- datapond:::get_conn(pond)
+  DBI::dbExecute(conn, "INSERT INTO entry_tbl (id, title) VALUES (1, 'Review selection')")
+  DBI::dbExecute(conn, paste(
+    "INSERT INTO supporting_document_tbl (id, dataset_id, document_rel_path, document_name, active, notes)",
+    "VALUES (1, 1, 'docs/missing.txt', 'missing.txt', 0, 'Full missing-file notes'),",
+    "(2, 1, 'docs/active.txt', 'active.txt', 1, 'Full active-file notes')"
+  ))
+  DBI::dbDisconnect(conn)
+  chosen <- NULL
+  local_mocked_bindings(updateSelectInput = function(session, inputId, ..., selected = NULL) {
+    if (inputId == "doc_select") chosen <<- selected
+  }, .package = "datapond")
+  state <- shiny::reactiveValues(data_pond = pond, current_dataset_id = 1L,
+    refresh_supporting_docs = 0L)
+  shiny::testServer(datapond:::mod_supporting_documents_server, args = list(state = state), {
+    session$flushReact()
+    expect_identical(docs()$id, c(2L, 1L))
+    session$setInputs(tbl_documents_rows_selected = 2L)
+    expect_identical(chosen, "1")
+    session$setInputs(doc_select = "1")
+    expect_identical(selected_document()$notes, "Full missing-file notes")
+  })
+})
+
 
 test_that("default supporting-document types can be reviewed in one pass", {
   pond <- tempfile("supporting-doc-review-pond-")

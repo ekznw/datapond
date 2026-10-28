@@ -80,7 +80,7 @@ validation was not yet finished. That work is now complete within the
 [v5.0.0 local acceptance scope](#gap-018-local-closure--crosswalk-v500).
 Porcupine/Pangolin saving and completion requirements were unchanged.
 
-- `inst/extdata/iso_validation/1.3.0/manifest.json` pins the official ISO/TC 211
+- `inst/xsd/1.3.0/manifest.json` pins the official ISO/TC 211
   package and its dependency closure by source URL and SHA-256. The original
   upstream files are retained locally, including the official minimal example.
 - `validate_iso_metadata_xml()` runs an offline XSD check plus 14 published
@@ -387,9 +387,9 @@ Wave 3 / `sections = "all"` serializer:
   Barometric/local coordinate definitions remain reference-only unless supported
   by a future dedicated resolver; they are not invented from the type selector.
 
-This follows the pinned [extent schema](../inst/extdata/iso_validation/1.3.0/upstream/schemas.isotc211.org/19115/-1/gex/1.3.0/extent.xsd),
-[reference-system schema](../inst/extdata/iso_validation/1.3.0/upstream/schemas.isotc211.org/19115/-1/mrs/1.3.0/referenceSystem.xsd)
-and [RBC wrapper](../inst/extdata/iso_validation/1.3.0/upstream/schemas.isotc211.org/19111/-/rbc/3.1.0/rbcStubs.xsd).
+This follows the pinned [extent schema](../inst/xsd/1.3.0/schemas.isotc211.org/19115/-1/gex/1.3.0/extent.xsd),
+[reference-system schema](../inst/xsd/1.3.0/schemas.isotc211.org/19115/-1/mrs/1.3.0/referenceSystem.xsd)
+and [RBC wrapper](../inst/xsd/1.3.0/schemas.isotc211.org/19111/-/rbc/3.1.0/rbcStubs.xsd).
 Local CRS inspection uses the existing dependency's
 [sf CRS interface](https://r-spatial.github.io/sf/reference/st_crs.html).
 Unit aliases follow the QUDT [metre](https://qudt.org/vocab/unit/M.html) and

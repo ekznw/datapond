@@ -1,3 +1,247 @@
+/* Shared by the sign-in screen and the authenticated workspace. */
+.datapond-login {
+  max-width: 680px;
+  margin: 40px auto;
+  padding: 24px;
+  border: 1px solid #87966c;
+  border-radius: 12px;
+  background: #faf9f5;
+}
+.datapond-login .shiny-input-container { width: 100%; }
+.datapond-console-command { margin-bottom: 16px; }
+.datapond-console-command pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.datapond-copy-status { margin-left: 8px; }
+
+.metadata-review-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+  margin: 12px 0 16px;
+}
+.metadata-review-guide > li {
+  border: 1px solid var(--dp-box-border, #D3CEC4);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--dp-surface, #F8F6F0);
+  color: var(--dp-text, #302F2C);
+}
+.metadata-review-guide > .metadata-responsibility-card {
+  background: var(--dp-inset, #F1E9DA);
+}
+.metadata-review-guide p { margin: 6px 0 0; font-size: 13px; }
+
+.metadata-review-history { min-width: 0; }
+.metadata-review-history table.dataTable th,
+.metadata-review-history table.dataTable td {
+  white-space: normal;
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: top;
+}
+.metadata-review-history table.dataTable thead th { padding-right: 22px; }
+.metadata-review-history .dataTables_scrollBody { overscroll-behavior: contain; }
+.metadata-review-history .dataTables_wrapper .dataTables_scrollBody table.dataTable tbody td {
+  vertical-align: top;
+  padding: 4px 8px;
+}
+.metadata-review-history .metadata-history-status { font-weight: 600; }
+.metadata-review-history table.dataTable thead input {
+  min-width: 0;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+.metadata-review-history .metadata-history-cell {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.metadata-history-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  max-height: 6.25em;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.metadata-history-cell:hover { text-decoration: underline; }
+.metadata-history-cell:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.supporting-doc-scroll-help { margin: 10px 0; }
+.supporting-doc-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(250px, 2fr);
+  gap: 12px;
+  height: clamp(420px, 68vh, 780px);
+  max-height: calc(100vh - 80px);
+  overflow: hidden;
+  resize: vertical;
+}
+.supporting-doc-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 12px;
+  border: 1px solid var(--dp-box-border, #D3CEC4);
+  background: var(--dp-surface, #FAF9F6);
+  color: var(--dp-text, #302F2C);
+}
+.supporting-doc-pane > h4 {
+  position: sticky;
+  top: -12px;
+  z-index: 3;
+  margin: -12px -12px 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--dp-box-border, #D3CEC4);
+  background: var(--dp-surface, #FAF9F6);
+  color: inherit;
+}
+.supporting-doc-editor-pane .shiny-input-container { width: 100%; }
+.supporting-doc-pane .btn { white-space: normal; }
+.supporting-doc-editor-actions {
+  position: sticky;
+  bottom: -12px;
+  margin: 10px -12px -12px;
+  padding: 10px 12px;
+  background: var(--dp-surface, #FAF9F6);
+  border-top: 1px solid var(--dp-box-border, #D3CEC4);
+}
+.supporting-doc-table-pane .dataTables_wrapper,
+.supporting-doc-table-pane table.dataTable { font-size: 12px; }
+.supporting-doc-table-pane table.dataTable th,
+.supporting-doc-table-pane table.dataTable td {
+  line-height: 1.3;
+  padding: 5px 8px;
+  vertical-align: top;
+}
+.supporting-doc-table-pane table.dataTable thead th { white-space: normal; }
+.supporting-doc-table-pane .supporting-doc-path { min-width: 200px; }
+.supporting-doc-table-pane .supporting-doc-label { min-width: 150px; }
+.supporting-doc-table-pane .supporting-doc-description { min-width: 240px; }
+.supporting-doc-table-pane .supporting-doc-notes { min-width: 360px; }
+.supporting-doc-table-pane .supporting-doc-review { min-width: 110px; }
+.supporting-doc-table-pane .supporting-doc-status { min-width: 80px; }
+.supporting-doc-table-pane .dataTables_filter input,
+.supporting-doc-table-pane table.dataTable thead input { font-size: 12px; }
+.supporting-doc-cell {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  max-height: 5.2em;
+  overflow: hidden;
+}
+@media (max-width: 767px) {
+  .supporting-doc-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    resize: none;
+  }
+  .supporting-doc-pane { max-height: 60vh; }
+}
+
+.pond-link-help-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+.pond-link-help-card {
+  padding: 14px;
+  border: 1px solid var(--dp-box-border, #D3CEC4);
+  border-radius: 6px;
+  background: var(--dp-surface, #F8F6F0);
+  color: var(--dp-text, #302F2C);
+}
+.pond-link-help-card h4 { margin: 0 0 10px; color: inherit; }
+.pond-link-help-card p:last-child { margin-bottom: 0; }
+.pond-link-sign-in { padding-bottom: 8px; border-bottom: 1px solid var(--dp-box-border, #D3CEC4); }
+
+/* All native disclosure panels share one visible, keyboard-accessible cue.
+   Direct-child selectors keep nested panels independent of their parent. */
+details {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #D3CEC4;
+  border-radius: 10px;
+  background: #FAF9F6;
+}
+
+details > summary {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  padding: 8px 10px 8px 28px;
+  border-radius: 4px;
+  color: #3F5146;
+  font-weight: 600;
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker { display: none; }
+details > summary::marker { content: ''; }
+
+details > summary::before {
+  content: '>';
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  width: 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: #3F5146;
+  transform-origin: center;
+}
+
+details[open] > summary::before { transform: rotate(90deg); }
+details > summary:hover { background: #D1DDC7; }
+details > summary:focus-visible {
+  outline: 2px solid #87966C;
+  outline-offset: 2px;
+}
+
+.datapond-optional-details {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #D3CEC4;
+  border-radius: 4px;
+  background: #FAF9F6;
+}
+
+.datapond-optional-details > summary {
+  cursor: pointer;
+  color: #35443A;
+  font-weight: 600;
+}
+
+.datapond-optional-details[open] > summary {
+  margin-bottom: 4px;
+}
+.datapond-optional-details > summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  top: 14px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+.datapond-optional-details[open] > summary::before { transform: rotate(45deg); }
+
 /* Compact navigation keeps the main tabs slightly more prominent than subtabs. */
 .nav-tabs > li > a {
   padding: 6px 12px;
@@ -29,6 +273,11 @@
   font-size: 12px;
   margin: 8px 0 12px;
 }
+.dataset-status-colour-key .dataset-status-key {
+  display: inline-block;
+  line-height: 1.4;
+  margin-bottom: 3px;
+}
 html[data-datapond-theme="dark"] .metadata-requirement-help { color: var(--dp-muted); }
 
 /* Browser-local display preference. Light mode retains the existing palette. */
@@ -58,6 +307,7 @@ html[data-datapond-theme="dark"] {
   --dp-button-border: #87aa91;
   --dp-button-hover: #52775f;
   --dp-button-text: #ffffff;
+  --dp-status-key-text: #241f19;
 }
 
 html[data-datapond-theme="dark"][data-datapond-palette="bordo"] {
@@ -85,6 +335,7 @@ html[data-datapond-theme="dark"][data-datapond-palette="bordo"] {
   --dp-button-border: #00aacc;
   --dp-button-hover: #00aacc;
   --dp-button-text: #edebff;
+  --dp-status-key-text: #272022;
 }
 
 html[data-datapond-theme="dark"] body {
@@ -102,7 +353,7 @@ html[data-datapond-theme="dark"] :is(
   .pond-config-intro-card, .dataset-guide-folder-card,
   .dataset-guide-citation-card, .config-section-box, .config-help,
   .config-current-value, .datapond-optional-details, .overview-abstract-card,
-  .suggested-citation,
+  .suggested-citation, .datapond-login,
   .panel, .well, .modal-content, .popover, .popover-title,
   .dropdown-menu, .list-group-item, pre,
   details, #main_panel details, #main_panel div[style*="background:"]
@@ -274,7 +525,7 @@ html[data-datapond-theme="dark"] :is(#main_panel, #config_panel) div[style*="bac
 }
 html[data-datapond-theme="dark"] :is(
   .alert-warning, .datapond-write-lock-status,
-  .dataset-guide-folder-state, .dataset-guide-step.is-important > a
+  .dataset-guide-folder-state, .dataset-guide-step.is-active > a
 ) {
   background: #483e25;
   color: #f3dda2;
@@ -294,6 +545,9 @@ html[data-datapond-theme="dark"] :is(.text-warning, .flow-field-requirement.cond
 html[data-datapond-theme="dark"] .text-success { color: #b6dbbd; }
 html[data-datapond-theme="dark"] [style*="color:#526657" i] { color: #b6dbbd !important; }
 html[data-datapond-theme="dark"] code { background: var(--dp-raised); color: #f3c9aa; }
+html[data-datapond-theme="dark"] .dataset-status-colour-key .dataset-status-key {
+  color: var(--dp-status-key-text) !important;
+}
 
 /* DT's inline status colours remain intact with dark text for contrast. */
 html[data-datapond-theme="dark"] :is(.dataTables_wrapper, .dataTables_info, .dataTables_length, .dataTables_filter, .dataTables_paginate) {
@@ -306,6 +560,31 @@ html[data-datapond-theme="dark"] table.dataTable :is(thead, tfoot, tbody tr) {
 }
 html[data-datapond-theme="dark"] :is(.table, table.dataTable) :is(th, td) {
   border-color: var(--dp-border) !important;
+}
+
+/* Shiny renderTable() uses Bootstrap's light table and striped-row fills.
+   Apply the theme to these non-DataTables tables as a complete component. */
+html[data-datapond-theme="dark"] table.shiny-table {
+  background: var(--dp-surface) !important;
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] table.shiny-table > thead > tr {
+  background: var(--dp-panel) !important;
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] table.shiny-table > tbody > tr {
+  background: var(--dp-surface) !important;
+  color: var(--dp-text) !important;
+}
+html[data-datapond-theme="dark"] table.shiny-table.table-striped > tbody > tr:nth-of-type(odd) {
+  background: var(--dp-pane-alt) !important;
+}
+html[data-datapond-theme="dark"] table.shiny-table.table-hover > tbody > tr:hover {
+  background: var(--dp-raised) !important;
+}
+html[data-datapond-theme="dark"] table.shiny-table :is(th, td) {
+  background-color: transparent !important;
+  color: inherit !important;
 }
 html[data-datapond-theme="dark"] table.dataTable :is(td, th):not([style*="background"]) {
   background: transparent;
@@ -349,3 +628,54 @@ html[data-datapond-theme="dark"][data-datapond-palette="bordo"] .dataset-guide-s
   background: var(--dp-selected);
   color: var(--dp-button-text);
 }
+.config-pond-name {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.datapond-panel-toolbar #toggle_config,
+.datapond-panel-toolbar .datapond-guide-link { min-width: 38px; }
+.datapond-guide-link { font-weight: 700; }
+/* Dark status backgrounds already provide a matching foreground colour.
+   Let both lines inherit it instead of retaining the light palette's ink. */
+.lifecycle-summary-label { color: #625C52; }
+.lifecycle-summary-value { color: #403B35; }
+html[data-datapond-theme="dark"] .lifecycle-summary-card > :is(
+  .lifecycle-summary-label, .lifecycle-summary-value
+) { color: inherit; }
+
+.lifecycle-help-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+.lifecycle-help-card, .lifecycle-record-controls {
+  padding: 14px;
+  border: 1px solid var(--dp-box-border, #D3CEC4);
+  border-radius: 6px;
+  background: var(--dp-surface, #F8F4EA);
+  color: var(--dp-text, #403B35);
+}
+.lifecycle-help-card h3 { margin: 0 0 10px; font-size: 18px; color: inherit; }
+.lifecycle-help-card p:last-child { margin-bottom: 0; }
+.lifecycle-record-controls { margin: 16px 0; }
+.lifecycle-record-controls h3 { margin-top: 0; color: inherit; }
+.lifecycle-record-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.lifecycle-folder-cards { display: grid; gap: 6px; margin: 10px 0; }
+.lifecycle-folder-card {
+  padding: 8px;
+  background: var(--dp-surface, #F8F6F0);
+  color: var(--dp-text, #302F2C);
+  border: 1px solid var(--dp-border, #C6B797);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.lifecycle-folder-card strong { display: block; }
+.lifecycle-folder-card .fa-folder { margin-right: 5px; color: var(--dp-accent, #526657); }
+.lifecycle-folder-card p { margin: 4px 0 0; }
+.lifecycle-metadata-help { font-size: 12px; margin: 8px 0; }
+.dataset-guide-primary-actions .form-group { margin: 4px 0; }

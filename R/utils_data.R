@@ -1011,9 +1011,12 @@ list_supporting_document_files <- function(dataset_path) {
     mustWork = FALSE,
     winslash = "/"
   )
-  rel_path <- sub(
-    paste0("^", gsub("([\\W])", "\\\\\\1", dataset_path), "/?"),
-    "",
+  # Treat the dataset root as a literal path, including capitals and regex
+  # metacharacters. Regex escaping here previously broke paths containing W.
+  prefix <- paste0(sub("/+$", "", dataset_path), "/")
+  rel_path <- ifelse(
+    startsWith(all_files, prefix),
+    substring(all_files, nchar(prefix) + 1L),
     all_files
   )
   in_data <- grepl("^data/", rel_path, ignore.case = TRUE)

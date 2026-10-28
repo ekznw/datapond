@@ -60,7 +60,9 @@ Three different resources had become conflated:
    was a test snapshot, not a startup cache. Keeping it required synchronising two
    definitions and a binary file.
 3. The XLS archive form and DOCX template under `word_metadata/eg_word_entries/`
-   are reference examples. They do not seed the UI or database at startup.
+   were reference examples and did not seed the UI or database at startup.
+   These examples and the SANBI example PDFs have since been removed from the
+   repository; copies are maintained separately.
 
 Keywords, organisations and people come from separate packaged CSV vocabularies.
 The previous party seeding ran on each startup/pond switch, updating matched party

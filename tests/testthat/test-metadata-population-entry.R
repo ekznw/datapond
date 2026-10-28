@@ -86,7 +86,10 @@ test_that("mode changes hide controls in place and publication starts blank", {
   expect_length(xml2::xml_find_all(app, "//*[@id='population_profile']//*[name()='svg']"), 2L)
   org <- xml2::xml_find_first(app, "//*[@id='orgs-org_select']")
   expect_length(xml2::xml_find_all(org, "ancestor::*[@data-display-if]"), 0L)
-  for (id in c("iso_profile-topic_categories", "authors-author_select")) {
+  authors <- xml2::xml_find_all(app, "//*[@id='authors-author_select']")
+  expect_length(authors, 1L)
+  expect_length(xml2::xml_find_all(authors, "ancestor::*[@data-display-if]"), 0L)
+  for (id in c("iso_profile-topic_categories")) {
     # The repeatable editors stay mounted inside visibility wrappers.
     node <- xml2::xml_find_all(app, paste0("//*[@id='", id, "']"))
     expect_length(node, 1L)

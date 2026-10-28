@@ -114,7 +114,11 @@ test_that("cached HTTP data is bound to its login and revoked immediately", {
     auth, bind_identity=TRUE)
   expect_equal(endpoint()$status, 200L)
   datapond:::access_logout(f$pond, token)
-  expect_equal(endpoint()$status, 403L)
+  denied <- endpoint()
+  expect_equal(denied$status, 403L)
+  expect_identical(denied$headers[["X-DataPond-Access"]], "denied")
+  expect_identical(denied$headers[["Cache-Control"]], "no-store")
+  expect_false(grepl("private data", denied$content, fixed = TRUE))
   expect_equal(calls, 1L)
   replacement <- datapond:::access_login(f$pond, "owner", "a long owner passphrase")
   auth$token <- replacement
@@ -281,6 +285,10 @@ test_that("the full app starts locked and authenticates only through login", {
     expect_identical(unname(tools::md5sum(datapond:::get_db_path(other))), before)
     expect_false(auth$authenticated)
     expect_identical(state$data_pond, other)
+    expect_null(state$data_pond_id)
+    expect_error(federated_pond_catalogue(), class = "shiny.silent.error")
+    expect_error(overview_inventory_data(), class = "shiny.silent.error")
+    session$flushReact()
   })
 })
 
@@ -325,4 +333,54 @@ test_that("every workspace observer, renderer and download has an access gate", 
   }
   for (file in files) walk(parse(file), file)
   expect_gt(checked, 400L)
+})
+
+test_that("connected sign-in permits cached reads but never authorizes pond switching or writes", {
+  first <- tempfile("connected-auth-first-")
+  second <- tempfile("connected-auth-second-")
+  for (pond in c(first, second)) {
+    datapond:::ensure_pond_structure(pond)
+    datapond:::init_db(pond)
+  }
+  conn <- datapond:::get_conn(second)
+  DBI::dbExecute(conn, "INSERT INTO entry_tbl (uuid, title) VALUES ('auth-test', 'Protected dataset')")
+  DBI::dbDisconnect(conn)
+  security <- tempfile("connected-security-")
+  on.exit(unlink(c(first, second, security), recursive = TRUE), add = TRUE)
+  local_mocked_bindings(app_state_dir = function() security, .package = "datapond")
+  password <- "connected catalogue test passphrase"
+  for (pond in c(first, second)) {
+    code <- setup_pond_access(pond, "owner", first_name = "Test", last_name = "Owner")
+    datapond:::access_activate(pond, "owner", code, password)
+  }
+  session <- shiny::MockShinySession$new()
+  on.exit(session$close(), add = TRUE)
+  auth <- shiny::reactiveValues(pond = first, token = datapond:::access_login(first, "owner", password),
+    authenticated = TRUE, ready = TRUE, connected_tokens = list())
+  session$userData$datapond_access <- auth
+  cache <- new.env(parent = emptyenv())
+  registry <- data.frame(data_pond_id = datapond:::ensure_data_pond_id(second),
+    data_pond_path = second, pond_name = "Other pond")
+  shiny::withReactiveDomain(session, shiny::isolate({
+    expect_error(datapond:::read_connected_pond_inventory_cached(second, cache), "Sign-in required")
+    catalogue <- datapond:::build_connected_pond_catalogue(registry, cache, first)
+    expect_equal(nrow(catalogue), 0L)
+    expect_match(attr(catalogue, "unavailable"), "Other pond: Sign-in required")
+    expect_error(datapond:::connected_pond_sign_in(second, "owner", "incorrect password"), "Sign-in failed")
+    datapond:::connected_pond_sign_in(second, "owner", password)
+    expect_identical(datapond:::read_connected_pond_inventory_cached(second, cache)$title, "Protected dataset")
+    expect_false(datapond:::access_allowed("read", second))
+    expect_false(datapond:::access_allowed("edit", second))
+    catalogue <- datapond:::build_connected_pond_catalogue(registry, cache, first)
+    expect_identical(catalogue$title, "Protected dataset")
+    expect_length(attr(catalogue, "unavailable"), 0L)
+    # A revoked session must not expose a previously cached catalogue.
+    datapond:::access_logout(second, auth$connected_tokens[[datapond:::access_path(second)]])
+    expect_error(datapond:::read_connected_pond_inventory_cached(second, cache), "Sign-in required")
+    datapond:::connected_pond_sign_in(second, "owner", password)
+    token <- auth$connected_tokens[[datapond:::access_path(second)]]
+    datapond:::connected_pond_sign_out(auth)
+    expect_length(auth$connected_tokens, 0L)
+    expect_null(datapond:::access_session(second, token))
+  }))
 })

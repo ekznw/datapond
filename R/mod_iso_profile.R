@@ -137,8 +137,8 @@ mod_metadata_responsibilities_ui <- function(id, heading = TRUE) {
     shiny::tags$p(
       class = "text-muted",
       paste(
-        "The active editor is the default metadata contact.",
-        "Add entries to change that contact or identify other creators and maintainers."
+        "The active editor is the default metadata contact when no primary contact is assigned.",
+        "Add a person, an organisation or both to name other responsible parties."
       )
     ),
     DT::DTOutput(ns("responsibility_table")),
@@ -154,6 +154,7 @@ mod_metadata_responsibilities_ui <- function(id, heading = TRUE) {
       ))
     ),
     shiny::checkboxInput(ns("responsibility_primary"), "Primary for this responsibility", FALSE),
+    shiny::helpText("Primary means the main person or organisation for this role. Choose Add responsibility, then Save dataset to keep it."),
     shiny::actionButton(ns("add_responsibility"), "Add responsibility"),
     shiny::actionButton(ns("clear_responsibility"), "Clear responsibility form"),
     shiny::actionButton(ns("remove_responsibility"), "Remove responsibility")
@@ -222,7 +223,7 @@ mod_iso_profile_server <- function(id, state) {
         Date = rows$date_value, Type = rows$date_type_code,
         Precision = rows$date_precision, Note = rows$date_note
       )
-      DT::datatable(display, rownames = FALSE, selection = "single", options = list(
+      datapond_datatable(display, rownames = FALSE, selection = "single", options = list(
         dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
       ), class = "compact stripe hover")
     })
@@ -235,7 +236,7 @@ mod_iso_profile_server <- function(id, state) {
         Person = rows$person_name, Organisation = rows$organisation_name,
         Responsibility = rows$role_code, Primary = ifelse(rows$is_primary == 1L, "Yes", "No")
       )
-      DT::datatable(display, rownames = FALSE, selection = "single", options = list(
+      datapond_datatable(display, rownames = FALSE, selection = "single", options = list(
         dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
       ), class = "compact stripe hover")
     })

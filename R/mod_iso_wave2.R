@@ -341,7 +341,7 @@ mod_iso_wave2_server <- function(id, state) {
     simple_table <- function(rows, columns) {
       display <- rows[, intersect(columns, names(rows)), drop = FALSE]
       names(display) <- gsub("_", " ", tools::toTitleCase(names(display)))
-      DT::datatable(display, rownames = FALSE, selection = "single", options = list(
+      datapond_datatable(display, rownames = FALSE, selection = "single", options = list(
         dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
       ), class = "compact stripe hover")
     }

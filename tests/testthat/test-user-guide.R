@@ -21,6 +21,24 @@ test_that("the app serves the bundled guide from its advertised URL", {
   expect_true(file.exists(file.path(root, "index.html")))
   index <- jsonlite::fromJSON(file.path(root, "search.json"))
   expect_true(any(grepl("install.html", index$href, fixed = TRUE)))
-  expect_match(as.character(datapond:::config_panel_ui()),
+  expect_match(as.character(datapond:::ui),
     'href="datapond-guide/index.html"', fixed = TRUE)
+})
+
+test_that("bundled guide stylesheet references resolve after packaging", {
+  root <- system.file("guide", package = "datapond", mustWork = TRUE)
+  pages <- list.files(root, pattern = "\\.html$", recursive = TRUE,
+                      full.names = TRUE)
+  expect_gt(length(pages), 1L)
+  for (page in pages) {
+    html <- xml2::read_html(page)
+    refs <- xml2::xml_attr(xml2::xml_find_all(html, "//link[@rel='stylesheet']"), "href")
+    refs <- refs[!grepl("^(data:|https?:|//)", refs)]
+    for (ref in refs) {
+      target <- file.path(dirname(page), utils::URLdecode(sub("[?#].*$", "", ref)))
+      expect_true(file.exists(target), info = paste(basename(page), ref))
+    }
+  }
+  files <- list.files(root, recursive = TRUE)
+  expect_true(all(nchar(paste0("datapond/inst/guide/", files), type = "bytes") <= 100L))
 })

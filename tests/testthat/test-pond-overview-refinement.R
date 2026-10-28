@@ -64,7 +64,7 @@ test_that("pond refresh clears only its selection and invalidates the map", {
   )
   expect_match(
     server_source,
-    "DT::selectRows(dataset_table_proxy, NULL)",
+    "select_overview_table_rows(integer())",
     fixed = TRUE
   )
 })

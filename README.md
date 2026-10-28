@@ -22,7 +22,7 @@ use Request access and administrator approval for colleagues. See
 
 The editable [Quarto user guide](guide/index.qmd) covers installation, first-pond
 setup, metadata, development reports, review and frozen releases. Open the
-searchable bundled guide from **Configuration → User guide → Open user guide**,
+searchable bundled guide using the **?** button beside the configuration gear,
 or use `datapond::open_user_guide()` for its self-contained offline edition.
 Reading the guide does not require Quarto. It includes copyable commands,
 operating-system tabs and personal progress checklists.
@@ -308,8 +308,8 @@ install.packages(
 Build and install a source archive from a terminal:
 
 ```sh
-R CMD build .
-R CMD INSTALL datapond_1.4.0.tar.gz
+./build-package.sh
+R CMD INSTALL dist/datapond_1.4.0.tar.gz
 ```
 
 When installing a tarball directly, install `ekznwr` first if it is not
@@ -768,11 +768,15 @@ Build and check the package:
 ./build-package.sh
 ```
 
+The script stages sources using `.Rbuildignore` before invoking R, so large
+excluded folders such as `dist/` are never copied into the build. Temporary
+build and check files use `tmp/` inside the project and are removed on exit.
 The script writes the source archive and check results to `dist/`. Pass a
 directory as the first argument to use a different output location. It returns
 a non-zero exit status when the package check reports warnings or errors.
 
-A successful run finishes with `Status: OK`.
+A successful run finishes with `Check status: OK`. To install the archive,
+run `R CMD INSTALL dist/datapond_1.4.0.tar.gz` after a successful check.
 
 The tests cover package resources, shared R field definitions, application
 construction, responsive layout behavior, earth-palette status rendering,
@@ -849,11 +853,17 @@ on each computer and make it available on `PATH` (or set
 `options(datapond.rclone = "/path/to/rclone")`).
 Local transfers also use rclone; there is no automatic rsync fallback.
 
-Flow opens on **Run flows**, with **Remote ponds (read-only)** next for
-frequent use. **Config (setup)** and **Design flows (setup)** follow in muted
-sand-coloured tabs. Before running flows, define connections in Config
-and save flows in Design flows. Use **Show configuration tab** to hide or restore
-Config without losing its values. Config starts hidden when saved flows exist.
+Flow opens on **Read remote pond**. Its introduction cards and tabs use this order:
+
+1. **Read remote pond** — browse a published pond, refresh cached metadata and download selected datasets; the remote pond stays read-only.
+2. **Run Flows** — preview and run saved flows, or publish the active pond using its saved publication settings.
+3. **Define connections** — set up remote connections, name local folders and choose transfer limits.
+4. **Design flow** — choose source, destination and copy/mirror options, then save a reusable flow.
+
+The last two tabs retain muted sand colours to identify setup work. Complete
+connection and flow setup before running a new routine. Use **Show Define connections
+tab** to hide or restore that tab without losing its values; it starts hidden
+when saved flows exist. Pond publication uses its own settings in **Run Flows**.
 
 Field labels use a small coloured **asterisk (*)** for mandatory values and a
 **diamond (◇)** for conditional values; unmarked fields are optional. A legend,
@@ -869,7 +879,7 @@ a mirror flow. Saved remote ponds hide their connection fields until **Edit
 connection settings** is selected; new connections show the required remote and
 local cache folders immediately.
 
-**Config (setup)** defines reusable local and remote locations. Use **Choose local
+**Define connections** defines reusable local and remote locations. Use **Choose local
 folder** for a folder or external drive, or enter a configured remote folder such
 as `team_data:shared/data`. Give it a name and **Save location**. Saved locations
 are available in the flow editor and persist across sessions. Editing or removing
@@ -885,7 +895,7 @@ in rclone's configuration, outside pond metadata. Expand **Browse locations and
 libraries** to inspect configured remotes, saved locations and local drives, or
 to use a browsed folder in a flow.
 
-**Design flows (setup)** lets you choose saved source and destination locations or
+**Design flow** lets you choose saved source and destination locations or
 enter full paths (`E:/team/dataset`, `/mnt/drive/dataset`,
 `team_data:shared/dataset`). You can extend a chosen location's path to a subfolder.
 A folder's **contents** are copied into the destination, so include the dataset
@@ -902,7 +912,7 @@ does not run anything. Export includes saved copy/mirror choices. Older JSON
 entries without an operation default to copy/update. Shell scripts and arbitrary
 rclone flags are not executed from imported profiles.
 
-**Run flows** lists saved flows. Select one or more rows, choose **Preview selected
+**Run Flows** lists saved flows. Select one or more rows, choose **Preview selected
 flows**, review the source, destination, operation and dry-run log, then **Run flow**. Only those saved flows run. **Select all** selects the
 complete list; **Clear selection** deselects it. **Edit selected flow** returns
 to the editor. **Remove selected flows** deletes saved settings only after
@@ -913,8 +923,8 @@ progress/logs identify each flow. A failed or cancelled flow stops the remaining
 queue. Flows with overlapping destinations, or destinations that are another
 selected flow's source, must be previewed and run separately so each preview sees
 its actual inputs. Save editor changes before a batch preview; **Preview flow**
-in Design flows instead previews only the editor's current values, including
-unsaved changes, then opens Run flows for review. These are reusable flows run on demand;
+in Design flow instead previews only the editor's current values, including
+unsaved changes, then opens Run Flows for review. These are reusable flows run on demand;
 this workflow does not schedule unattended transfers.
 
 Every copy, mirror or publication requires a successful dry-run preview. Copy
@@ -971,7 +981,7 @@ and [rclone's API-rate controls](https://rclone.org/docs/#tpslimit-float).
 
 To share a pond with colleagues:
 
-1. Open **Run flows > Publish pond** and enter a dedicated publication destination,
+1. Open **Run Flows > Publish pond** and enter a dedicated publication destination,
    such as `team_data:published_pond`. **Save publication settings** stores this
    destination and the upload option for the active pond on this computer.
    Previewing saves them too, including when that preview or a later run fails.
@@ -983,7 +993,7 @@ To share a pond with colleagues:
    application settings. Hidden/deleted records are excluded from the download
    inventory, but the SQLite catalogue is a complete metadata snapshot: publish
    it only to colleagues allowed to read the pond's metadata.
-3. Colleagues open **Remote ponds (read-only)**, enter that remote folder and a
+3. Colleagues open **Read remote pond**, enter that remote folder and a
    dedicated empty local cache folder, including on an external hard drive.
 4. **Connect / refresh metadata only** fetches the database and recognised
    dataset-root metadata exports. Search and select records offline. Data,

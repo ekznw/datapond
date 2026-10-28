@@ -2,11 +2,16 @@
 
 `1.3.0/manifest.json` records the upstream URLs and SHA-256 hashes used by
 DataPond's optional offline XML validator. The source index is
-<https://schemas.isotc211.org/19115/-1/>. Resources under `upstream/` are the
+<https://schemas.isotc211.org/19115/-1/>. Resources in the host-named folders under `1.3.0/` are the
 original downloaded files, including their attribution and copyright notices;
 they are third-party resources, not DataPond-authored schemas. ISO/TC 211,
 OGC and W3C remain their respective publishers. Upstream resource notices and
 terms apply; DataPond's MIT licence does not replace them.
+
+The short `inst/xsd/1.3.0/` package path keeps archive filenames within R's
+100-byte portability target. Host folders and paths within each host are
+preserved so relative schema imports resolve unchanged. The manifest retains
+the official URLs and original hashes independently of the local storage path.
 
 The manifest pins bytes, not just URL directory names. For example, the OGC
 `gml/3.2.1/` URLs currently serve schemas declaring version 3.2.2. The dependency

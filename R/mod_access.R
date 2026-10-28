@@ -1,13 +1,83 @@
-access_ui <- function() {
-  shiny::fluidPage(
-    shiny::tags$head(shiny::tags$link(rel = "stylesheet", href = datapond_asset_url("display-theme.css"))),
-    shiny::tags$style(".datapond-login { max-width:680px; margin:40px auto; padding:24px; border:1px solid #87966c; border-radius:12px; background:#faf9f5; } .datapond-login .shiny-input-container { width:100%; }"),
-    shiny::uiOutput("access_screen"),
-    shiny::uiOutput("access_workspace")
+# A semantic form lets password managers recognise a login. Submit through
+# Shiny, explicitly including autofilled values (which may emit no change event).
+access_credentials_form <- function(username_id, password_id, submit_id,
+                                    username_label, password_label, submit_label) {
+  field <- function(control, id, autocomplete) {
+    htmltools::tagQuery(control)$find("input")$addAttrs(
+      name = id, autocomplete = autocomplete
+    )$allTags()
+  }
+  shiny::tags$form(
+    id = paste0(submit_id, "_form"), method = "post", autocomplete = "on",
+    onsubmit = sprintf(paste0(
+      "event.preventDefault();",
+      "Shiny.setInputValue('%s', this.elements['%s'].value);",
+      "Shiny.setInputValue('%s', this.elements['%s'].value);",
+      "Shiny.setInputValue('%s', Date.now(), {priority:'event'}); return false;"
+    ), username_id, username_id, password_id, password_id, submit_id),
+    field(shiny::textInput(username_id, username_label), username_id, "username"),
+    field(shiny::passwordInput(password_id, password_label), password_id, "current-password"),
+    shiny::tags$button(id = submit_id, type = "submit", class = "btn btn-default btn-primary", submit_label)
   )
 }
 
-access_login_ui <- function(pond, configured) {
+access_ui <- function() {
+  shiny::fluidPage(
+    title = "DataPond",
+    shiny::tags$head(
+      shiny::tags$link(rel = "stylesheet", href = datapond_asset_url("display-theme.css")),
+      shiny::tags$script(src = datapond_asset_url("display-theme.js")),
+      shiny::tags$script(src = datapond_asset_url("access-session.js")),
+      shiny::tags$script(src = datapond_asset_url("access-help.js"))),
+    shiny::uiOutput("access_screen")
+  )
+}
+
+access_console_commands <- function(pond) {
+  path <- encodeString(pond, quote = '"')
+  list(
+    setup_existing = paste0("code <- datapond::setup_pond_access(\n  data_pond = ", path,
+      ",\n  username = \"your.username\",\n  person_id = YOUR_PERSON_ID\n)\ncode"),
+    setup_new = paste0("code <- datapond::setup_pond_access(\n  data_pond = ", path,
+      ",\n  username = \"your.username\",\n  first_name = \"Your first name\",\n  last_name = \"Your last name\"\n)\ncode"),
+    recover = paste0("code <- datapond::recover_pond_access(\n  data_pond = ", path,
+      ",\n  username = \"your.username\"\n)\ncode")
+  )
+}
+
+access_console_help_ui <- function(pond, configured) {
+  commands <- access_console_commands(pond)
+  command_box <- function(key, title) {
+    id <- paste0("access_", key, "_command")
+    shiny::div(class = "datapond-console-command",
+      shiny::h5(title),
+      shiny::tags$pre(id = id, shiny::tags$code(commands[[key]]), .noWS = "inside"),
+      shiny::tags$button(type = "button", class = "btn btn-default",
+        `data-copy-command` = id, "Copy R command"),
+      shiny::tags$span(class = "datapond-copy-status", role = "status", `aria-live` = "polite"))
+  }
+  metadata_optional_details("Administrator: R console commands",
+    shiny::p("Run these commands in a separate local R terminal on the computer and OS account running DataPond. Replace the example username and person details before running. The pond path is already filled in."),
+    if (!configured) shiny::tagList(
+      shiny::p("Set up the first administrator using one of these commands. For an existing metadata person, replace YOUR_PERSON_ID with their verified numeric person ID."),
+      command_box("setup_existing", "First administrator: existing metadata person"),
+      command_box("setup_new", "First administrator: new metadata person")
+    ) else shiny::tagList(
+      command_box("recover", "Issue a new activation or recovery code"),
+      shiny::p("This works for an existing active account or an account awaiting activation. For a pending access request, sign in as an administrator and use Manage accounts > Approve pending request.")
+    ),
+    shiny::p("The terminal prints a single-use code valid for 24 hours. Give it privately to the account holder, who enters it in Activate / recover access and chooses a passphrase. After first-time setup, refresh this page to show that tab.")
+  )
+}
+
+access_login_ui <- function(pond, configured, registry = read_connected_pond_registry()) {
+  registry <- registry[order(registry$last_seen_at, decreasing = TRUE, na.last = TRUE), , drop = FALSE]
+  saved_ponds <- if (nrow(registry)) stats::setNames(registry$data_pond_path, paste0(
+    registry$pond_name, " - ", registry$data_pond_path,
+    ifelse(vapply(registry$data_pond_path, function(path) {
+      dir.exists(path) && file.exists(get_db_path(path))
+    }, logical(1)), "", " (unavailable)")
+  )) else character()
   shiny::div(class = "datapond-login",
     shiny::h2("Sign in to DataPond"),
     metadata_requirement_legend(),
@@ -17,9 +87,9 @@ access_login_ui <- function(pond, configured) {
       shiny::p("Existing metadata and seeded people are preserved. A seeded name does not grant login access.")),
     if (configured) shiny::tabsetPanel(id = "access_tab",
       shiny::tabPanel("Sign in",
-        shiny::textInput("access_username", metadata_field_label("Username", "Mandatory", "Required to sign in.")),
-        shiny::passwordInput("access_password", metadata_field_label("Passphrase", "Mandatory", "Required to sign in.")),
-        shiny::actionButton("access_login", "Sign in", class = "btn-primary")),
+        access_credentials_form("access_username", "access_password", "access_login",
+          metadata_field_label("Username", "Mandatory", "Required to sign in."),
+          metadata_field_label("Passphrase", "Mandatory", "Required to sign in."), "Sign in")),
       shiny::tabPanel("Request access",
         shiny::p("An administrator must verify and approve your request. They will give you an activation code."),
         shiny::textInput("access_request_username", metadata_field_label("Requested username", "Mandatory", "Required to request access.")),
@@ -37,16 +107,22 @@ access_login_ui <- function(pond, configured) {
         shiny::actionButton("access_activate", "Set passphrase"))),
     shiny::tags$hr(),
     shiny::p(shiny::a("Account setup and help", href = "datapond-guide/first-pond.html", target = "_blank", rel = "noopener")),
-    shiny::tags$details(shiny::tags$summary("Open another pond"),
-      shiny::textInput("access_pond_path", metadata_field_label("Existing pond folder", "Conditional", "Required when opening another pond."), value = pond),
-      shiny::actionButton("access_open_pond", "Open pond")),
+    metadata_optional_details("Open another pond",
+      if (length(saved_ponds)) shiny::selectInput("access_known_pond", "Saved ponds",
+        choices = c("Choose a saved pond" = "", saved_ponds), selected = ""),
+      shiny::textInput("access_pond_path",
+        metadata_field_label("Existing pond folder", "Mandatory", "Required to open the pond."),
+        value = pond),
+      shiny::p("Choose a saved pond or enter an existing pond's folder path. You will sign in to that pond after opening it."),
+      shiny::actionButton("access_open_pond", "Open pond", class = "btn-primary")),
+    access_console_help_ui(pond, configured),
     shiny::actionButton("exit_datapond", "Exit DataPond")
   )
 }
 
 access_server <- function(input, output, session, state, switch_pond, on_login = function() NULL) {
   auth <- shiny::reactiveValues(pond = shiny::isolate(state$data_pond), token = NULL,
-    authenticated = FALSE, ready = FALSE, workspace_nonce = NULL, tick = 0L,
+    connected_tokens = list(), authenticated = FALSE, ready = FALSE, workspace_nonce = NULL, tick = 0L,
     configured = file.exists(access_db_path(shiny::isolate(state$data_pond))))
   session$userData$datapond_access <- auth
   if (is.function(session$handleRequest)) {
@@ -69,25 +145,27 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
   clear_secrets <- function() for (id in c("access_password", "access_code", "access_new_password", "access_confirm_password"))
     shiny::updateTextInput(session, id, value = "")
   invalidate <- function() {
+    connected_pond_sign_out(auth)
     if (!is.null(auth$token)) try(access_logout(auth$pond, auth$token), silent = TRUE)
     auth$token <- NULL; auth$authenticated <- FALSE; auth$ready <- FALSE
+    auth$workspace_nonce <- NULL
     for (cleanup in session$userData$datapond_access_cleanup) try(cleanup(), silent = TRUE)
     state$active_user_id <- NULL
     clear_secrets()
     shiny::removeModal(session)
   }
   auth$invalidate <- invalidate
+  # Replace the complete screen in one output so Shiny unbinds the previous
+  # controls and tables before inserting the new login or workspace.
   output$access_screen <- shiny::renderUI({
-    if (auth$authenticated) return(NULL)
-    access_login_ui(auth$pond, auth$configured)
-  })
-  output$access_workspace <- shiny::renderUI({
-    if (!auth$authenticated) return(NULL)
+    if (!auth$authenticated) return(access_login_ui(auth$pond, auth$configured))
     shiny::tagList(ui, shiny::div(style = "display:none",
       shiny::textInput("access_workspace_ready", NULL, value = auth$workspace_nonce)))
   })
+  shiny::outputOptions(output, "access_screen", suspendWhenHidden = FALSE)
   shiny::observeEvent(input$access_workspace_ready, {
-    if (isTRUE(auth$authenticated) && identical(input$access_workspace_ready, auth$workspace_nonce)) {
+    if (isTRUE(auth$authenticated) && !isTRUE(auth$ready) &&
+        identical(input$access_workspace_ready, auth$workspace_nonce)) {
       auth$ready <- TRUE
       tryCatch(on_login(), error = function(e) {
         invalidate()
@@ -109,6 +187,7 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
   })
   shiny::observeEvent(input$access_login, notify_error({
     shiny::req(input$access_login > 0)
+    shiny::req(!isTRUE(auth$authenticated))
     token <- access_login(auth$pond, input$access_username, input$access_password)
     identity <- access_session(auth$pond, token)
     if (!is.null(auth$token)) access_logout(auth$pond, auth$token)
@@ -136,6 +215,10 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     invalidate()
     session$reload()
   }, ignoreInit = TRUE)
+  shiny::observeEvent(input$access_known_pond, {
+    shiny::req(nzchar(input$access_known_pond))
+    shiny::updateTextInput(session, "access_pond_path", value = input$access_known_pond)
+  }, ignoreInit = TRUE)
   shiny::observeEvent(input$access_open_pond, notify_error({
     shiny::req(input$access_open_pond > 0)
     path <- validate_existing_data_pond(input$access_pond_path)
@@ -143,6 +226,7 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     switch_pond(path)
   }), ignoreInit = TRUE)
   session$onSessionEnded(function() {
+    connected_pond_sign_out(auth)
     shiny::isolate(if (!is.null(auth$token)) try(access_logout(auth$pond, auth$token), silent = TRUE))
   })
 
@@ -153,7 +237,7 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     access_accounts(auth$pond, auth$token)
   })
   output$access_accounts <- DT::renderDT({
-    DT::datatable(account_rows(), selection = "single", rownames = FALSE, escape = TRUE,
+    datapond_datatable(account_rows(), selection = "single", rownames = FALSE, escape = TRUE,
       options = list(pageLength = 8, scrollX = TRUE))
   })
   shiny::observeEvent(input$access_accounts_rows_selected, {
@@ -181,7 +265,7 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     conn <- access_connect(auth$pond); on.exit(DBI::dbDisconnect(conn))
     rows <- DBI::dbGetQuery(conn, "SELECT happened_at, actor_id, event, target_id, detail FROM audit ORDER BY id DESC LIMIT 200")
     rows$happened_at <- format(as.POSIXct(rows$happened_at, origin = "1970-01-01", tz = "UTC"), tz = "UTC", usetz = TRUE)
-    DT::datatable(rows, rownames = FALSE, escape = TRUE, options = list(pageLength = 8, scrollX = TRUE))
+    datapond_datatable(rows, rownames = FALSE, escape = TRUE, options = list(pageLength = 8, scrollX = TRUE))
   })
   shiny::observeEvent(input$manage_access, notify_error({
     access_require("admin", touch = TRUE)

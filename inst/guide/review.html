@@ -39,7 +39,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/syntax-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-29452ab6f4fcb164c43f1a3ab0a1f1e9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -332,13 +332,13 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="request-a-metadata-review" class="level2">
 <h2 class="anchored" data-anchor-id="request-a-metadata-review">Request a metadata review</h2>
-<p>In the master pond, use <strong>Pond links / Dataset transfer → Metadata review exchange</strong>. Save the dataset, enter the responsible colleague, then choose <strong>Create metadata review request</strong>. Download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.</p>
+<p>In the master pond, use <strong>Pond links / Dataset transfer → Metadata review exchange</strong>. Save the dataset and enter the responsible colleague. <strong>Include the dataset folder in the review request</strong> is selected by default: supporting documents, data, other subfolders and root files (including hidden files) travel with the metadata. Existing DataPond transfer ZIPs and temporary transfer metadata are excluded; files outside the dataset folder are not included. Clear the option for a smaller, metadata-only request. Choose <strong>Create metadata review request</strong>, download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.</p>
 <p>One request can be active per dataset. Keep the master’s private <code>.metadata_pond/reviews/</code> records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.</p>
 </section>
 <section id="work-as-the-reviewer" class="level2">
 <h2 class="anchored" data-anchor-id="work-as-the-reviewer">Work as the reviewer</h2>
 <p>Import the request with <strong>Import dataset</strong> into a separate local pond that does not already contain the dataset UUID. Use a fresh review pond for a repeated assignment. Sign in to that pond, edit metadata, record the reason/status in <strong>Metadata review</strong>, and save. Choose <strong>Create metadata review return</strong> and send the resulting ZIP back.</p>
-<p>The review workspace contains metadata only. Do not scan its empty data folder or change file inventories/supporting-document records. Use a separate read-only copy of the published data if needed for reference. Data-file edits and changes to shared definitions are outside this review-return workflow.</p>
+<p>If the sender included the dataset folder, supporting documents and data are available in the imported review workspace for reference. Otherwise the workspace contains metadata only: do not scan its empty data folder. Review returns contain metadata only, even when the request included files. Changes to files, file inventories, supporting-document records and shared definitions are outside this review-return workflow and will not be accepted into the master.</p>
 </section>
 <section id="inspect-and-accept-the-return" class="level2">
 <h2 class="anchored" data-anchor-id="inspect-and-accept-the-return">Inspect and accept the return</h2>

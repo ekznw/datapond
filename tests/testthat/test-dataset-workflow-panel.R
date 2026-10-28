@@ -90,6 +90,9 @@ test_that("main application provides collapsible guide and stable workflow tabs"
 
 test_that("top navigation is concise and admin tabs are conditional", {
   html <- as.character(datapond:::ui)
+  document <- xml2::read_html(html)
+  expect_length(xml2::xml_find_all(document,
+    "//*[@id='main_panel']/p[contains(@class, 'metadata-requirement-legend')]"), 0L)
   lines <- strsplit(html, "\n", fixed = TRUE)[[1]]
   nav_start <- grep('id="main_dataset_tabs"', lines, fixed = TRUE)[1]
   nav_end <- nav_start - 1L + grep(

@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  // The sign-in shell and dynamically inserted workspace both load this asset.
+  if (window.datapondThemeInitialized) return;
+  window.datapondThemeInitialized = true;
+
   var storageKey = 'datapond.display.theme';
   var mediaQuery = window.matchMedia ?
     window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -34,6 +38,9 @@
   // Apply before the page is painted, including on refresh.
   applyTheme();
   document.addEventListener('DOMContentLoaded', applyTheme);
+  $(document).on('shiny:bound.datapondTheme', function (event) {
+    if (event.target && event.target.id === 'display_theme_mode') applyTheme();
+  });
   document.addEventListener('change', function (event) {
     if (event.target.id !== 'display_theme_mode') return;
     mode = event.target.value;
@@ -71,6 +78,9 @@
 
 (function () {
   'use strict';
+
+  if (window.datapondSoundInitialized) return;
+  window.datapondSoundInitialized = true;
 
   var storageKey = 'datapond.interface.sound';
   var enabled = true;

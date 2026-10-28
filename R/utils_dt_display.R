@@ -271,7 +271,7 @@ clean_dt_widget <- function(
     names(df) <- "Message"
 
     return(
-      DT::datatable(
+      datapond_datatable(
         df,
         rownames = FALSE,
         selection = "none",
@@ -370,7 +370,7 @@ clean_dt_widget <- function(
   }
 
   do.call(
-    DT::datatable,
+    datapond_datatable,
     args
   )
 }

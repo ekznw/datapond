@@ -388,6 +388,21 @@ mod_licensing_ui <- function(id) {
           selected = ""
         ),
 
+        shiny::conditionalPanel(
+          condition = "input.rights_basis_code === 'review_required'",
+          ns = ns,
+          shiny::tags$div(
+            class = "alert alert-warning",
+            role = "status",
+            shiny::tags$strong("Sharing authority still needs review. "),
+            paste(
+              "The existing-record option is a placeholder, so Dataset status remains partially complete.",
+              "Review 'Who controls the sharing rights?', select the applicable rights basis, and save the assessment.",
+              "If you have reviewed the available information but the rights remain unclear, select 'Rights or permission unclear'."
+            )
+          )
+        ),
+
         shiny::checkboxInput(
           ns("use_dataset_owner_as_rights_holder"),
           paste(

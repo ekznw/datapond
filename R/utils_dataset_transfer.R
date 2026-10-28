@@ -753,7 +753,7 @@ import_dataset_transfer_bundle <- function(
   if (!kind %in% c("transfer", "request", "return")) stop("Unknown review bundle purpose.")
   if (kind %in% c("request", "return")) {
     if (version != 5L) stop("Review exchange requires bundle format 5.")
-    review_check_archive(archive)
+    review_check_archive(archive, manifest)
   }
 
   entry <- DBI::dbReadTable(source_conn, "entry_tbl")

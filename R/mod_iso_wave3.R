@@ -128,7 +128,7 @@ mod_iso_wave3_server <- function(id, state) {
   shiny::moduleServer(id, function(input, output, session) {
     vertical <- shiny::reactiveVal(wave3_empty_vertical())
     catalogue_uuid <- shiny::reactiveVal(NA_character_)
-    output$vertical_table <- DT::renderDT({ access_require("read"); DT::datatable(
+    output$vertical_table <- DT::renderDT({ access_require("read"); datapond_datatable(
       vertical()[, c("extent_label", "minimum_value", "maximum_value", "unit_symbol", "vertical_crs_name"), drop = FALSE],
       rownames = FALSE, selection = "single", options = list(dom = "t", paging = FALSE, ordering = FALSE)
     ) })

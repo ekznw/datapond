@@ -3,11 +3,24 @@ mod_dataset_review_ui <- function(id) {
   shiny::tagList(
     shiny::h3("Metadata review exchange"),
     shiny::p("Issue one review at a time, let a colleague edit in their own pond, then inspect and accept their return into the master."),
+    shiny::div(class = "pond-link-help-cards", `aria-label` = "Which pond to use for each review step",
+      pond_link_help_card("1. Request a review", "the master pond holding the original dataset.",
+        shiny::p("With edit access, open and save the dataset, name the reviewer below, then click Create metadata review request. This creates the request ZIP; download it and send it to your colleague."),
+        shiny::p("Use this request ZIP for the review workflow. Compress selected dataset creates an ordinary transfer bundle without a review request.")),
+      pond_link_help_card("2. Edit and return the review", "the reviewer's own pond.",
+        shiny::p("With edit access, use Import dataset to import the request ZIP into a pond that does not already contain that dataset UUID. Edit and save the imported metadata, and record the work in Metadata review."),
+        shiny::p("Keep that dataset selected, return here and click Create metadata review return. Send the return ZIP back to the master pond's curator.")),
+      pond_link_help_card("3. Accept the reviewed metadata", "the original master pond, as a pond administrator.",
+        shiny::p("Select the original dataset. Under Review returned bundle, choose the return ZIP and click Inspect return. Check the changes, enter a decision note and accept the reviewed metadata into the master."),
+        shiny::p("Use Review returned bundle for this step. The master must still match the revision used to issue the request."))
+    ),
     shiny::div(class="alert alert-info",
-      "This version exchanges metadata only. Data files, supporting documents, inventory changes and shared party/vocabulary edits are not accepted. Save dataset edits before issuing, returning or accepting a review. Colleagues import the request using Import dataset into a pond without that dataset UUID."),
+      "Review requests can include dataset files for reference. Returns and acceptance update metadata only; changes to files, supporting-document records, inventories and shared parties/vocabularies are not accepted. Save dataset edits before issuing, returning or accepting a review. Colleagues import the request using Import dataset into a pond without that dataset UUID."),
     shiny::tags$details(open=TRUE,
       shiny::tags$summary("Send the selected dataset for review"),
       shiny::textInput(ns("assignee"),metadata_field_label("Colleague responsible for the review", "Conditional", "Required when creating a metadata review request."),placeholder="Name and, if useful, email"),
+      shiny::checkboxInput(ns("include_files"), "Include the dataset folder in the review request", value = TRUE),
+      shiny::helpText("Includes supporting documents, data, other subfolders and files in the dataset root, including hidden files. Existing DataPond transfer ZIPs and temporary transfer metadata are excluded. Clear this option for a smaller, metadata-only request. Files outside the dataset folder are not included."),
       shiny::actionButton(ns("issue"),"Create metadata review request",class="datapond-requires-active-user"),
       shiny::helpText("The request reserves the current master revision. Subsequent master metadata or file changes will block acceptance; cancel and issue a fresh request if necessary.")),
     shiny::tags$details(open=TRUE,
@@ -50,7 +63,8 @@ mod_dataset_review_server <- function(id, state, on_accepted = function() NULL) 
     shiny::observeEvent(input$issue,{ access_require("edit", touch = TRUE); protect({
       shiny::req(input$issue > 0); current()
       result <- shiny::withProgress(message="Preparing metadata review",value=0.2,
-        issue_dataset_review(state$current_dataset_id,state$data_pond,state$active_user_id,input$assignee))
+        issue_dataset_review(state$current_dataset_id,state$data_pond,state$active_user_id,input$assignee,
+          include_files = isTRUE(input$include_files)))
       artifact(result); assessment(NULL); changed()
     }) },ignoreInit=TRUE)
     shiny::observeEvent(input$return,{ access_require("edit", touch = TRUE); protect({
@@ -75,7 +89,7 @@ mod_dataset_review_server <- function(id, state, on_accepted = function() NULL) 
     output$changes <- DT::renderDT({
       access_require("read")
       report <- assessment(); shiny::req(report)
-      DT::datatable(report$changes,rownames=FALSE,escape=TRUE,options=list(pageLength=10,scrollX=TRUE))
+      datapond_datatable(report$changes,rownames=FALSE,escape=TRUE,options=list(pageLength=10,scrollX=TRUE))
     })
     output$accept_control <- shiny::renderUI({
       access_require("read")
@@ -125,7 +139,7 @@ mod_dataset_review_server <- function(id, state, on_accepted = function() NULL) 
       fields <- c("review_id","role","status","assignee","issued_at","accepted_at","decision_note")
       rows <- rows[,fields,drop=FALSE]
       names(rows) <- c("Review ID","Role","Status","Reviewer","Issued","Accepted","Decision / reason")
-      DT::datatable(rows,rownames=FALSE,escape=TRUE,options=list(pageLength=5,scrollX=TRUE))
+      datapond_datatable(rows,rownames=FALSE,escape=TRUE,options=list(pageLength=5,scrollX=TRUE))
     })
     list(assessment=assessment,artifact=artifact)
   })

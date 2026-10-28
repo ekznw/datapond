@@ -1741,7 +1741,7 @@ create_dataset_folder_structure <- function(
 }
 
 open_folder <- function(path) {
-  if (is.null(path) || length(path) == 0 || is.na(path) || path == "") {
+  if (length(path) != 1L || is.na(path) || !nzchar(trimws(path))) {
     stop("No folder path is available.")
   }
   path <- normalizePath(path, mustWork = FALSE)
@@ -1751,10 +1751,16 @@ open_folder <- function(path) {
   sys <- Sys.info()[["sysname"]]
   if (identical(sys, "Windows")) {
     shell.exec(path)
-  } else if (identical(sys, "Darwin")) {
-    system2("open", shQuote(path), wait = FALSE)
   } else {
-    system2("xdg-open", shQuote(path), wait = FALSE)
+    command <- if (identical(sys, "Darwin")) "open" else "xdg-open"
+    executable <- Sys.which(command)
+    if (!nzchar(executable)) {
+      stop("No folder launcher is available (", command, "). Folder: ", path)
+    }
+    status <- system2(executable, shQuote(path), wait = FALSE)
+    if (!identical(as.integer(status), 0L)) {
+      stop("Could not start the file manager. Folder: ", path)
+    }
   }
   invisible(TRUE)
 }

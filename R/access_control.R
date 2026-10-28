@@ -428,7 +428,7 @@ access_http_filter <- function(handler, auth, permission = "read", bind_identity
       (!bind_identity || (identical(current$pond, original$pond) && identical(current$token, original$token))) &&
       !is.null(access_session(current$pond, current$token, permission))
     if (!valid) return(shiny::httpResponse(403L, "text/plain", "Sign in with the required access.",
-      headers = list(`Cache-Control` = "no-store")))
+      headers = list(`Cache-Control` = "no-store", `X-DataPond-Access` = "denied")))
     handler(...)
   }
 }

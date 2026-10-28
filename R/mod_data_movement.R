@@ -11,7 +11,12 @@ mod_data_movement_ui <- function(id) {
   }
   shiny::div(class = "datapond-flow",
     shiny::tags$style(shiny::HTML("
-      .datapond-flow .flow-progress-card { background:#F8F6F0; color:#302F2C; border:1px solid #D3CEC4; padding:12px; margin:10px 0; }
+      .datapond-flow .flow-navigation { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; padding:0; list-style:none; margin:12px 0; }
+      .datapond-flow .flow-navigation li { border:1px solid var(--dp-box-border, #D3CEC4); border-radius:6px; padding:12px; background:var(--dp-surface, #F8F6F0); color:var(--dp-text, #302F2C); }
+      .datapond-flow .flow-navigation li.flow-setup { background:var(--dp-inset, #F1E9DA); }
+      .datapond-flow .flow-navigation p { margin:6px 0 0; font-size:13px; }
+      .datapond-flow > .tabbable > .nav-tabs > li > a { min-height:44px; padding:5px 12px; line-height:16px; display:flex; align-items:center; justify-content:center; text-align:center; }
+      .datapond-flow .flow-progress-card { background:var(--dp-surface, #F8F6F0); color:var(--dp-text, #302F2C); border:1px solid var(--dp-box-border, #D3CEC4); padding:12px; margin:10px 0; }
       .datapond-flow .flow-progress-card h4 { margin:0 0 8px; }
       .datapond-flow .flow-progress-metrics { display:flex; flex-wrap:wrap; gap:12px 24px; margin:10px 0; }
       .datapond-flow .flow-progress-metric small, .datapond-flow .flow-progress-metric strong { display:block; }
@@ -58,20 +63,47 @@ mod_data_movement_ui <- function(id) {
       }
     ")),
     shiny::h3("Flow"),
+    shiny::p(class = "flow-field-help", "Flow uses rclone to copy and sync local and cloud files. It is installed separately from DataPond; this check confirms it is ready."),
     shiny::uiOutput(ns("rclone_status")),
-    shiny::actionButton(ns("check_rclone"), "Check rclone again", class = "btn-sm"),
-    shiny::p(class = "help-block", "First set up local and remote connections in Config, then create reusable flows in Design flows. These setup steps are required before running flows."),
-    shiny::p(class = "help-block", "Publish a whole pond from Run flows. Publication settings are saved for each pond on this computer, ready for the next attempt."),
+    shiny::actionButton(ns("check_rclone"), "Check Flow (sync) engine", class = "btn-sm"),
+    shiny::p(class = "help-block", "Choose a tab for the task you need. The cards follow the tab order."),
+    shiny::tags$ol(class = "flow-navigation", `aria-label` = "Flow tabs",
+      shiny::tags$li(shiny::strong("1. Read remote pond"), shiny::p("Browse a published pond, refresh its cached metadata and download selected datasets. The remote pond stays read-only.")),
+      shiny::tags$li(shiny::strong("2. Run Flows"), shiny::p("Preview and run saved flows, or publish the active pond. Publication settings are saved for each pond for later retries.")),
+      shiny::tags$li(class = "flow-setup", shiny::strong("3. Define connections"), shiny::p("Set up remote connections, name local folders and choose transfer limits. Hide this tab once setup is complete.")),
+      shiny::tags$li(class = "flow-setup", shiny::strong("4. Design flow"), shiny::p("Choose the source, destination and copy or mirror operation, then save a reusable flow."))
+    ),
+    shiny::p(class = "help-block", "Connections and flow design are setup tasks; complete them before running a new routine. Pond publication uses its own settings in Run Flows."),
     shiny::p(class = "flow-field-help",
       shiny::tags$span(class = "flow-field-requirement mandatory", `aria-hidden` = "true", "*"),
       " Mandatory for the action. ",
       shiny::tags$span(class = "flow-field-requirement conditional", `aria-hidden` = "true", "\u25c7"),
       " Conditional: see the field guidance. Unmarked fields are optional."),
-    shiny::checkboxInput(ns("show_config"), "Show configuration tab", TRUE),
+    shiny::checkboxInput(ns("show_config"), "Show Define connections tab", TRUE),
     shiny::p(class = "flow-field-help", "Cloud services such as SharePoint can throttle requests. Previews and folder listings also contact the service. Cloud operations share a queue across app sessions using this computer's app settings. Avoid repeated previews and simultaneous transfers in other tools; let rclone wait and retry when throttled."),
     shiny::tabsetPanel(
-      id = ns("flow_tabs"), selected = "run",
-      shiny::tabPanel("Run flows", value = "run",
+      id = ns("flow_tabs"), selected = "remote",
+      shiny::tabPanel(shiny::tags$span("Read remote", shiny::tags$br(), " pond"), value = "remote",
+        shiny::selectInput(ns("cached_pond"), field_label("Saved remote pond (available offline)", "Choose a saved pond to browse cached metadata, or New connection to connect another pond."), choices = c("New connection" = "")),
+        shiny::conditionalPanel("input.cached_pond && input.cached_pond !== ''", ns = ns,
+          shiny::checkboxInput(ns("edit_remote_settings"), "Edit connection settings", FALSE)
+        ),
+        shiny::conditionalPanel("!input.cached_pond || input.edit_remote_settings", ns = ns,
+          shiny::textInput(ns("remote_name"), field_label("Pond nickname", "A friendly name for this remote pond in your saved list, such as Team archive. Leave blank to use its folder path.")),
+          shiny::textInput(ns("remote"), field_label("Remote pond folder", "Enter the folder where the owner published the pond, such as team_data:pond, or a local folder path. Use a configured remote name, not a SharePoint web link.", requirement = "Mandatory", when = "Required to connect or refresh metadata; filled automatically for saved ponds."), placeholder = "team_data:pond"),
+          shiny::textInput(ns("cache"), field_label("Local pond cache", "Choose an empty local folder for a new connection, or this pond's existing cache. Metadata and any datasets you download are stored here.", requirement = "Mandatory", when = "Required to connect or refresh metadata; filled automatically for saved ponds."), placeholder = "E:/pond_cache/team or /mnt/external/pond_cache/team"),
+          shinyFiles::shinyDirButton(ns("cache_folder"), "Choose local pond cache", "Choose an empty folder for the local pond cache")
+        ),
+        shiny::actionButton(ns("refresh_cache"), "Connect / refresh metadata only"),
+        shiny::helpText("The owner first uses Publish pond. Connecting downloads the catalogue and metadata exports only. Cached metadata works offline. This connection never uploads to the remote pond."),
+        shiny::textOutput(ns("cache_status")),
+        DT::DTOutput(ns("catalogue")),
+        shiny::actionButton(ns("download"), "Download / update selected dataset", class = "btn-primary"),
+        shiny::actionButton(ns("evict"), "Remove selected download from local pond cache"),
+        shiny::textOutput(ns("download_path")),
+        shiny::uiOutput(ns("metadata_detail"))
+      ),
+      shiny::tabPanel("Run Flows", value = "run",
         shiny::h4("Select saved flows"),
         shiny::uiOutput(ns("routine_help")),
         DT::DTOutput(ns("routine_components")),
@@ -109,27 +141,7 @@ mod_data_movement_ui <- function(id) {
         shiny::actionButton(ns("run"), "Run flow", class = "btn-primary"),
         shiny::helpText("Run requires a successful preview. Changes to the flow require a new preview. Previews describe current differences; files may change before execution.")
       ),
-      shiny::tabPanel("Remote ponds (read-only)",
-        shiny::selectInput(ns("cached_pond"), field_label("Saved remote pond (available offline)", "Choose a saved pond to browse cached metadata, or New connection to connect another pond."), choices = c("New connection" = "")),
-        shiny::conditionalPanel("input.cached_pond && input.cached_pond !== ''", ns = ns,
-          shiny::checkboxInput(ns("edit_remote_settings"), "Edit connection settings", FALSE)
-        ),
-        shiny::conditionalPanel("!input.cached_pond || input.edit_remote_settings", ns = ns,
-          shiny::textInput(ns("remote_name"), field_label("Pond nickname", "A friendly name for this remote pond in your saved list, such as Team archive. Leave blank to use its folder path.")),
-          shiny::textInput(ns("remote"), field_label("Remote pond folder", "Enter the folder where the owner published the pond, such as team_data:pond, or a local folder path. Use a configured remote name, not a SharePoint web link.", requirement = "Mandatory", when = "Required to connect or refresh metadata; filled automatically for saved ponds."), placeholder = "team_data:pond"),
-          shiny::textInput(ns("cache"), field_label("Local pond cache", "Choose an empty local folder for a new connection, or this pond's existing cache. Metadata and any datasets you download are stored here.", requirement = "Mandatory", when = "Required to connect or refresh metadata; filled automatically for saved ponds."), placeholder = "E:/pond_cache/team or /mnt/external/pond_cache/team"),
-          shinyFiles::shinyDirButton(ns("cache_folder"), "Choose local pond cache", "Choose an empty folder for the local pond cache")
-        ),
-        shiny::actionButton(ns("refresh_cache"), "Connect / refresh metadata only"),
-        shiny::helpText("The owner first uses Publish pond. Connecting downloads the catalogue and metadata exports only. Cached metadata works offline. This connection never uploads to the remote pond."),
-        shiny::textOutput(ns("cache_status")),
-        DT::DTOutput(ns("catalogue")),
-        shiny::actionButton(ns("download"), "Download / update selected dataset", class = "btn-primary"),
-        shiny::actionButton(ns("evict"), "Remove selected download from local pond cache"),
-        shiny::textOutput(ns("download_path")),
-        shiny::uiOutput(ns("metadata_detail"))
-      ),
-      shiny::tabPanel("Config (setup)", value = "config",
+      shiny::tabPanel(shiny::tags$span("Define", shiny::tags$br(), " connections"), value = "config",
         shiny::h4("Define remote and local connections"),
         shiny::p("Give frequently used folders a name, then reuse them when designing flows. You can hide this tab once setup is complete."),
         shiny::fluidRow(
@@ -194,9 +206,9 @@ mod_data_movement_ui <- function(id) {
           shiny::actionButton(ns("use_remote"), "Use as remote pond")
         ),
         shiny::hr(),
-        shiny::actionButton(ns("design_tasks"), "Next: design flows", class = "btn-primary")
+        shiny::actionButton(ns("design_tasks"), "Next: Design flow", class = "btn-primary")
       ),
-      shiny::tabPanel("Design flows (setup)", value = "design",
+      shiny::tabPanel("Design flow", value = "design",
         shiny::h4("Design a flow"),
         shiny::p("Choose saved folders or configured remotes, adjust the full paths if needed, then save a named flow to reuse. Existing syncs.json components are supported as flows."),
         shiny::selectInput(ns("routine"), field_label("Edit flow", "Choose a saved flow to change its settings, or New flow to start a separate flow."), choices = c("New flow" = "")),
@@ -210,7 +222,7 @@ mod_data_movement_ui <- function(id) {
           ),
           shiny::column(6,
             shiny::selectInput(ns("destination_location"), field_label("Choose a destination location", "Choose a saved folder or configured remote to fill the destination path. For a remote, add a dedicated destination subfolder to the path below."), choices = c("Enter path below" = "")),
-            shiny::textInput(ns("destination"), field_label("Flow to \u2014 destination", "Enter the full folder to receive the files. Include a dataset folder name if needed, such as team_data:shared/observations.", requirement = "Mandatory", when = "Required for transfers and saved flows. Pond publication has its own destination in Run flows."), placeholder = "team_data:shared/dataset or E:/cache/dataset")
+            shiny::textInput(ns("destination"), field_label("Flow to \u2014 destination", "Enter the full folder to receive the files. Include a dataset folder name if needed, such as team_data:shared/observations.", requirement = "Mandatory", when = "Required for transfers and saved flows. Pond publication has its own destination in Run Flows."), placeholder = "team_data:shared/dataset or E:/cache/dataset")
           )
         ),
         shiny::actionButton(ns("swap"), "Swap upload / download direction"),
@@ -219,7 +231,7 @@ mod_data_movement_ui <- function(id) {
         shiny::actionButton(ns("save_routine"), "Save flow", class = "btn-primary"),
         shiny::actionButton(ns("duplicate_routine"), "Duplicate flow"),
         shiny::actionButton(ns("preview_transfer"), "Preview flow"),
-        shiny::helpText("Save changes before running flows from the Run flows tab. Preview flow uses only the editor's current settings, including unsaved changes."),
+        shiny::helpText("Save changes before running flows from the Run Flows tab. Preview flow uses only the editor's current settings, including unsaved changes."),
         shiny::actionButton(ns("go_run"), "Next: select flows and run"),
         shiny::hr(),
         shiny::tags$details(
@@ -261,11 +273,11 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       }
       shiny::tags$div(class = "alert alert-warning", role = "status",
         shiny::strong("rclone was not found or could not be started."),
-        shiny::tags$p("Flow uses rclone for local and cloud transfers. Install it on the computer running DataPond."),
+        shiny::tags$p("rclone is not bundled with DataPond. Install it on the computer running the app to enable previews, transfers, publication and remote refreshes. Existing cached metadata can still be browsed offline."),
         shiny::tags$p(shiny::tags$a(href = "https://rclone.org/install/",
           target = "_blank", rel = "noopener noreferrer",
           "Download and install rclone: official Windows, macOS and Linux instructions")),
-        shiny::tags$p("Make sure rclone is available on your system PATH, then click Check rclone again. If you changed PATH and it is still not found, restart R and reopen DataPond.")
+        shiny::tags$p("Make sure rclone is available on your system PATH, then click Check Flow (sync) engine. If you changed PATH and it is still not found, restart R and reopen DataPond.")
       )
     })
 
@@ -556,7 +568,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       save_settings(locations, locations_file)
       state$locations <- locations
       state$editing_location_id <- id
-      state$status <- "Location saved. Use it as a source or destination in Design flows."
+      state$status <- "Location saved. Use it as a source or destination in Design flow."
     }) })
     shiny::observeEvent(input$remove_location, { access_require("admin", touch = TRUE); protect({
       id <- input$saved_location %||% ""
@@ -603,7 +615,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
         "All cloud connections (default)" = "__cloud", "Local transfers (default)" = "__local",
         stats::setNames(remotes$name, paste0(remotes$name, " (remote)"))),
         selected = input$speed_connection %||% "__cloud")
-      state$status <- paste(nrow(remotes), "configured libraries found. Choose a remote in Design flows, or save a named folder in Config.")
+      state$status <- paste(nrow(remotes), "configured libraries found. Choose a remote in Design flow, or save a named folder in Define connections.")
     }
     shiny::observeEvent(TRUE, { access_require("admin", touch = TRUE); protect(discover()) }, once = TRUE)
     shiny::observeEvent(input$discover, { access_require("admin", touch = TRUE); protect(discover()) })
@@ -637,7 +649,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       } else dirname(path)
       shiny::updateTextInput(session, "browse_path", value = parent)
     }) })
-    output$listing <- DT::renderDT({ access_require("admin"); DT::datatable(state$listing, rownames = FALSE, selection = "single", options = list(pageLength = 8)) })
+    output$listing <- DT::renderDT({ access_require("admin"); datapond_datatable(state$listing, rownames = FALSE, selection = "single", options = list(pageLength = 8)) })
     shiny::observeEvent(input$enter, { access_require("admin", touch = TRUE); protect({
       row <- input$listing_rows_selected
       if (length(row) != 1L || !isTRUE(state$listing$IsDir[row])) stop("Select a folder in the listing.")
@@ -648,7 +660,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       shiny::observeEvent(input[[paste0("use_", field)]], {
         access_require("admin", touch = TRUE)
         shiny::updateTextInput(session, field, value = input$browse_path)
-        shiny::updateTabsetPanel(session, "flow_tabs", selected = if (field == "remote") "Remote ponds (read-only)" else "design")
+        shiny::updateTabsetPanel(session, "flow_tabs", selected = if (field == "remote") "remote" else "design")
       })
     })
     config_done <- function() {
@@ -744,7 +756,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     output$routine_help <- shiny::renderUI({
       access_require("admin")
       shiny::p(if (length(state$routines)) "Select the flows you want to run. Each flow has its own saved source, destination and operation."
-        else "No saved flows yet. Open Design flows to create a flow or import syncs.json; start in Config if you need to define connections.")
+        else "No saved flows yet. Open Design flow to create a flow or import syncs.json; start in Define connections if you need to define connections.")
     })
     output$routine_components <- DT::renderDT({
       access_require("admin")
@@ -758,7 +770,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       )
       names(rows)[names(rows) == "Source"] <- "Flow from \u2014 source"
       names(rows)[names(rows) == "Destination"] <- "Flow to \u2014 destination"
-      DT::datatable(rows, rownames = FALSE, selection = "multiple", options = list(pageLength = 8, scrollX = TRUE, order = list()))
+      datapond_datatable(rows, rownames = FALSE, selection = "multiple", options = list(pageLength = 8, scrollX = TRUE, order = list()))
     })
     shiny::observeEvent(input$routine_components_rows_selected, {
       access_require("admin", touch = TRUE)
@@ -872,7 +884,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       access_require("admin")
       shiny::invalidateLater(30000, session)
       previewed <- state$preview
-      if (is.null(previewed)) return("No completed preview. Preview saved flows or a pond publication here, or use Preview flow in Design flows.")
+      if (is.null(previewed)) return("No completed preview. Preview saved flows or a pond publication here, or use Preview flow in Design flow.")
       age <- as.numeric(difftime(Sys.time(), previewed$completed, units = "mins"))
       paste("Preview completed", format(previewed$completed, "%Y-%m-%d %H:%M:%S %Z"),
         if (isTRUE(previewed$stale)) "- settings changed; preview again."
@@ -931,7 +943,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       names(rows)[names(rows) == "Destination"] <- "Flow to \u2014 destination"
       rows$Operation[rows$Operation == "copy"] <- "Copy / update"
       rows$Operation[rows$Operation == "sync"] <- "Mirror sync (delete extra destination files)"
-      DT::datatable(rows, rownames = FALSE, selection = "none", options = list(dom = "t", scrollX = TRUE, ordering = FALSE))
+      datapond_datatable(rows, rownames = FALSE, selection = "none", options = list(dom = "t", scrollX = TRUE, ordering = FALSE))
     })
     shiny::observeEvent(input$preview_transfer, { access_require("admin", touch = TRUE); protect(preview("transfer")) })
     shiny::observeEvent(input$preview_routines, { access_require("admin", touch = TRUE); protect(preview("routines")) })
@@ -987,7 +999,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       if (is.na(index)) stop("This remote pond is no longer saved in Flow.")
       show_cached_pond(state$ponds[[index]])
       shiny::updateSelectInput(session, "cached_pond", selected = as.character(index))
-      shiny::updateTabsetPanel(session, "flow_tabs", selected = "Remote ponds (read-only)")
+      shiny::updateTabsetPanel(session, "flow_tabs", selected = "remote")
       DT::selectRows(DT::dataTableProxy("catalogue", session = session), NULL)
       state$status <- "Showing cached pond metadata. Select a dataset to inspect it or download its files."
     }) })
@@ -1033,8 +1045,8 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     output$catalogue <- DT::renderDT({
       access_require("admin")
       rows <- inventory()
-      if (!nrow(rows)) return(DT::datatable(data.frame(Message = "Connect a pond or select an offline cache."), rownames = FALSE))
-      DT::datatable(rows[, c("title", "citation_date", "stage", "cached"), drop = FALSE], rownames = FALSE, selection = "single", options = list(pageLength = 10))
+      if (!nrow(rows)) return(datapond_datatable(data.frame(Message = "Connect a pond or select an offline cache."), rownames = FALSE))
+      datapond_datatable(rows[, c("title", "citation_date", "stage", "cached"), drop = FALSE], rownames = FALSE, selection = "single", options = list(pageLength = 10))
     })
     selected <- shiny::reactive({
       rows <- inventory(); index <- input$catalogue_rows_selected
@@ -1057,10 +1069,9 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
           shiny::tags$details(
             shiny::tags$summary(gsub("_", " ", sub("_tbl$", "", name))),
             if (nrow(rows) > 200L) shiny::p("Showing the first 200 records; the complete metadata is retained in the cached catalogue."),
-            shiny::tags$div(style = "overflow-x:auto;", shiny::tags$table(class = "table table-condensed",
-              shiny::tags$thead(shiny::tags$tr(lapply(names(rows), shiny::tags$th))),
-              shiny::tags$tbody(lapply(seq_len(min(200L, nrow(rows))), function(i)
-                shiny::tags$tr(lapply(rows, function(x) shiny::tags$td(as.character(x[i]))))))))
+            datapond_datatable(rows[seq_len(min(200L, nrow(rows))), , drop = FALSE],
+              rownames = FALSE, selection = "none",
+              options = list(pageLength = 10, scrollX = TRUE))
           )
         }))
     })

@@ -99,8 +99,7 @@ config_panel_ui <- function() {
         shiny::tags$span(
           class = "dataset-guide-eyebrow",
           "Active pond"
-        ),
-        shiny::h3("Configuration")
+        )
       )
     ),
 
@@ -121,18 +120,6 @@ config_panel_ui <- function() {
           "then set defaults for new dataset records."
         )
       )
-    ),
-
-    config_section_box(
-      title = "User guide",
-      background = "#F0F2E9",
-      border = "#87966C",
-      shiny::tags$p("Installation, dataset workflows, lineage and frozen releases."),
-      shiny::tags$a(
-        "Open user guide", href = "datapond-guide/index.html",
-        target = "_blank", rel = "noopener", class = "btn btn-default"
-      ),
-      shiny::tags$p(class = "help-block", "Opens locally in a new tab; no internet connection needed.")
     ),
 
     config_section_box(
@@ -174,6 +161,14 @@ config_panel_ui <- function() {
       shiny::tags$details(
         class = "config-help config-context-details",
         shiny::tags$summary("Lifecycle folder status"),
+        dataset_folder_selection_ui("dataset_parent_dir"),
+        shiny::tags$div(
+          class = "config-current-value",
+          shiny::strong("New dataset location"),
+          shiny::textOutput("dataset_parent_dir_display")
+        ),
+        shiny::tags$p(class = "help-block", "For new folders only; existing datasets stay in place."),
+        lifecycle_folder_help_ui(),
         shiny::verbatimTextOutput("pond_structure")
       )
     ),
@@ -184,43 +179,9 @@ config_panel_ui <- function() {
     ),
 
     config_section_box(
-      title = "New dataset defaults",
-      background = "#E9DFB5",
-      border = "#C3A35B",
-
-      shiny::selectInput(
-        "dataset_parent_dir",
-        metadata_field_label("Create new dataset folders under", "Conditional", "Used when creating a dataset folder; dev is selected by default."),
-        choices = c(
-          "dev \u2014 active development and internally produced datasets" = "dev",
-          "src \u2014 sourced or reference datasets" = "src"
-        ),
-        selected = "dev"
-      ),
-
-      shiny::tags$div(
-        class = "config-current-value",
-
-        shiny::strong(
-          "New dataset location"
-        ),
-
-        shiny::textOutput(
-          "dataset_parent_dir_display"
-        )
-      ),
-
-      shiny::tags$small(
-        style = "color:#666;",
-
-        paste(
-          "This setting applies only when a new dataset folder",
-          "is created. It does not relocate existing datasets."
-        )
-      )
+      title = "Data files | Attribute profiling",
+      mod_attribute_profile_config_ui("attribute_profile_config")
     ),
-
-    mod_document_tools_ui("document_tools"),
 
     shiny::tags$details(
       class = "config-help config-advanced pond-management",
@@ -268,6 +229,9 @@ config_panel_ui <- function() {
           choices = c("No connected ponds" = ""),
           selectize = FALSE
         ),
+        access_credentials_form("connected_login_username", "connected_login_password", "connected_login",
+          "Selected pond username", "Selected pond password", "Sign in to selected catalogue"),
+        shiny::p(class = "help-block", "Sign in to each connected pond to show its datasets here. Access lasts for this session; editing still requires switching ponds."),
         shiny::tags$div(
           class = "config-action-stack",
           shiny::actionButton("switch_connected_pond", "Switch to selected pond"),
@@ -303,49 +267,10 @@ config_panel_ui <- function() {
       )
     ),
 
-    shiny::tags$details(
-      class = "config-help config-advanced",
-      shiny::tags$summary(shiny::strong("Help")),
-      shiny::tags$h4("How data moves through the pond"),
-      shiny::tags$p(
-        paste(
-          "A data pond combines a lifecycle folder structure",
-          "with a local metadata database."
-        )
-      ),
-      shiny::tags$ul(
-        shiny::tags$li(shiny::strong("src/ \u2014 "),
-          "sourced, received or reference data retained close to its supplied form."),
-        shiny::tags$li(shiny::strong("dev/ \u2014 "),
-          "active development, transformation, analysis and draft dataset outputs."),
-        shiny::tags$li(shiny::strong("arc/ \u2014 "),
-          "released, frozen, superseded or audit-retained dataset versions.")
-      ),
-      shiny::tags$p(
-        paste(
-          "New dataset folders default to dev/. Existing datasets retain their",
-          "saved location until an explicit lifecycle or folder-repair action changes it."
-        )
-      ),
-      shiny::tags$h4("How metadata is populated"),
-      shiny::tags$ol(
-        shiny::tags$li("Open the data pond and sign in."),
-        shiny::tags$li("Create a new dataset record or select an existing dataset."),
-        shiny::tags$li("Complete citation, description, licensing, access and contacts."),
-        shiny::tags$li("Scan data files and review attribute and spatial metadata."),
-        shiny::tags$li("Record supporting documents, lineage and review notes."),
-        shiny::tags$li("Use Dataset status to identify incomplete sections before release.")
-      ),
-      shiny::tags$p(
-        paste(
-          "Save Dataset writes dataset-level metadata and creates a metadata",
-          "update-history record."
-        )
-      )
-    ),
+    mod_document_tools_ui("document_tools"),
 
     config_section_box(
-      "Display",
+      "Display & sound",
       shiny::selectInput(
         "display_theme_mode",
         "Appearance",
@@ -353,30 +278,19 @@ config_panel_ui <- function() {
           "System default" = "system",
           "Light" = "light",
           "Dark \u2014 DataPond earth" = "dark",
-          "VSCodium \u2014 Noctis Bordo" = "bordo"
+          "Dark \u2014 Noctis Bordo" = "bordo"
         ),
         selected = "system",
         selectize = FALSE
       ),
-      shiny::tags$p(
-        class = "help-block",
-        paste(
-          "System default follows the Windows or Linux display setting.",
-          "Noctis Bordo matches the locally installed VSCodium palette.",
-          "Your choice is remembered in this browser."
-        )
-      ),
       shiny::checkboxInput(
         "enable_finfoot_sound",
-        "Play the finfoot call for milestones",
+        "Play the finfoot call for milestones *",
         value = TRUE
       ),
       shiny::tags$p(
         class = "help-block",
-        paste(
-          "At startup the quiet call plays for about 11 seconds, including a gentle fade.",
-          "Later milestone cues remain about three seconds."
-        ),
+        paste("*"),
         " ",
         shiny::tags$a(
           "Dries Van de Loock, XC1036489",
@@ -462,6 +376,9 @@ pond_overview_ui <- function() {
     shiny::h2(
       "Pond overview"
     ),
+    shiny::actionButton("overview_open_pond_folder", "Open pond directory",
+      icon = shiny::icon("folder-open"), class = "datapond-requires-active-user",
+      title = "Open the active pond's root folder in the file manager"),
 
     shiny::tags$div(
       style = paste(
@@ -586,19 +503,7 @@ pond_overview_ui <- function() {
         shiny::uiOutput("overview_dataset_abstract"),
         shiny::uiOutput("overview_editor_action"),
 
-        shiny::conditionalPanel("output.overview_editor_ready === 'true'", shiny::tags$div(
-          style = "display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;",
-
-          shiny::actionButton(
-            "repair_dataset_location",
-            "Repair selected dataset location",
-            class = "datapond-requires-active-user"
-          ),
-
-          shiny::uiOutput(
-            "dataset_record_controls"
-          )
-        ))
+        shiny::uiOutput("dataset_record_controls")
       ),
 
       shiny::column(
@@ -697,10 +602,20 @@ pond_overview_ui <- function() {
       "dataset_table"
     ),
     shiny::uiOutput("overview_connection_details"),
-    shiny::actionButton("overview_open_connected", "Open selected pond")
+    shiny::actionButton("overview_open_connected", "Open selected pond",
+      title = "Switch to the selected connected pond, or open a remote pond in Flow")
   )
 }
 
+
+pond_link_help_card <- function(title, sign_in, ...) {
+  shiny::tags$section(
+    class = "pond-link-help-card",
+    shiny::h4(title),
+    shiny::p(class = "pond-link-sign-in", shiny::strong("Sign in to: "), sign_in),
+    ...
+  )
+}
 
 dataset_transfer_ui <- function() {
   shiny::tagList(
@@ -713,13 +628,24 @@ dataset_transfer_ui <- function() {
       shiny::tags$p(
         style = "margin:0;",
         paste(
-          "View datasets in linked ponds, switch the active pond before editing,",
-          "or transfer a portable dataset bundle between ponds."
+          "Every action below uses the active pond you are signed into.",
+          "Browsing a connected pond does not switch your sign-in.",
+          "Use Switch to selected dataset's pond and sign in there before working on its dataset."
         )
       )
     ),
     connected_pond_catalogues_ui(),
     shiny::h3("Portable dataset transfer"),
+    shiny::div(
+      class = "pond-link-help-cards",
+      `aria-label` = "Where to create and import dataset bundles",
+      pond_link_help_card(
+        "Create a dataset bundle", "the source pond that holds the dataset.",
+        shiny::p("With edit access, open the dataset in Create / edit dataset and save any changes. Then use Compress selected dataset below. The ZIP is saved in that dataset's folder; send it to the recipient.")),
+      pond_link_help_card(
+        "Import a dataset bundle", "the receiving pond where the copy should be stored.",
+        shiny::p("With edit access, choose the ZIP under Import dataset and click Import into active pond. This creates a local record and folder in the receiving pond."))
+    ),
     shiny::tags$p(
       paste(
         "Create a ZIP from the selected dataset, or import one prepared in",
@@ -898,39 +824,35 @@ metadata_review_ui <- function() {
       "Metadata review"
     ),
 
-    shiny::tags$div(
-      style = paste(
-        "padding:10px 12px;",
-
-        paste0(
-          "background:",
-          unname(
-            earth[["parchment"]]
-          ),
-          ";"
-        ),
-
-        paste0(
-          "border:1px solid ",
-          unname(
-            earth[["tan"]]
-          ),
-          ";"
-        ),
-
-        "border-radius:4px;",
-        "margin-bottom:14px;"
+    shiny::tags$ol(
+      class = "metadata-review-guide",
+      `aria-label` = "Metadata review steps",
+      shiny::tags$li(
+        shiny::strong("1. Record who"),
+        shiny::tags$p(shiny::strong("Reviewer / editor: "),
+          "your signed-in account. Records who made this update.")
       ),
-
-      shiny::tags$p(
-        style =
-          "margin:0; line-height:1.45;",
-
-        paste(
-          "Record why metadata changed, which sections were",
-          "affected and whether the updated metadata remains",
-          "in development or has been reviewed."
-        )
+      shiny::tags$li(
+        shiny::strong("2. Explain the change"),
+        shiny::tags$p(shiny::strong("Update type: "), "kind of change."),
+        shiny::tags$p(shiny::strong("Section(s): "), "where it changed."),
+        shiny::tags$p(shiny::strong("Reason: "), "why it was needed."),
+        shiny::tags$p(shiny::strong("Summary: "), "what changed (optional).")
+      ),
+      shiny::tags$li(
+        shiny::strong("3. Set review status"),
+        shiny::tags$p(shiny::strong("Metadata status: "),
+          "shows whether the metadata is draft, checked or approved."),
+        shiny::tags$p("Save dataset to keep this update in the history.")
+      ),
+      shiny::tags$li(
+        class = "metadata-responsibility-card",
+        shiny::strong("4. Name ongoing contacts"),
+        shiny::tags$p(shiny::strong("Creator: "), "prepared the metadata."),
+        shiny::tags$p(shiny::strong("Maintainer: "), "keeps it current."),
+        shiny::tags$p(shiny::strong("Point of contact: "), "answers questions."),
+        shiny::tags$p("Your account is the default when no primary contact is assigned. Add others below."),
+        shiny::tags$p("One person can hold all roles.")
       )
     ),
 
@@ -1106,13 +1028,16 @@ metadata_review_ui <- function() {
 
           paste(
             "Rows are coloured by metadata-review status.",
+            "Cells show up to five lines; click text to read it in full.",
+            "Drag headings to reorder; open the table icon for Copy, CSV, column widths and column visibility.",
             "The underlying lifecycle status of the dataset",
             "is recorded separately on the Lifecycle tab."
           )
         ),
 
-        DT::DTOutput(
-          "metadata_review_table"
+        shiny::tags$div(
+          class = "metadata-review-history",
+          DT::DTOutput("metadata_review_table")
         )
       )
     )
@@ -1167,10 +1092,12 @@ dataset_workflow_folder_summary <- function(
 
 
 dataset_workflow_panel_ui <- function() {
-  workflow_step <- function(id, number, title, description, important = FALSE) {
+  workflow_step <- function(id, number, title, description, section,
+                            main_tab = "dataset_workspace") {
     shiny::tags$li(
-      class = if (isTRUE(important)) "dataset-guide-step is-important" else
-        "dataset-guide-step",
+      class = "dataset-guide-step",
+      `data-guide-section` = section,
+      `data-guide-main-tab` = main_tab,
       shiny::actionLink(
         id,
         shiny::tagList(
@@ -1214,6 +1141,7 @@ dataset_workflow_panel_ui <- function() {
         "Start a new dataset",
         icon = shiny::icon("plus")
       ),
+      dataset_folder_selection_ui("guide_dataset_parent_dir"),
       shiny::actionButton(
         "guide_create_dataset_folder",
         "Create folder & save",
@@ -1262,35 +1190,42 @@ dataset_workflow_panel_ui <- function() {
       workflow_step(
         "guide_tab_dataset_intro", "1", "Dataset intro",
         "Name the folder; add citation, authors, organisations and description.",
-        important = TRUE
+        section = "dataset_intro"
       ),
       workflow_step(
         "guide_tab_licensing", "2", "Licensing & access",
-        "Record sharing rights, licence, distribution and contacts."
+        "Record sharing rights, licence, distribution and contacts.",
+        section = "licensing_access"
       ),
       workflow_step(
         "guide_tab_data_files", "3", "Data files",
-        "Scan and describe the files contained in the dataset."
+        "Scan and describe the files contained in the dataset.",
+        section = "data_files"
       ),
       workflow_step(
         "guide_tab_spatial", "4", "Spatial metadata",
-        "Review extent, reference system and spatial characteristics."
+        "Review extent, reference system and spatial characteristics.",
+        section = "spatial_metadata"
       ),
       workflow_step(
         "guide_tab_supporting", "5", "Supporting documents",
-        "Catalogue reports, methods, agreements and other documents."
+        "Catalogue reports, methods, agreements and other documents.",
+        section = "supporting_documents"
       ),
       workflow_step(
         "guide_tab_lineage", "6", "Lineage",
-        "Document where the data came from and how it was produced."
+        "Document where the data came from and how it was produced.",
+        section = "lineage"
       ),
       workflow_step(
         "guide_tab_review", "7", "Metadata review",
-        "Record who reviewed the metadata and why it changed."
+        "Record who reviewed the metadata and why it changed.",
+        section = "metadata_review"
       ),
       workflow_step(
         "guide_tab_status", "8", "Dataset status",
-        "Check completeness and see the recommended next action."
+        "Check completeness and see the recommended next action.",
+        section = "dataset_status", main_tab = "dataset_status"
       )
     )
   )
@@ -1319,6 +1254,7 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", href = datapond_asset_url("display-theme.css")),
     tags$script(src = datapond_asset_url("display-theme.js")),
+    tags$script(src = datapond_asset_url("dataset-guide.js")),
     tags$script(
       HTML(
         "
@@ -1454,12 +1390,18 @@ ui <- fluidPage(
   tags$div(
     class = "datapond-panel-toolbar",
     actionButton(
-      "toggle_config", "Configuration",
-      icon = shiny::icon("chevron-left"),
+      "toggle_config", label = NULL,
+      icon = shiny::icon("gear"),
       title = "Hide data pond configuration",
       `aria-label` = "Hide data pond configuration",
       `aria-controls` = "config_panel",
       `aria-expanded` = "true"
+    ),
+    tags$a(
+      id = "open_user_guide", href = "datapond-guide/index.html",
+      target = "_blank", rel = "noopener", class = "btn btn-default datapond-guide-link",
+      title = "Open user guide", `aria-label` = "Open user guide",
+      tags$span(`aria-hidden` = "true", "?")
     ),
     actionButton(
       "toggle_dataset_guide", "Dataset guide",
@@ -1498,51 +1440,6 @@ ui <- fluidPage(
         font-size: 12px;
       }
 
-      /* All native disclosure panels share one visible, keyboard-accessible cue.
-         Direct-child selectors keep nested panels independent of their parent. */
-      details {
-        margin: 10px 0;
-        padding: 8px 10px;
-        border: 1px solid #D3CEC4;
-        border-radius: 10px;
-        background: #FAF9F6;
-      }
-
-      details > summary {
-        position: relative;
-        display: block;
-        cursor: pointer;
-        padding: 8px 10px 8px 28px;
-        border-radius: 4px;
-        color: #3F5146;
-        font-weight: 600;
-        list-style: none;
-      }
-
-      details > summary::-webkit-details-marker { display: none; }
-      details > summary::marker { content: ''; }
-
-      details > summary::before {
-        content: '>';
-        position: absolute;
-        left: 7px;
-        top: 8px;
-        width: 12px;
-        text-align: center;
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 20px;
-        color: #3F5146;
-        transform-origin: center;
-      }
-
-      details[open] > summary::before { transform: rotate(90deg); }
-      details > summary:hover { background: #D1DDC7; }
-      details > summary:focus-visible {
-        outline: 2px solid #87966C;
-        outline-offset: 2px;
-      }
-
       .dataset-guide-field-legend {
         margin: 8px 0 12px;
         color: #6A645B;
@@ -1558,34 +1455,6 @@ ui <- fluidPage(
       }
       .dataset-guide-field-legend .mandatory { color: #7A2525; }
       .dataset-guide-field-legend .conditional { color: #65512E; }
-
-      .datapond-optional-details {
-        margin: 12px 0;
-        padding: 10px 12px;
-        border: 1px solid #D3CEC4;
-        border-radius: 4px;
-        background: #FAF9F6;
-      }
-
-      .datapond-optional-details > summary {
-        cursor: pointer;
-        color: #35443A;
-        font-weight: 600;
-      }
-
-      .datapond-optional-details[open] > summary {
-        margin-bottom: 4px;
-      }
-      .datapond-optional-details > summary::before {
-        content: '';
-        width: 8px;
-        height: 8px;
-        top: 14px;
-        border-right: 2px solid currentColor;
-        border-bottom: 2px solid currentColor;
-        transform: rotate(-45deg);
-      }
-      .datapond-optional-details[open] > summary::before { transform: rotate(45deg); }
 
       .datapond-specialist-metadata .row {
         display: grid;
@@ -1970,7 +1839,7 @@ ui <- fluidPage(
         text-decoration: none;
       }
 
-      .dataset-guide-step.is-important > a {
+      .dataset-guide-step.is-active > a {
         background: #FFF4CE;
         border-color: #C3A35B;
       }
@@ -2182,8 +2051,10 @@ ui <- fluidPage(
         var icon = button.querySelector('i');
         var direction = visible ? collapseDirection :
           (collapseDirection === 'left' ? 'right' : 'left');
-        icon.classList.remove('fa-chevron-left', 'fa-chevron-right');
-        icon.classList.add('fa-chevron-' + direction);
+        if (id !== 'toggle_config') {
+          icon.classList.remove('fa-chevron-left', 'fa-chevron-right');
+          icon.classList.add('fa-chevron-' + direction);
+        }
         var label = (visible ? 'Hide ' : 'Show ') + panelName;
         button.setAttribute('title', label);
         button.setAttribute('aria-label', label);
@@ -2302,7 +2173,6 @@ ui <- fluidPage(
         ),
         windowTitle = "Data pond"
       ),
-      metadata_requirement_legend(),
       tabsetPanel(
         id = "main_dataset_tabs",
         selected = "pond_overview",
@@ -2324,7 +2194,8 @@ ui <- fluidPage(
         tabPanel(
           "Dataset lifecycle",
           value = "dataset_lifecycle",
-          mod_dataset_lifecycle_ui("dataset_lifecycle")
+          mod_dataset_lifecycle_ui("dataset_lifecycle",
+            record_controls = shiny::uiOutput("lifecycle_record_controls"))
         ),
         shiny::tabPanel(
           "Create / edit dataset",
@@ -2342,9 +2213,7 @@ ui <- fluidPage(
               h3("Essential metadata"),
               h4("Citation"),
               uiOutput("citation_fields"),
-              metadata_population_detail(
-                mod_authors_ui("authors")
-              ),
+              mod_authors_ui("authors"),
               mod_dataset_org_ui("orgs"),
               hr(),
               h4("About"),
@@ -3250,7 +3119,7 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   # 4. pond-switch helper
   sync_dataset_parent_dir <- function(parent = NULL) {
     parent <- normalise_dataset_parent_dir(
-      parent %||% input$dataset_parent_dir %||% state$dataset_parent_dir
+      parent %||% state$dataset_parent_dir
     )
     state$dataset_parent_dir <- parent
     if (!is.null(state$data_pond) &&
@@ -3551,6 +3420,9 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
       state$refresh_vocab <- state$refresh_vocab + 1L
       reset_context_after_pond_change()
       refresh_dataset_context()
+      # Keep the local chooser current after signing into a pond selected at login.
+      try(register_connected_pond(path), silent = TRUE)
+      connected_registry_tick(connected_registry_tick() + 1L)
       play_finfoot_cue(session, "startup")
     })
 
@@ -3566,6 +3438,21 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   connected_pond_registry <- shiny::reactive({
     connected_registry_tick()
     read_connected_pond_registry()
+  })
+
+  # Poll access and catalogue changes without invalidating tables on every
+  # security heartbeat. reactiveVal publishes only when the snapshot changes.
+  connected_pond_poll_state <- shiny::reactiveVal(NULL)
+  shiny::observe({
+    access_require("read")
+    auth$tick
+    paths <- unique(c(state$data_pond, connected_pond_registry()$data_pond_path))
+    snapshot <- lapply(paths, function(path) {
+      list(path = path, exists = dir.exists(path),
+        signature = connected_pond_database_signature(path),
+        readable = tryCatch({ connected_pond_require_read(path); TRUE }, error = function(e) FALSE))
+    })
+    connected_pond_poll_state(snapshot)
   })
 
   ## Seed database ----
@@ -4234,23 +4121,15 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   })
 
   current_dataset_parent_dir <- reactive({
-    parent <- input$dataset_parent_dir %||% state$dataset_parent_dir
-    normalise_dataset_parent_dir(parent)
+    normalise_dataset_parent_dir(state$dataset_parent_dir)
   })
 
-  observeEvent(input$dataset_parent_dir, {
-    access_require("edit", touch = TRUE)
-    sync_dataset_parent_dir(input$dataset_parent_dir)
-  }, ignoreInit = TRUE)
+  mod_attribute_profile_config_server("attribute_profile_config", state)
 
-  # Initialise the selectInput from the non-reactive initial value.
-  session$onFlushed(function() {
-    updateSelectInput(
-      session,
-      "dataset_parent_dir",
-      selected = initial_dataset_parent_dir
-    )
-  }, once = TRUE)
+  dataset_folder_selection_server(input, session, state, function(parent) {
+    access_require("edit", touch = TRUE)
+    sync_dataset_parent_dir(parent)
+  })
 
   # observe username input
   active_users <- reactive({
@@ -4272,13 +4151,19 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   })
 
   admin_tabs_visible <- shiny::reactiveVal(FALSE)
+  admin_tabs_workspace <- shiny::reactiveVal(NULL)
 
   observe({
     access_require("read")
+    # Each sign-in renders fresh workspace DOM, without the dynamic admin tabs.
+    if (!identical(auth$workspace_nonce, shiny::isolate(admin_tabs_workspace()))) {
+      admin_tabs_visible(FALSE)
+      admin_tabs_workspace(auth$workspace_nonce)
+    }
     should_show <- isTRUE(active_user_is_admin())
     if (should_show) shiny::showTab("main_dataset_tabs", "data_movement", session = session)
     else shiny::hideTab("main_dataset_tabs", "data_movement", session = session)
-    currently_shown <- isTRUE(admin_tabs_visible())
+    currently_shown <- isTRUE(shiny::isolate(admin_tabs_visible()))
     if (identical(should_show, currently_shown)) return()
 
     if (should_show) {
@@ -4340,7 +4225,8 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
   observeEvent(input$repair_dataset_location, {
     access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    dataset_id <- overview_record_id()
+    req(dataset_id)
     if (!require_active_user_for_write(
       state,
       "repairing the dataset location"
@@ -4348,7 +4234,6 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
       return()
     }
 
-    dataset_id <- state$current_dataset_id
     base_path <- state$data_pond
 
     if (
@@ -4378,7 +4263,7 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
     tryCatch(
       {
-        report <- reconcile_dataset_locations(base_path)
+        report <- reconcile_dataset_locations(base_path, dataset_ids = dataset_id)
         result <- report[id == as.integer(dataset_id[1])]
         if (nrow(result) != 1L) {
           stop("No unambiguous folder candidate was found for this UUID.")
@@ -4395,9 +4280,11 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
         }
 
         record <- get_dataset_record(dataset_id, base_path)
-        state$dataset_path <- record$dataset_path[1]
-        state$data_path <- record$data_path[1]
-        state$current_dataset_folder <- record$dataset_path[1]
+        if (identical(as.integer(state$current_dataset_id), as.integer(dataset_id))) {
+          state$dataset_path <- record$dataset_path[1]
+          state$data_path <- record$data_path[1]
+          state$current_dataset_folder <- record$dataset_path[1]
+        }
         refresh_dataset_context(datasets = TRUE)
 
         showNotification(
@@ -4740,19 +4627,6 @@ metadata_review_context_data <-
       selected = selected_reviewer
     )
   })
-  observe({
-    access_require("read")
-    parent <- normalise_dataset_parent_dir(state$dataset_parent_dir)
-    if (is.null(input$dataset_parent_dir) ||
-        length(input$dataset_parent_dir) == 0 ||
-        input$dataset_parent_dir != parent) {
-      updateSelectInput(
-        session,
-        "dataset_parent_dir",
-        selected = parent
-      )
-    }
-  })
 
   observeEvent(
     eventExpr = list(
@@ -4925,6 +4799,9 @@ metadata_review_context_data <-
   })
 
   connected_pond_registry_display <- shiny::reactive({
+    access_require("read")
+    req(length(state$data_pond_id) == 1L)
+    connected_pond_poll_state()
     registry <- connected_pond_registry()
     if (nrow(registry) == 0L) return(data.frame())
     status <- vapply(
@@ -4932,7 +4809,7 @@ metadata_review_context_data <-
       function(path) {
         if (!dir.exists(path)) "Unavailable folder"
         else if (!file.exists(get_db_path(path))) "Missing metadata.db"
-        else "Available"
+        else tryCatch({ connected_pond_require_read(path); "Available" }, error = function(e) "Sign-in required")
       },
       character(1)
     )
@@ -4998,6 +4875,19 @@ metadata_review_context_data <-
     registry[match_row, , drop = FALSE]
   })
 
+  observeEvent(input$connected_login, {
+    access_require("read", touch = TRUE)
+    pond <- selected_connected_pond()
+    req(!is.null(pond))
+    password <- input$connected_login_password
+    updateTextInput(session, "connected_login_password", value = "")
+    tryCatch({
+      connected_pond_sign_in(pond$data_pond_path[1], input$connected_login_username, password)
+      connected_inventory_refresh_tick(connected_inventory_refresh_tick() + 1L)
+      showNotification("Signed in. Connected datasets are now available in Pond overview.", type = "message")
+    }, error = function(e) showNotification(conditionMessage(e), type = "error", duration = NULL))
+  })
+
   observeEvent(input$switch_connected_pond, {
     access_require("read", touch = TRUE)
     pond <- selected_connected_pond()
@@ -5022,6 +4912,11 @@ metadata_review_context_data <-
       showNotification("The active pond cannot be disconnected. Switch ponds first.", type = "warning")
       return()
     }
+    path <- normalizePath(pond$data_pond_path[1], mustWork = FALSE, winslash = "/")
+    tokens <- auth$connected_tokens
+    if (!is.null(tokens[[path]])) try(access_logout(path, tokens[[path]]), silent = TRUE)
+    tokens[[path]] <- NULL
+    auth$connected_tokens <- tokens
     remove_connected_pond(pond$data_pond_id[1])
     connected_registry_tick(connected_registry_tick() + 1L)
     connected_inventory_refresh_tick(connected_inventory_refresh_tick() + 1L)
@@ -5294,6 +5189,13 @@ metadata_review_context_data <-
     "open_dataset_folder"
   )
 
+  output$current_pond_name <- renderText({
+    access_require("read")
+    registry <- connected_pond_registry()
+    name <- registry$pond_name[match(state$data_pond_id, registry$data_pond_id)]
+    if (!length(name) || is.na(name) || !nzchar(trimws(name))) basename(state$data_pond) else name
+  })
+
   output$current_path <- renderText({
     access_require("read")
     state$data_pond
@@ -5535,6 +5437,7 @@ metadata_review_context_data <-
 
   overview_preview_id <- shiny::reactiveVal(NULL)
   overview_current_id <- shiny::reactive({
+    if (isTRUE(pond_overview_selection_cleared())) return(NULL)
     if (!is.null(overview_selected_connection())) return(NULL)
     overview_preview_id() %||% state$current_dataset_id
   })
@@ -5545,11 +5448,6 @@ metadata_review_context_data <-
   })
   output$overview_editor_ready <- shiny::renderText({ access_require("read"); if (overview_editor_ready()) "true" else "false" })
   shiny::outputOptions(output, "overview_editor_ready", suspendWhenHidden = FALSE)
-  require_overview_editor <- function() {
-    if (overview_editor_ready()) return(TRUE)
-    showNotification("Open the selected dataset in the metadata editor before using record actions.", type = "warning")
-    FALSE
-  }
 
   hydrate_selected_dataset <- function(selected_value) {
 
@@ -5801,6 +5699,7 @@ metadata_review_context_data <-
     access_require("read", touch = TRUE)
     if (isTRUE(open_overview_editor()))
       shiny::updateTabsetPanel(session, "main_dataset_tabs", selected = "dataset_workspace")
+    else showNotification("Select a current-pond dataset in the overview first.", type = "warning")
   })
   shiny::observeEvent(input$main_dataset_tabs, {
     access_require("read", touch = TRUE)
@@ -5826,7 +5725,7 @@ metadata_review_context_data <-
     }
 
     record <- get_dataset_record(dataset_id, state$data_pond)
-    if (is.null(record) || nrow(record) == 0L) {
+    if (is.null(record)) {
       return(shiny::tags$div(class = "alert alert-warning", "Dataset not found."))
     }
 
@@ -5919,20 +5818,14 @@ metadata_review_context_data <-
       return(shiny::tags$p("This dataset was created in the active pond; no import record exists."))
     }
     shiny::tags$div(style = "overflow-x:auto;",
-      shiny::tags$table(class = "table table-striped table-condensed",
-        shiny::tags$thead(shiny::tags$tr(lapply(
-          c("Source pond", "Exported by", "Exported", "Imported", "Bundle ID"), shiny::tags$th))),
-        shiny::tags$tbody(lapply(seq_len(nrow(provenance)), function(i) {
-          row <- provenance[i, , drop = FALSE]
-          shiny::tags$tr(lapply(c(
-            transfer_scalar_text(row$source_data_pond_id, "Unknown"),
-            transfer_scalar_text(row$source_exported_by_user_name, "Unknown"),
-            transfer_scalar_text(row$exported_at, "Unknown"),
-            transfer_scalar_text(row$imported_at, "Unknown"),
-            transfer_scalar_text(row$bundle_id, "Unknown")
-          ), shiny::tags$td))
-        }))
-      ),
+      datapond_summary_table(data.frame(
+        `Source pond` = vapply(provenance$source_data_pond_id, transfer_scalar_text, character(1), "Unknown"),
+        `Exported by` = vapply(provenance$source_exported_by_user_name, transfer_scalar_text, character(1), "Unknown"),
+        Exported = vapply(provenance$exported_at, transfer_scalar_text, character(1), "Unknown"),
+        Imported = vapply(provenance$imported_at, transfer_scalar_text, character(1), "Unknown"),
+        `Bundle ID` = vapply(provenance$bundle_id, transfer_scalar_text, character(1), "Unknown"),
+        check.names = FALSE
+      )),
       shiny::helpText("Transfer history is carried forward in format 5 bundles. Numeric IDs are local to each source pond; dataset UUIDs retain identity.")
     )
   })
@@ -6136,7 +6029,7 @@ metadata_review_context_data <-
     state$current_citation_key <- citation_key
     state$current_dataset_uuid <- uuid
     state$current_folder_key <- folder_key
-    parent_dir <- sync_dataset_parent_dir(input$dataset_parent_dir)
+    parent_dir <- sync_dataset_parent_dir()
     folder_info <- tryCatch(
       create_dataset_folder_structure(
         base_path = state$data_pond,
@@ -6605,7 +6498,7 @@ metadata_review_context_data <-
         state$current_citation_key <- citation_key
         state$current_folder_key <- folder_key
 
-        parent_dir <- sync_dataset_parent_dir(input$dataset_parent_dir)
+        parent_dir <- sync_dataset_parent_dir()
 
         folder_info <- create_dataset_folder_structure(
           base_path = state$data_pond,
@@ -6848,14 +6741,33 @@ metadata_review_context_data <-
     )
   }, ignoreInit = TRUE)
 
-  observeEvent(input$open_dataset_folder, {
+  observeEvent(input$overview_open_pond_folder, {
     access_require("edit", touch = TRUE)
-    folder_path <- state$dataset_path %||% state$current_dataset_folder
+    tryCatch({
+      open_folder(state$data_pond)
+      showNotification("Pond directory open request sent to the file manager.", type = "message")
+    }, error = function(e) showNotification(conditionMessage(e), type = "warning"))
+  })
+
+  observeEvent(input$open_dataset_folder, {
+    access_require("read", touch = TRUE)
+    if (!access_allowed("edit")) {
+      showNotification("Opening dataset folders requires editor access.", type = "warning")
+      return()
+    }
     tryCatch(
       {
+        folder_path <- if (identical(input$main_dataset_tabs, "pond_overview")) {
+          pond_overview_folder_path(
+            pond_overview_data(), overview_current_id(),
+            pond_overview_selection_cleared(), overview_selected_connection()
+          )
+        } else {
+          state$dataset_path %||% state$current_dataset_folder
+        }
         open_folder(folder_path)
         showNotification(
-          "Dataset folder opened.",
+          "Dataset folder open request sent to the file manager.",
           type = "message"
         )
       },
@@ -6888,6 +6800,12 @@ metadata_review_context_data <-
 
     tryCatch(
       {
+        if (identical(input$main_dataset_tabs, "pond_overview")) {
+          data_path <- file.path(pond_overview_folder_path(
+            pond_overview_data(), overview_current_id(),
+            pond_overview_selection_cleared(), overview_selected_connection()
+          ), "data")
+        }
         open_folder(data_path)
         showNotification(
           "Data folder opened.",
@@ -7313,6 +7231,10 @@ metadata_review_context_data <-
   })
 
   federated_pond_catalogue <- shiny::reactive({
+    access_require("read")
+    req(length(state$data_pond_id) == 1L, !is.na(state$data_pond_id), nzchar(state$data_pond_id))
+    connected_pond_poll_state()
+    auth$connected_tokens
     connected_inventory_refresh_tick()
     state$refresh_datasets
     registry <- connected_pond_registry()
@@ -7356,7 +7278,7 @@ metadata_review_context_data <-
     local <- build_connected_overview_inventory(connected_pond_dataset_data(), list())
     remote <- overview_remote_inventory()
     list(data = data.table::rbindlist(list(local$data, remote$data), fill = TRUE, use.names = TRUE),
-      unavailable = c(local$unavailable, remote$unavailable))
+      unavailable = c(attr(federated_pond_catalogue(), "unavailable"), local$unavailable, remote$unavailable))
   })
   overview_inventory_all <- shiny::reactive({
     # Short circuit before touching connected databases when the user wants
@@ -7380,7 +7302,7 @@ metadata_review_context_data <-
         sum(rows$active_pond %in% FALSE), "from connected ponds."),
         " Connected metadata is read locally; refresh remote metadata in Flow."),
       if (length(unavailable)) shiny::tags$div(class = "alert alert-warning",
-        "Some remote caches are unavailable. Reconnect their local drive or refresh metadata in Flow.",
+        "Some connected catalogues are unavailable. Sign in to local ponds in Pond connections; refresh remote caches in Flow.",
         shiny::tags$ul(lapply(unavailable, shiny::tags$li)))
     )
   })
@@ -7414,11 +7336,12 @@ metadata_review_context_data <-
   })
   output$overview_editor_action <- shiny::renderUI({
     access_require("read")
-    id <- overview_current_id()
-    if (length(id) != 1L || !id %in% pond_overview_all_data()$id) return(NULL)
+    if (is.null(overview_record_id())) return(NULL)
     shiny::tagList(
       shiny::p(class = "help-block", "Overview preview: saved metadata only. Forms load when you open the metadata editor or the dataset lifecycle tab."),
-      shiny::actionButton("overview_open_editor", "Open selected dataset in metadata editor")
+      shiny::actionButton("overview_open_editor", "Open selected dataset in metadata editor"),
+      shiny::actionButton("repair_dataset_location", "Repair selected dataset location",
+        class = "datapond-requires-active-user")
     )
   })
   output$overview_connection_details <- shiny::renderUI({
@@ -7431,17 +7354,41 @@ metadata_review_context_data <-
   })
   shiny::observeEvent(overview_inventory_data(), {
     access_require("read", touch = TRUE)
-    overview_selected_connection(NULL)
-    DT::selectRows(DT::dataTableProxy("dataset_table", session = session), NULL)
+    rows <- overview_inventory_data()
+    selected <- overview_selected_connection()
+    if (!is.null(selected)) {
+      match <- which(rows$record_key == selected$record_key)
+      if (length(match) == 1L) {
+        overview_selected_connection(as.list(rows[match]))
+      } else {
+        overview_selected_connection(NULL)
+        overview_preview_id(NULL)
+        pond_overview_selection_cleared(TRUE)
+      }
+    } else {
+      id <- overview_preview_id() %||% state$current_dataset_id
+      if (length(id) == 1L && !any(rows$active_pond %in% TRUE & rows$id %in% id)) {
+        overview_preview_id(NULL)
+        pond_overview_selection_cleared(TRUE)
+      }
+    }
   }, priority = 10)
   shiny::observeEvent(input$overview_open_connected, {
     access_require("read", touch = TRUE)
     selected <- overview_selected_connection()
     rows <- overview_inventory_data()
-    if (is.null(selected) || !selected$record_key %in% rows$record_key) {
-      showNotification("Select a connected dataset row first. Current pond rows open directly.", type = "warning")
+    if (is.null(selected)) {
+      if (!is.null(overview_record_id()))
+        showNotification("This dataset belongs to the active pond. Use Open pond directory to open its root folder, or Open selected dataset in metadata editor to edit it.", type = "message")
+      else showNotification("Select a dataset row in the overview first.", type = "warning")
       return()
     }
+    match <- which(rows$record_key == selected$record_key)
+    if (isTRUE(pond_overview_selection_cleared()) || length(match) != 1L) {
+      showNotification("The selected connected dataset is no longer available. Select a current row first.", type = "warning")
+      return()
+    }
+    selected <- as.list(rows[match])
     if (identical(selected$connection_type, "Remote cache (read-only)")) {
       overview_remote_pond_request(list(cache = selected$open_path, request_id = new_uuid()))
       shiny::updateTabsetPanel(session, "main_dataset_tabs", selected = "data_movement")
@@ -7458,7 +7405,7 @@ metadata_review_context_data <-
     catalogue <- connected_pond_dataset_data()
     available <- sum(vapply(
       connected$data_pond_path,
-      function(path) dir.exists(path) && file.exists(get_db_path(path)),
+      function(path) tryCatch({ connected_pond_require_read(path); file.exists(get_db_path(path)) }, error = function(e) FALSE),
       logical(1)
     ))
     duplicates <- cross_pond_duplicate_datasets(federated_pond_catalogue())
@@ -7530,7 +7477,7 @@ metadata_review_context_data <-
         filter = "none"
       ))
     }
-    DT::datatable(
+    datapond_datatable(
       display,
       rownames = FALSE,
       selection = "single",
@@ -7621,7 +7568,7 @@ metadata_review_context_data <-
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
-    widget <- DT::datatable(
+    widget <- datapond_datatable(
       display,
       rownames = FALSE,
       selection = "none",
@@ -7782,13 +7729,28 @@ metadata_review_context_data <-
     )
   })
 
+  overview_record_id <- shiny::reactive({
+    if (isTRUE(pond_overview_selection_cleared())) return(NULL)
+    id <- overview_current_id()
+    if (length(id) != 1L || is.na(id) || !id %in% pond_overview_all_data()$id) return(NULL)
+    as.integer(id)
+  })
+  pending_record_delete <- shiny::reactiveVal(NULL)
+
+  lifecycle_record_id <- shiny::reactive({
+    state$refresh_datasets
+    if (!identical(input$main_dataset_tabs, "dataset_lifecycle")) return(NULL)
+    id <- state$current_dataset_id
+    if (length(id) != 1L || is.na(id)) return(NULL)
+    record <- get_dataset_record(id, state$data_pond)
+    if (is.null(record)) return(NULL)
+    as.integer(id)
+  })
+
   output$dataset_record_controls <- shiny::renderUI({
     access_require("read")
-    if (!overview_editor_ready()) return(NULL)
-    dataset_id <- state$current_dataset_id
-    if (is.null(dataset_id) || length(dataset_id) == 0L || is.na(dataset_id[1])) {
-      return(NULL)
-    }
+    dataset_id <- overview_record_id()
+    if (is.null(dataset_id)) return(NULL)
     permissions <- dataset_record_permissions(
       dataset_id,
       state$active_user_id,
@@ -7798,8 +7760,8 @@ metadata_review_context_data <-
       return(shiny::tags$small(
         style = "display:block; color:#666; margin-top:8px;",
         paste(
-          "Only the metadata-record owner or an administrator can hide",
-          "or delete this record. Dataset files are never deleted automatically."
+          "Only the metadata-record owner or an administrator can hide this record.",
+          "Deletion and restoration are available in Dataset lifecycle."
         )
       ))
     }
@@ -7813,29 +7775,45 @@ metadata_review_context_data <-
           class = "datapond-requires-active-user"
         )
       },
-      if (isTRUE(permissions$is_deleted)) {
-        shiny::actionButton(
-          "restore_dataset_record",
-          "Restore record",
-          class = "datapond-requires-active-user"
-        )
-      } else {
-        shiny::actionButton(
-          "soft_delete_dataset",
-          "Delete record (recoverable)",
-          class = "datapond-requires-active-user"
-        )
-      },
-      if (isTRUE(permissions$is_admin)) {
-        shiny::actionButton(
-          "hard_delete_dataset",
-          "Hard-delete record",
-          class = "datapond-requires-active-user"
-        )
-      },
-      shiny::tags$small(
-        style = "width:100%; color:#666;",
-        "Record actions do not remove or move the physical dataset folder."
+      shiny::tags$small(class = "help-block",
+        "Deletion and restoration are available in Dataset lifecycle.")
+    )
+  })
+
+  output$lifecycle_record_controls <- shiny::renderUI({
+    access_require("read")
+    dataset_id <- lifecycle_record_id()
+    if (is.null(dataset_id)) return(NULL)
+    permissions <- dataset_record_permissions(dataset_id, state$active_user_id, state$data_pond)
+    record <- get_dataset_record(dataset_id, state$data_pond)
+    shiny::tags$section(class = "lifecycle-record-controls",
+      shiny::h3("Delete or restore the selected record"),
+      shiny::p(shiny::strong(transfer_scalar_text(record$title, "Untitled dataset")),
+        paste0(" (ID ", dataset_id, ")")),
+      shiny::p("Record actions do not remove or move the physical dataset folder."),
+      if (!isTRUE(permissions$can_manage)) shiny::p(
+        "Only the metadata-record owner or an administrator can delete or restore this record."
+      ) else shiny::tags$div(class = "lifecycle-record-actions",
+        if (isTRUE(permissions$is_deleted)) {
+          shiny::actionButton(
+            "restore_dataset_record",
+            "Restore record",
+            class = "datapond-requires-active-user"
+          )
+        } else {
+          shiny::actionButton(
+            "soft_delete_dataset",
+            "Delete record (recoverable)",
+            class = "datapond-requires-active-user"
+          )
+        },
+        if (isTRUE(permissions$is_admin)) {
+          shiny::actionButton(
+            "hard_delete_dataset",
+            "Hard-delete record",
+            class = "datapond-requires-active-user"
+          )
+        }
       )
     )
   })
@@ -7847,7 +7825,8 @@ metadata_review_context_data <-
 
   shiny::observeEvent(input$toggle_dataset_hidden, {
     access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    dataset_id <- overview_record_id()
+    req(dataset_id)
     if (!require_active_user_for_write(
       state,
       "changing dataset-record visibility"
@@ -7855,16 +7834,15 @@ metadata_review_context_data <-
       return()
     }
 
-    req(state$current_dataset_id)
     permissions <- dataset_record_permissions(
-      state$current_dataset_id,
+      dataset_id,
       state$active_user_id,
       state$data_pond
     )
     tryCatch(
       {
         set_dataset_hidden(
-          state$current_dataset_id,
+          dataset_id,
           !isTRUE(permissions$is_hidden),
           state$active_user_id,
           state$data_pond
@@ -7877,7 +7855,8 @@ metadata_review_context_data <-
 
   shiny::observeEvent(input$soft_delete_dataset, {
     access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    dataset_id <- lifecycle_record_id()
+    req(dataset_id)
     if (!require_active_user_for_write(
       state,
       "deleting the dataset record"
@@ -7885,11 +7864,10 @@ metadata_review_context_data <-
       return()
     }
 
-    req(state$current_dataset_id)
     tryCatch(
       {
         soft_delete_dataset_record(
-          state$current_dataset_id,
+          dataset_id,
           state$active_user_id,
           state$data_pond
         )
@@ -7905,7 +7883,8 @@ metadata_review_context_data <-
 
   shiny::observeEvent(input$restore_dataset_record, {
     access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    dataset_id <- lifecycle_record_id()
+    req(dataset_id)
     if (!require_active_user_for_write(
       state,
       "restoring the dataset record"
@@ -7913,11 +7892,10 @@ metadata_review_context_data <-
       return()
     }
 
-    req(state$current_dataset_id)
     tryCatch(
       {
         restore_dataset_record(
-          state$current_dataset_id,
+          dataset_id,
           state$active_user_id,
           state$data_pond
         )
@@ -7928,8 +7906,9 @@ metadata_review_context_data <-
   })
 
   shiny::observeEvent(input$hard_delete_dataset, {
-    access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    access_require("admin", touch = TRUE)
+    dataset_id <- lifecycle_record_id()
+    req(dataset_id)
     if (!require_active_user_for_write(
       state,
       "hard-deleting the dataset record"
@@ -7937,9 +7916,14 @@ metadata_review_context_data <-
       return()
     }
 
-    req(state$current_dataset_id)
+    record <- get_dataset_record(dataset_id, state$data_pond)
+    req(record)
+    pending_record_delete(list(id = dataset_id, uuid = record$uuid,
+      pond = state$data_pond, workspace = auth$workspace_nonce))
     shiny::showModal(shiny::modalDialog(
       title = "Hard-delete metadata record?",
+      shiny::p(shiny::strong(transfer_scalar_text(record$title, "Untitled dataset")),
+        paste0(" (ID ", dataset_id, ")")),
       paste(
         "This permanently removes the metadata record and linked catalogue rows.",
         "The physical dataset folder and files will remain untouched."
@@ -7956,8 +7940,19 @@ metadata_review_context_data <-
   })
 
   shiny::observeEvent(input$confirm_hard_delete_dataset, {
-    access_require("edit", touch = TRUE)
-    if (!require_overview_editor()) return()
+    access_require("admin", touch = TRUE)
+    target <- pending_record_delete()
+    req(target)
+    record <- get_dataset_record(target$id, state$data_pond)
+    if (!identical(target$pond, state$data_pond) ||
+        !identical(target$workspace, auth$workspace_nonce) ||
+        !identical(target$id, lifecycle_record_id()) || is.null(record) ||
+        !identical(target$uuid, record$uuid)) {
+      pending_record_delete(NULL)
+      shiny::removeModal()
+      showNotification("The selected dataset or pond changed. Select the record and confirm deletion again.", type = "warning")
+      return()
+    }
     if (!require_active_user_for_write(
       state,
       "hard-deleting the dataset record"
@@ -7965,8 +7960,7 @@ metadata_review_context_data <-
       return()
     }
 
-    req(state$current_dataset_id)
-    dataset_id <- state$current_dataset_id
+    dataset_id <- target$id
     tryCatch(
       {
         hard_delete_dataset_record(
@@ -7975,8 +7969,13 @@ metadata_review_context_data <-
           state$data_pond
         )
         shiny::removeModal()
-        state$current_dataset_id <- NULL
-        state$current_dataset_uuid <- NULL
+        pending_record_delete(NULL)
+        if (identical(as.integer(state$current_dataset_id), dataset_id)) {
+          state$current_dataset_id <- NULL
+          state$current_dataset_uuid <- NULL
+        }
+        overview_preview_id(NULL)
+        pond_overview_selection_cleared(TRUE)
         refresh_after_record_control()
         showNotification(
           "Metadata record permanently deleted; the physical folder was untouched.",
@@ -8011,13 +8010,21 @@ metadata_review_context_data <-
       overview
     )
 
-    table_widget <- DT::datatable(
+    selected_rows <- shiny::isolate({
+      if (isTRUE(pond_overview_selection_cleared())) integer() else {
+        connected <- overview_selected_connection()
+        if (!is.null(connected)) which(overview$record_key == connected$record_key) else
+          which(overview$active_pond %in% TRUE & overview$id %in% overview_current_id())
+      }
+    })
+
+    table_widget <- datapond_datatable(
       as.data.frame(
         display,
         stringsAsFactors = FALSE
       ),
       rownames = FALSE,
-      selection = "single",
+      selection = list(mode = "single", selected = selected_rows),
       filter = "top",
       escape = TRUE,
       extensions = pond_overview_table_extensions(),
@@ -8062,18 +8069,31 @@ metadata_review_context_data <-
 
   dataset_table_proxy <- DT::dataTableProxy("dataset_table")
 
+  select_overview_table_rows <- function(rows) {
+    rows <- as.integer(rows)
+    current <- shiny::isolate(input$dataset_table_rows_selected)
+    current <- as.integer(current %||% integer())
+
+    # DT reports proxy selections through the same input used for user row
+    # clicks. Do not send an already-applied selection back to the browser:
+    # that echo can make the editor and overview selections drive each other.
+    if (identical(current, rows)) return(invisible(FALSE))
+
+    DT::selectRows(dataset_table_proxy, rows)
+    invisible(TRUE)
+  }
+
 
   shiny::observeEvent(input$refresh_pond_overview, {
     access_require("read", touch = TRUE)
+    overview_selected_connection(NULL)
+    overview_preview_id(NULL)
+    pond_overview_selection_cleared(TRUE)
     state$refresh_datasets <- state$refresh_datasets + 1L
     connected_inventory_refresh_tick(connected_inventory_refresh_tick() + 1L)
     cached_keys <- ls(envir = connected_inventory_cache, all.names = TRUE)
     if (length(cached_keys)) rm(list = cached_keys, envir = connected_inventory_cache)
-    pond_overview_selection_cleared(TRUE)
-    DT::selectRows(
-      dataset_table_proxy,
-      NULL
-    )
+    select_overview_table_rows(integer())
     pond_overview_map_refresh(
       pond_overview_map_refresh() + 1L
     )
@@ -8082,6 +8102,13 @@ metadata_review_context_data <-
 
   shiny::observeEvent(state$current_dataset_id, {
     access_require("read", touch = TRUE)
+
+    # While Pond overview is visible its preview selection is authoritative.
+    # A delayed editor/dropdown update must not replace a row the user has just
+    # chosen there; opening an editor already hydrates the preview explicitly.
+    if (identical(input$main_dataset_tabs, "pond_overview")) return()
+
+    overview_selected_connection(NULL)
     overview_preview_id(state$current_dataset_id)
     pond_overview_selection_cleared(FALSE)
   }, ignoreInit = TRUE, ignoreNULL = FALSE)
@@ -8098,11 +8125,10 @@ metadata_review_context_data <-
         is.null(selected_row) ||
         length(selected_row) != 1L || is.na(selected_row) || selected_row < 1L
       ) {
-        overview_selected_connection(NULL)
+        # DT can report an empty selection while replacing its rows. Keep the
+        # selection by identity; Refresh or filtering it out clears it explicitly.
         return()
       }
-
-      pond_overview_selection_cleared(FALSE)
 
       overview <- overview_inventory_data()
 
@@ -8114,6 +8140,7 @@ metadata_review_context_data <-
         return()
       }
 
+      pond_overview_selection_cleared(FALSE)
       selected <- overview[selected_row]
       if (!isTRUE(selected$active_pond)) {
         overview_selected_connection(as.list(selected))
@@ -8135,9 +8162,15 @@ metadata_review_context_data <-
   shiny::observe({
     access_require("read")
     overview <- overview_inventory_data()
-    if (!is.null(shiny::isolate(overview_selected_connection()))) return()
+    connected <- overview_selected_connection()
     selected_id <- overview_current_id()
     selection_cleared <- pond_overview_selection_cleared()
+
+    if (!isTRUE(selection_cleared) && !is.null(connected)) {
+      selected_row <- which(overview$record_key == connected$record_key)
+      select_overview_table_rows(if (length(selected_row) == 1L) selected_row else integer())
+      return()
+    }
 
     if (
       isTRUE(selection_cleared) ||
@@ -8147,10 +8180,7 @@ metadata_review_context_data <-
       is.null(overview) ||
       nrow(as.data.frame(overview)) == 0L
     ) {
-      DT::selectRows(
-        dataset_table_proxy,
-        NULL
-      )
+      select_overview_table_rows(integer())
 
       return()
     }
@@ -8161,15 +8191,9 @@ metadata_review_context_data <-
     )
 
     if (length(selected_row) == 0L) {
-      DT::selectRows(
-        dataset_table_proxy,
-        NULL
-      )
+      select_overview_table_rows(integer())
     } else {
-      DT::selectRows(
-        dataset_table_proxy,
-        selected_row[1]
-      )
+      select_overview_table_rows(selected_row[1])
     }
   })
 
@@ -8727,9 +8751,8 @@ metadata_review_context_data <-
       return()
     }
 
-    pond_overview_selection_cleared(FALSE)
-
     if (!selected_dataset_id %in% pond_overview_data()$id) return()
+    pond_overview_selection_cleared(FALSE)
     overview_selected_connection(NULL)
     overview_preview_id(selected_dataset_id)
   }
@@ -8953,7 +8976,7 @@ metadata_review_context_data <-
       nrow(as.data.frame(display_df)) == 0L
     ) {
       return(
-        DT::datatable(
+        datapond_datatable(
           data.frame(
             Message =
               "No metadata review records are available."
@@ -8973,7 +8996,7 @@ metadata_review_context_data <-
 
     if ("message" %in% names(display_df)) {
       return(
-        DT::datatable(
+        datapond_datatable(
           data.frame(
             Message =
               as.character(
@@ -8996,51 +9019,35 @@ metadata_review_context_data <-
 
     earth <- app_earth_palette()
 
-    table_widget <- DT::datatable(
+    table_widget <- datapond_datatable(
       as.data.frame(display_df, stringsAsFactors = FALSE),
       rownames = FALSE, selection = "none", filter = "top",
-      escape = TRUE, extensions = "Buttons",
+      escape = TRUE, extensions = c("Buttons", "ColReorder"),
+      class = "compact stripe hover",
+      table_tools = list(history = TRUE),
       options = list(
         pageLength = 10L,
         scrollX = TRUE,
-        autoWidth = FALSE,
+        scrollY = "360px",
+        scrollCollapse = TRUE,
+        autoWidth = TRUE,
         dom = "Bfrtip",
-        buttons = c("copy", "csv"),
+        colReorder = list(fixedColumnsLeft = 2L),
         order = list(list(2L, "desc")),
-        columnDefs = list(list(visible = FALSE, targets = c(0L, 1L)),
-          list(width = "145px", targets = 2L),
-          list(width = "140px", targets = 3L),
+        columnDefs = c(
           list(
-            width = "125px",
-            targets = 4L
+            list(visible = FALSE, targets = c(0L, 1L)),
+            list(className = "metadata-history-status", targets = 7L),
+            list(targets = 2:11, className = "metadata-history-public", render = DT::JS(
+              "function(data, type, row, meta) {",
+              "  if (type !== 'display') return data;",
+              "  return window.datapondTableTools.cell(data, meta);",
+              "}"
+            ))
           ),
-          list(
-            width = "180px",
-            targets = c(
-              5L,
-              6L
-            )
-          ),
-          list(
-            width = "135px",
-            targets = 7L
-          ),
-          list(
-            width = "320px",
-            targets = 8L
-          ),
-          list(
-            width = "360px",
-            targets = 9L
-          ),
-          list(
-            width = "160px",
-            targets = 10L
-          ),
-          list(
-            width = "300px",
-            targets = 11L
-          )
+          lapply(2:11, function(index) list(
+            targets = index, className = paste0("metadata-history-width-", index)
+          ))
         )
       )
     )
@@ -9082,28 +9089,7 @@ metadata_review_context_data <-
       verticalAlign = "top"
     )
 
-    table_widget <- DT::formatStyle(
-      table_widget,
-      columns =
-        "Metadata status",
-      fontWeight =
-        "600"
-    )
-
-    DT::formatStyle(
-      table_widget,
-      columns = c(
-        "Update type",
-        "Metadata section",
-        "Reason for update",
-        "Update summary",
-        "Notes"
-      ),
-      whiteSpace = "normal",
-      wordBreak = "break-word",
-      lineHeight = "1.35",
-      verticalAlign = "top"
-    )
+    table_widget
   })
   invisible(state)
 }

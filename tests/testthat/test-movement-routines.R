@@ -153,6 +153,12 @@ test_that("routine UI separates saved batch selection from the editable transfer
 test_that("Flow separates configuration, flow design and execution without duplicate inputs", {
   html <- xml2::read_html(as.character(mod_data_movement_ui("flow")))
   pane <- function(value) xml2::xml_find_first(html, paste0("//div[@data-value='", value, "']"))
+  tabs <- xml2::xml_find_all(html, "//ul[@id='flow-flow_tabs']/li/a")
+  expect_identical(xml2::xml_attr(tabs, "data-value"), c("remote", "run", "config", "design"))
+  expect_identical(trimws(gsub("[[:space:]]+", " ", xml2::xml_text(tabs))), c("Read remote pond", "Run Flows", "Define connections", "Design flow"))
+  expect_length(xml2::xml_find_all(tabs[c(1, 3)], ".//br"), 2L)
+  expect_identical(xml2::xml_text(xml2::xml_find_all(html, "//ol[@class='flow-navigation']/li/strong")),
+    c("1. Read remote pond", "2. Run Flows", "3. Define connections", "4. Design flow"))
   expect_length(xml2::xml_find_all(pane("config"), ".//*[@id='flow-save_location']"), 1L)
   expect_length(xml2::xml_find_all(pane("design"), ".//*[@id='flow-save_routine']"), 1L)
   expect_length(xml2::xml_find_all(pane("run"), ".//*[@id='flow-run']"), 1L)

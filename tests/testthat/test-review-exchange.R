@@ -55,6 +55,65 @@ test_that("metadata review goes out, returns and updates the existing master ato
   DBI::dbDisconnect(previous)
 })
 
+test_that("review requests can carry the dataset files while returns update only metadata", {
+  f <- review_test_fixture(); on.exit(unlink(f$root, recursive = TRUE))
+  files <- c("docs/method notes.txt", "README.txt", ".reference", "styles/theme/style.css")
+  for (name in files) {
+    path <- file.path(f$folder$dataset_path, name)
+    dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+    writeLines(paste("Reference:", name), path)
+  }
+  datapond:::scan_supporting_documents(f$id, f$folder$dataset_path, f$master, f$users[[1]]$person)
+  old_zip <- "previous__datapond_old.zip"
+  writeLines("Old transport archive", file.path(f$folder$dataset_path, old_zip))
+  request <- datapond:::issue_dataset_review(f$id, f$master, f$users[[1]]$id,
+    "User2 Editor", include_files = TRUE)
+  archive <- datapond:::dataset_transfer_archive_index(request$path)
+  expected <- c(files, "data/test.txt")
+  expect_true(all(file.path(archive$root, expected) %in% archive$names))
+  expect_false(file.path(archive$root, old_zip) %in% archive$names)
+  manifest <- datapond:::read_dataset_transfer_manifest(request$path)
+  expect_identical(manifest$review_include_files, 1L)
+  # Old metadata-only requests cannot silently acquire a file payload.
+  manifest$review_include_files <- NULL
+  expect_error(datapond:::review_check_archive(archive, manifest), "only its metadata")
+  imported <- datapond:::import_dataset_transfer_bundle(request$path, f$reviewer, f$users[[2]]$id)
+  expect_identical(unname(tools::md5sum(file.path(imported$dataset_path, expected))),
+    unname(tools::md5sum(file.path(f$folder$dataset_path, expected))))
+  docs <- datapond:::get_supporting_documents(imported$dataset_id, f$reviewer)
+  method <- docs[docs$document_rel_path == "docs/method notes.txt", , drop = FALSE]
+  expect_equal(nrow(method), 1L)
+  expect_identical(method$document_path, file.path(imported$dataset_path, "docs/method notes.txt"))
+  expect_true(file.exists(method$document_path))
+  datapond:::save_entry_dynamic("entry_tbl", list(title = "Checked against supporting documents"),
+    f$reviewer, id = imported$dataset_id)
+  writeLines("Local file change", file.path(imported$dataset_path, "data/test.txt"))
+  returned <- datapond:::create_dataset_review_return(imported$dataset_id, f$reviewer, f$users[[2]]$id)
+  expect_length(datapond:::dataset_transfer_archive_index(returned$path)$names, 1L)
+  check <- datapond:::inspect_dataset_review_return(returned$path, f$master)
+  expect_true(check$can_accept)
+  datapond:::accept_dataset_review_return(returned$path, f$master, f$users[[1]]$id,
+    "Checked supporting documents", check$return_hash)
+  expect_identical(datapond:::get_dataset_record(f$id, f$master)$title, "Checked against supporting documents")
+  expect_identical(readLines(file.path(f$folder$data_path, "test.txt")), "original bytes")
+  manifest$review_kind <- "return"
+  manifest$review_include_files <- 1L
+  expect_error(datapond:::review_check_archive(archive, manifest), "only its metadata")
+})
+
+test_that("file changes during request packaging leave no active review", {
+  f <- review_test_fixture(); on.exit(unlink(f$root, recursive = TRUE))
+  original <- datapond:::write_dataset_transfer_database
+  local_mocked_bindings(write_dataset_transfer_database = function(...) {
+    original(...)
+    writeLines("Changed during packaging", file.path(f$folder$data_path, "test.txt"))
+  }, .package = "datapond")
+  expect_error(datapond:::issue_dataset_review(f$id, f$master, f$users[[1]]$id,
+    "User2 Editor", include_files = TRUE), "files changed")
+  expect_equal(nrow(datapond:::review_requests(f$master)), 0L)
+  expect_length(list.files(file.path(f$master, ".metadata_pond", "reviews")), 0L)
+})
+
 test_that("changed masters and files cannot be overwritten by a returned review", {
   f <- review_test_fixture(); on.exit(unlink(f$root,recursive=TRUE))
   r <- review_test_return(f)
@@ -196,6 +255,28 @@ test_that("app review module previews returns and accepts only after inspection"
   html <- as.character(datapond:::mod_dataset_review_ui("review"))
   expect_match(html,"Inspect return",fixed=TRUE)
   expect_match(html,"metadata only",fixed=TRUE)
+})
+
+test_that("the review form passes the selected file option to request creation", {
+  local_trusted_access_fixture()
+  f <- review_test_fixture(); on.exit(unlink(f$root, recursive = TRUE))
+  state <- shiny::reactiveValues(data_pond = f$master, current_dataset_id = f$id,
+    active_user_id = f$users[[1]]$id)
+  options <- logical()
+  local_mocked_bindings(issue_dataset_review = function(dataset_id, base_path, user_id,
+      assignee, include_files = FALSE) {
+    options <<- c(options, include_files)
+    list(path = file.path(f$root, "request.zip"))
+  }, .package = "datapond")
+  shiny::testServer(datapond:::mod_dataset_review_server, args = list(state = state), {
+    session$setInputs(issue = 0L, assignee = "Colleague", include_files = TRUE)
+    session$setInputs(issue = 1L)
+    session$setInputs(include_files = FALSE, issue = 2L)
+  })
+  expect_identical(options, c(TRUE, FALSE))
+  html <- xml2::read_html(as.character(datapond:::mod_dataset_review_ui("review")))
+  checkbox <- xml2::xml_find_all(html, "//input[@id='review-include_files' and @checked]")
+  expect_length(checkbox, 1L)
 })
 
 test_that("an ordinary second transfer retains the first import's provenance", {

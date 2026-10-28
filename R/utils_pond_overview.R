@@ -2,6 +2,26 @@
 #
 # Dataset-level overview helpers for the active data pond.
 
+pond_overview_folder_path <- function(rows, selected_id, selection_cleared = FALSE,
+                                      connected_selection = NULL) {
+  if (!is.null(connected_selection)) {
+    stop("Open the selected connected pond before opening its dataset folder.", call. = FALSE)
+  }
+  if (isTRUE(selection_cleared) || length(selected_id) != 1L || is.na(selected_id)) {
+    stop("Select a dataset in the overview table or map first.", call. = FALSE)
+  }
+  rows <- as.data.frame(rows)
+  selected <- rows[!is.na(rows$id) & rows$id == selected_id, , drop = FALSE]
+  if (nrow(selected) != 1L) {
+    stop("Select a dataset in the current overview search results first.", call. = FALSE)
+  }
+  path <- selected$dataset_path
+  if (length(path) != 1L || is.na(path) || !nzchar(trimws(path))) {
+    stop("No folder path is recorded for the selected dataset.", call. = FALSE)
+  }
+  path
+}
+
 pond_overview_palette <- function() {
   c(
     "Archive" =
@@ -567,7 +587,9 @@ pond_overview_table_extensions <- function() {
 # Fetch only the selected connected record's abstract from local metadata.
 # Never fetch dataset files or contact the remote service for a preview.
 read_connected_overview_abstract <- function(selected) {
-  access_require("read", selected$open_path)
+  if (identical(selected$connection_type, "Remote cache (read-only)")) {
+    access_require("read")
+  } else connected_pond_require_read(selected$open_path)
   path <- selected$open_path
   if (identical(selected$connection_type, "Remote cache (read-only)")) {
     current <- movement_cache_current(path)

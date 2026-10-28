@@ -11,3 +11,4 @@
 ^migration_archive$
 ^tmp$
 ^guide$
+^.*\.Rcheck$

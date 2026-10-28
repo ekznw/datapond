@@ -78,3 +78,29 @@ test_that("both startup dialogs offer a working exit without selecting a user", 
     })
   }
 })
+
+test_that("launcher has a stable address and respects port overrides", {
+  withr::local_options(datapond.port = NULL, shiny.port = NULL)
+  local_mocked_bindings(runApp = function(app, port, ...) port, .package = "shiny")
+  expect_identical(run_data_pond(launch.browser = FALSE), 5751L)
+  options(shiny.port = 6001L)
+  expect_identical(run_data_pond(launch.browser = FALSE), 6001L)
+  options(datapond.port = 6002L)
+  expect_identical(run_data_pond(launch.browser = FALSE), 6002L)
+  expect_identical(run_data_pond(launch.browser = FALSE, port = 6003L), 6003L)
+  expect_null(run_data_pond(launch.browser = FALSE, port = NULL))
+})
+
+test_that("both login forms identify credentials and submit without URL navigation", {
+  for (ids in list(c("access_username", "access_password", "access_login"),
+                   c("connected_login_username", "connected_login_password", "connected_login"))) {
+    html <- xml2::read_html(as.character(datapond:::access_credentials_form(
+      ids[1], ids[2], ids[3], "Username", "Password", "Sign in")))
+    form <- xml2::xml_find_first(html, "//form")
+    expect_equal(xml2::xml_attr(form, "method"), "post")
+    expect_match(xml2::xml_attr(form, "onsubmit"), "event.preventDefault()", fixed = TRUE)
+    expect_equal(xml2::xml_attr(xml2::xml_find_first(form, ".//input[@type='text']"), "autocomplete"), "username")
+    expect_equal(xml2::xml_attr(xml2::xml_find_first(form, ".//input[@type='password']"), "autocomplete"), "current-password")
+    expect_equal(xml2::xml_attr(xml2::xml_find_first(form, ".//button"), "type"), "submit")
+  }
+})

@@ -1,7 +1,7 @@
 ## Start with a saved draft
 
 1. Open the intended pond and sign in with editor or administrator access.
-2. Choose **Start a new dataset**. New records normally begin in `dev/`.
+2. Choose **Start a new dataset**. Select **Create new folders in** beside **Create folder & save** in the Dataset guide: `dev/` for development or `src/` for received/reference data. The same selection is available under **Configuration (gear) → Lifecycle folder status**; both controls share the active pond’s default. Existing datasets stay in their saved locations.
 3. Select the metadata entry profile in Configuration. **Essential — Prickly Porcupine** keeps the initial form smaller. **Full — Armoured Pangolin** exposes more detail. **Show additional metadata fields** lets you add detail as needed; switching profiles preserves entered values.
 4. Enter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at `0.1.0` for a new working draft; use `1.0.0` for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.
 5. Choose **Save dataset** and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.
@@ -20,6 +20,8 @@ Use the data-file scan to inspect the files. Review the results, then choose **S
 
 Spatial file inspection can derive useful information, but review the results before relying on them. A map preview does not establish accuracy, licensing or fitness for a particular use.
 
+To profile attributes, open **Configuration → Attribute profiling**, select **Enable attribute profiling**, and click **Save profiling setting**. This setting is saved for the active pond and requires editor or administrator access. Under **Data files**, select a saved file, check **Include in attribute profiling** in **File review**, and click **Save file review**. Then use **Profile selected file attributes / raster layers** under **Attribute profile / data dictionary**. Enabling the setting does not start profiling automatically; disabling it preserves existing profiles.
+
 ## Describe what another user needs to know
 
 | Metadata | Practical question to answer |
@@ -35,12 +37,42 @@ Spatial file inspection can derive useful information, but review the results be
 
 Save edits before generating reports, validating exports or freezing a version. Use **Dataset status** to inspect outstanding metadata work. Add the detailed methods through [Lineage and development reports](lineage.qmd).
 
+## Use a shared organisation email as the contact
+
+A generic or shared mailbox, such as `data.requests@example.org`, belongs in the organisation's **Contact email** field. Do not create a fictitious person called "Data Requests" to hold the address.
+
+1. Under **Organisations → Add / edit organisation**, select the organisation, enter its **Contact email**, and choose **Update selected organisation**. For a new record, complete the required organisation fields and choose **Add as new organisation**.
+2. In **Dataset Intro → Owning Organisation(s)**, select the organisation, choose its appropriate role and click **Add** if it is not already listed. The point-of-contact organisation choices come from this list.
+3. Under **Point of Contact**, leave **Select Contact Person** set to **No individual contact**, select the **Point of contact organisation**, choose the appropriate **Role** (for example, **Distributor** when the organisation provides access or copies), and click **Add POC**.
+4. Choose **Save dataset** before generating metadata or exporting it.
+
+The shared mailbox is then associated with the organisation and included in its contact details in ISO metadata exports. A named individual can be added as a separate contact when needed. If the mailbox serves a particular department, use that department's organisation record and its contact email.
+
 ## Check the human-readable metadata
 
 In **Dataset status → Human-readable metadata**, choose **Save PDF to dataset folder & download**. This writes `metadata.pdf` and `citation.txt` at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.
 
 Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.
 
-## ISO metadata when required
+## Understand ISO metadata and validation
 
-Use **Dataset status → ISO metadata validation & export** after saving. Inspect the report, correct the relevant fields, then rerun validation. The downloaded ISO package includes metadata and cited local supporting material, not the dataset payload. Additional validation requires Python with `lxml`, and ZIP download requires the `zip` utility. Local validation does not establish receiving-catalogue compatibility or verify that the facts entered are correct.
+DataPond can turn the saved dataset description into standardised, machine-readable metadata for exchange with catalogues and other information systems. The export draws on related geographic-information standards:
+
+- **ISO 19115-1** defines the metadata used to describe a resource, including its identity, citation, contacts, extent, constraints, distribution and lineage.
+- **ISO 19115-3** provides the XML implementation used by DataPond to encode that metadata in a form software can exchange and validate.
+- **ISO 19110** defines a feature catalogue. When applicable, DataPond generates a linked catalogue describing the fields or attributes in vector and tabular data.
+- **ISO 19157** defines data-quality information. Structured quality measures and results recorded in DataPond can therefore be carried into the metadata package.
+
+The purpose of generation is interoperability: a recipient should receive consistently structured metadata that software can inspect as well as people can read. Validation checks that the generated XML and any linked feature catalogue follow the bundled schemas and rules. It also checks registered codes, dates, extents, references, relevant semantic consistency, cited local files and package integrity. The validated package contains the metadata XML, any generated feature catalogue, its validation report and cited local supporting documents or scripts. It does not contain the dataset payload.
+
+The **Essential — Prickly Porcupine** and **Full — Armoured Pangolin** profiles control metadata entry and completion assessment; they are not different ISO standards or validation levels. A record prepared with either profile can produce locally validated ISO metadata. Essential can pass when the saved information is sufficient and consistent for that dataset, including any applicable detail added through **Show additional metadata fields**. Full prompts for richer metadata, but selecting or completing Full does not by itself guarantee ISO validity. In both profiles, the ISO validation result is the evidence that the saved export passed the selected local checks.
+
+To validate an export:
+
+1. Save the current dataset edits.
+2. Open **Dataset status → ISO metadata validation & export**.
+3. Choose the validation policy and select **Check saved metadata**.
+4. Use the reported issues to open and correct the relevant metadata sections, save, and check again.
+5. Download **Validate & download ISO package** when it becomes available. DataPond reassesses the saved record and supporting files during download.
+
+The download remains blocked until the selected policy, export semantics and local-file checks pass. Additional validation requires Python with `lxml`, and ZIP download requires the `zip` utility. A local pass confirms conformance with DataPond's declared validation scope; it does not verify that the entered facts are true, certify the dataset universally, or guarantee acceptance by a particular receiving catalogue.

@@ -19,7 +19,7 @@ mod_dataset_releases_ui <- function(id) {
     shiny::h4("Release history"),
     DT::DTOutput(ns("history")),
     shiny::actionButton(ns("verify"), "Verify selected release"),
-    shiny::downloadButton(ns("download"), "Download selected release ZIP"),
+    shiny::uiOutput(ns("download_control"), inline = TRUE),
     shiny::actionButton(ns("archive"), "Close development using selected release", class = "datapond-requires-active-user"),
     shiny::actionButton(ns("restore"), "Restore selected release as draft", class = "datapond-requires-active-user"),
     shiny::helpText("Restore keeps the dataset identity and preserves any current draft in a private recovery checkpoint.",
@@ -78,9 +78,16 @@ mod_dataset_releases_server <- function(id, state, on_changed = function() NULL)
     output$history <- DT::renderDT({
       access_require("read")
       rows <- history()
-      if (!nrow(rows)) return(DT::datatable(data.frame(Message = "No frozen releases yet."), rownames = FALSE))
-      DT::datatable(rows[, c("version", "frozen_at", "state", "notes", "release_id")], rownames = FALSE,
+      if (!nrow(rows)) return(datapond_datatable(data.frame(Message = "No frozen releases yet."), rownames = FALSE))
+      datapond_datatable(rows[, c("version", "frozen_at", "state", "notes", "release_id")], rownames = FALSE,
         selection = "single", options = list(pageLength = 5))
+    })
+    output$download_control <- shiny::renderUI({
+      access_require("read")
+      rows <- history(); index <- input$history_rows_selected
+      enabled <- length(index) == 1L && !is.na(index) && index >= 1L && index <= nrow(rows)
+      shiny::downloadButton(session$ns("download"), "Download selected release ZIP",
+        enabled = enabled)
     })
     shiny::observeEvent(input$preview, { access_require("edit", touch = TRUE); protect({
       reviewed(FALSE)
@@ -102,7 +109,7 @@ mod_dataset_releases_server <- function(id, state, on_changed = function() NULL)
       access_require("read")
       p <- preview()
       rows <- if (is.null(p) || !length(p$files)) data.frame() else do.call(rbind, lapply(p$files, as.data.frame))
-      DT::datatable(rows, rownames = FALSE, options = list(pageLength = 5))
+      datapond_datatable(rows, rownames = FALSE, options = list(pageLength = 5))
     })
     freeze <- function(close) protect({
       c <- context(); p <- preview()

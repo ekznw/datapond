@@ -74,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/syntax-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-29452ab6f4fcb164c43f1a3ab0a1f1e9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -415,6 +415,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>Roles apply to a pond, not individual datasets. Licensing and embargo fields describe policy; they do not enforce separate dataset permissions. Visible metadata can be copied. Grant access only where the person may see the pond’s metadata.</p>
+<p>To browse another local pond from the current <strong>Pond overview</strong>, add it under <strong>Pond connections</strong>, select it, enter that pond’s username and password, and choose <strong>Sign in to selected catalogue</strong>. Leave <strong>Show current pond datasets only</strong> unchecked. Connected access is read-only and lasts for the current app session, subject to session expiry and account revocation. Sign out, switching ponds, or closing the session clears connected sign-ins. Switch to the target pond and sign in there to edit records. A pond labelled <strong>Sign-in required</strong> has not yet been authenticated; an unavailable folder must first be reconnected.</p>
+<p>The local launcher uses <code>http://127.0.0.1:5751</code> by default so its browser address remains stable. Both sign-in forms support browser password-manager autofill. Save your credentials in your browser and select the appropriate saved account for the pond; ponds share the same local website address. To use another fixed port, run <code>datapond::run_data_pond(port = 5752)</code> or set <code>options(datapond.port = 5752)</code> in your R startup configuration. If the port is occupied, stop the other app instance or choose another port. Passing <code>port = NULL</code> restores Shiny’s automatic port selection.</p>
 </section>
 <section id="set-up-and-onboard-people" class="level2">
 <h2 class="anchored" data-anchor-id="set-up-and-onboard-people">Set up and onboard people</h2>
@@ -465,10 +467,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="published-catalogue-and-on-demand-files-through-flow" class="level3">
 <h3 class="anchored" data-anchor-id="published-catalogue-and-on-demand-files-through-flow">Published catalogue and on-demand files through Flow</h3>
 <p>This workflow is implemented, but <strong>all Flow controls currently require a local pond administrator</strong>, including remote metadata browsing and downloads. Viewer/editor accounts cannot use this route. A separate restricted consumer role is future work; do not grant administrative access on the master merely to let someone cache data.</p>
+<p>The introduction cards and tabs follow this order. <strong>Read remote pond</strong> opens first:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Tab</th>
+<th>Use it to</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Read remote pond</strong></td>
+<td>Browse a published pond, refresh cached metadata and download selected datasets. The remote pond stays read-only.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Run Flows</strong></td>
+<td>Preview and run saved flows, or publish the active pond using its saved publication settings.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Define connections</strong></td>
+<td>Connect remote libraries, save named local folders and choose transfer limits.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Design flow</strong></td>
+<td>Choose source, destination and copy/mirror options, then save a reusable flow.</td>
+</tr>
+</tbody>
+</table>
+<p>The two setup tabs use muted sand colours. Complete connection and flow setup before running a new routine. <strong>Show Define connections tab</strong> hides or restores the connection tab without clearing its settings; it starts hidden when saved flows exist. Pond publication has its own settings in <strong>Run Flows</strong> and does not require a saved routine.</p>
+<p>To publish and consume a pond:</p>
 <ol type="1">
-<li>The master custodian opens <strong>Flow → Design flows (setup)</strong> and enters <strong>Flow to — destination</strong>. At the bottom of that tab, <strong>Publish pond</strong> uses the active pond, without saving a flow. Select <strong>Also upload registered dataset folders (data, documents and scripts)</strong> if the files should accompany the catalogue, then choose <strong>Preview pond publication</strong>. Review the plan and log in <strong>Run flows</strong>, then choose <strong>Run flow</strong>. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.</li>
-<li>On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in <strong>Flow → Config (setup)</strong>. Cloud credentials belong to the operating-system account running the app.</li>
-<li>In <strong>Flow → Remote ponds (read-only)</strong>, enter the configured remote pond folder and an empty <strong>Local pond cache</strong> folder. Use <strong>Connect / refresh metadata only</strong>. A SharePoint web URL is not a configured remote path.</li>
+<li>The master custodian opens <strong>Flow → Run Flows → Publish pond</strong> and enters <strong>Publication destination</strong>. The source is the active pond. Select <strong>Also upload registered dataset folders (data, documents and scripts)</strong> if the files should accompany the catalogue. <strong>Save publication settings</strong> remembers the destination and upload choice for this pond; <strong>Preview / retry pond publication</strong> saves them too. Review the plan and log, then choose <strong>Run flow</strong>. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.</li>
+<li>On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in <strong>Flow → Define connections</strong>. Cloud credentials belong to the operating-system account running the app.</li>
+<li>In <strong>Flow → Read remote pond</strong>, enter the configured remote pond folder and an empty <strong>Local pond cache</strong> folder. Use <strong>Connect / refresh metadata only</strong>. A SharePoint web URL is not a configured remote path.</li>
 <li>Browse the cached catalogue offline. Select a dataset and choose <strong>Download / update selected dataset</strong> when its files are needed; fetching new content requires connectivity and remote permission.</li>
 <li>Use <strong>Remove selected download from local pond cache</strong> to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.</li>
 </ol>
@@ -494,13 +529,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>In <strong>Design flows (setup)</strong>, <strong>Choose a destination location</strong> lists both <strong>Saved folders</strong> and <strong>Configured remotes</strong>. Selecting a remote fills in its library root, such as <code>team_data:</code>; append a dedicated publication folder in <strong>Flow to — destination</strong>, for example <code>team_data:published/my_pond</code>. To bookmark that full path, use <strong>Config (setup) → Saved locations → Save location</strong>. If a connection was added outside the app, use <strong>Browse locations and libraries → Detect configured libraries and drives</strong> in Config to refresh the choices.</p>
+<p>For ordinary file transfers, <strong>Design flow → Choose a destination location</strong> lists both <strong>Saved folders</strong> and <strong>Configured remotes</strong>. Selecting a remote fills in its library root, such as <code>team_data:</code>; append the destination subfolder in <strong>Flow to — destination</strong>. Whole-pond publication instead uses <strong>Run Flows → Publish pond → Publication destination</strong>, for example <code>team_data:published/my_pond</code>. To bookmark a full path, use <strong>Define connections → Saved locations → Save location</strong>. If a connection was added outside the app, use <strong>Browse locations and libraries → Detect configured libraries and drives</strong> in <strong>Define connections</strong> to refresh the choices.</p>
 </section>
 <section id="leave-a-publication-running" class="level3">
 <h3 class="anchored" data-anchor-id="leave-a-publication-running">Leave a publication running</h3>
 <p>Running or queued Flow jobs count as activity and prevent the 30-minute idle timeout while the app remains connected. Keep the app open and the computer awake. Normal idle expiry resumes when the job finishes, fails or is cancelled; waiting at a private cloud sign-in prompt does not extend the session.</p>
 <p>Jobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.</p>
-<p>If publication is interrupted, sign in again, check the active pond and destination, then preview and run publication again with the same dataset-upload choice. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.</p>
+<p>If publication is interrupted, sign in again and open <strong>Run Flows → Publish pond</strong>. The destination and dataset-upload choice are restored for the active pond. Check them, choose <strong>Preview / retry pond publication</strong>, then <strong>Run flow</strong>. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.</p>
 </section>
 <section id="onedrive-synced-sharepoint-folders" class="level3">
 <h3 class="anchored" data-anchor-id="onedrive-synced-sharepoint-folders">OneDrive-synced SharePoint folders</h3>

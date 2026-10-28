@@ -114,7 +114,7 @@ mod_dataset_org_ui <- function(id) {
     ),
     actionButton(ns("add_org"), "Add"),
     actionButton(ns("remove_org"), "Remove last"),
-    tableOutput(ns("org_table"))
+    DT::DTOutput(ns("org_table"))
   )
 }
 
@@ -183,12 +183,12 @@ mod_dataset_org_server <- function(id, state) {
       org_list(df[-nrow(df), ])
     })
     # DISPLAY TABLE
-    output$org_table <- renderTable({
+    output$org_table <- DT::renderDT({
       access_require("read")
       df <- org_list()
       if (nrow(df) == 0) return(NULL)
-      df
-    }, striped = TRUE)
+      datapond_summary_table(df)
+    })
     # expose to main app
     clear_orgs <- function() {
       org_list(data.frame(

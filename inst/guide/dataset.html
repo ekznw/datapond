@@ -39,7 +39,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/syntax-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-29452ab6f4fcb164c43f1a3ab0a1f1e9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -244,8 +244,9 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#start-with-a-saved-draft" id="toc-start-with-a-saved-draft" class="nav-link active" data-scroll-target="#start-with-a-saved-draft">Start with a saved draft</a></li>
   <li><a href="#put-data-and-supporting-material-in-the-right-place" id="toc-put-data-and-supporting-material-in-the-right-place" class="nav-link" data-scroll-target="#put-data-and-supporting-material-in-the-right-place">Put data and supporting material in the right place</a></li>
   <li><a href="#describe-what-another-user-needs-to-know" id="toc-describe-what-another-user-needs-to-know" class="nav-link" data-scroll-target="#describe-what-another-user-needs-to-know">Describe what another user needs to know</a></li>
+  <li><a href="#use-a-shared-organisation-email-as-the-contact" id="toc-use-a-shared-organisation-email-as-the-contact" class="nav-link" data-scroll-target="#use-a-shared-organisation-email-as-the-contact">Use a shared organisation email as the contact</a></li>
   <li><a href="#check-the-human-readable-metadata" id="toc-check-the-human-readable-metadata" class="nav-link" data-scroll-target="#check-the-human-readable-metadata">Check the human-readable metadata</a></li>
-  <li><a href="#iso-metadata-when-required" id="toc-iso-metadata-when-required" class="nav-link" data-scroll-target="#iso-metadata-when-required">ISO metadata when required</a></li>
+  <li><a href="#understand-iso-metadata-and-validation" id="toc-understand-iso-metadata-and-validation" class="nav-link" data-scroll-target="#understand-iso-metadata-and-validation">Understand ISO metadata and validation</a></li>
   </ul>
 </nav>
     </div>
@@ -275,7 +276,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="start-with-a-saved-draft">Start with a saved draft</h2>
 <ol type="1">
 <li>Open the intended pond and sign in with editor or administrator access.</li>
-<li>Choose <strong>Start a new dataset</strong>. New records normally begin in <code>dev/</code>.</li>
+<li>Choose <strong>Start a new dataset</strong>. Select <strong>Create new folders in</strong> beside <strong>Create folder &amp; save</strong> in the Dataset guide: <code>dev/</code> for development or <code>src/</code> for received/reference data. The same selection is available under <strong>Configuration (gear) → Lifecycle folder status</strong>; both controls share the active pond’s default. Existing datasets stay in their saved locations.</li>
 <li>Select the metadata entry profile in Configuration. <strong>Essential — Prickly Porcupine</strong> keeps the initial form smaller. <strong>Full — Armoured Pangolin</strong> exposes more detail. <strong>Show additional metadata fields</strong> lets you add detail as needed; switching profiles preserves entered values.</li>
 <li>Enter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at <code>0.1.0</code> for a new working draft; use <code>1.0.0</code> for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.</li>
 <li>Choose <strong>Save dataset</strong> and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.</li>
@@ -289,6 +290,7 @@ ul.task-list li input[type="checkbox"] {
 <p>Put the actual dataset payload in <code>data/</code>. Put supporting reports and scripts at the dataset root or in <code>docs/</code> and <code>scripts/</code>, as appropriate. Keep portable relative paths in your reports and scripts.</p>
 <p>Use the data-file scan to inspect the files. Review the results, then choose <strong>Save live scan to database</strong> to update the saved inventory. A preview alone does not update it. Scanning a custom folder is an inspection action; check that you are saving the managed dataset’s scan.</p>
 <p>Spatial file inspection can derive useful information, but review the results before relying on them. A map preview does not establish accuracy, licensing or fitness for a particular use.</p>
+<p>To profile attributes, open <strong>Configuration → Attribute profiling</strong>, select <strong>Enable attribute profiling</strong>, and click <strong>Save profiling setting</strong>. This setting is saved for the active pond and requires editor or administrator access. Under <strong>Data files</strong>, select a saved file, check <strong>Include in attribute profiling</strong> in <strong>File review</strong>, and click <strong>Save file review</strong>. Then use <strong>Profile selected file attributes / raster layers</strong> under <strong>Attribute profile / data dictionary</strong>. Enabling the setting does not start profiling automatically; disabling it preserves existing profiles.</p>
 </section>
 <section id="describe-what-another-user-needs-to-know" class="level2">
 <h2 class="anchored" data-anchor-id="describe-what-another-user-needs-to-know">Describe what another user needs to know</h2>
@@ -340,14 +342,42 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>Save edits before generating reports, validating exports or freezing a version. Use <strong>Dataset status</strong> to inspect outstanding metadata work. Add the detailed methods through <a href="./lineage.html">Lineage and development reports</a>.</p>
 </section>
+<section id="use-a-shared-organisation-email-as-the-contact" class="level2">
+<h2 class="anchored" data-anchor-id="use-a-shared-organisation-email-as-the-contact">Use a shared organisation email as the contact</h2>
+<p>A generic or shared mailbox, such as <code>data.requests@example.org</code>, belongs in the organisation’s <strong>Contact email</strong> field. Do not create a fictitious person called “Data Requests” to hold the address.</p>
+<ol type="1">
+<li>Under <strong>Organisations → Add / edit organisation</strong>, select the organisation, enter its <strong>Contact email</strong>, and choose <strong>Update selected organisation</strong>. For a new record, complete the required organisation fields and choose <strong>Add as new organisation</strong>.</li>
+<li>In <strong>Dataset Intro → Owning Organisation(s)</strong>, select the organisation, choose its appropriate role and click <strong>Add</strong> if it is not already listed. The point-of-contact organisation choices come from this list.</li>
+<li>Under <strong>Point of Contact</strong>, leave <strong>Select Contact Person</strong> set to <strong>No individual contact</strong>, select the <strong>Point of contact organisation</strong>, choose the appropriate <strong>Role</strong> (for example, <strong>Distributor</strong> when the organisation provides access or copies), and click <strong>Add POC</strong>.</li>
+<li>Choose <strong>Save dataset</strong> before generating metadata or exporting it.</li>
+</ol>
+<p>The shared mailbox is then associated with the organisation and included in its contact details in ISO metadata exports. A named individual can be added as a separate contact when needed. If the mailbox serves a particular department, use that department’s organisation record and its contact email.</p>
+</section>
 <section id="check-the-human-readable-metadata" class="level2">
 <h2 class="anchored" data-anchor-id="check-the-human-readable-metadata">Check the human-readable metadata</h2>
 <p>In <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder &amp; download</strong>. This writes <code>metadata.pdf</code> and <code>citation.txt</code> at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.</p>
 <p>Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.</p>
 </section>
-<section id="iso-metadata-when-required" class="level2">
-<h2 class="anchored" data-anchor-id="iso-metadata-when-required">ISO metadata when required</h2>
-<p>Use <strong>Dataset status → ISO metadata validation &amp; export</strong> after saving. Inspect the report, correct the relevant fields, then rerun validation. The downloaded ISO package includes metadata and cited local supporting material, not the dataset payload. Additional validation requires Python with <code>lxml</code>, and ZIP download requires the <code>zip</code> utility. Local validation does not establish receiving-catalogue compatibility or verify that the facts entered are correct.</p>
+<section id="understand-iso-metadata-and-validation" class="level2">
+<h2 class="anchored" data-anchor-id="understand-iso-metadata-and-validation">Understand ISO metadata and validation</h2>
+<p>DataPond can turn the saved dataset description into standardised, machine-readable metadata for exchange with catalogues and other information systems. The export draws on related geographic-information standards:</p>
+<ul>
+<li><strong>ISO 19115-1</strong> defines the metadata used to describe a resource, including its identity, citation, contacts, extent, constraints, distribution and lineage.</li>
+<li><strong>ISO 19115-3</strong> provides the XML implementation used by DataPond to encode that metadata in a form software can exchange and validate.</li>
+<li><strong>ISO 19110</strong> defines a feature catalogue. When applicable, DataPond generates a linked catalogue describing the fields or attributes in vector and tabular data.</li>
+<li><strong>ISO 19157</strong> defines data-quality information. Structured quality measures and results recorded in DataPond can therefore be carried into the metadata package.</li>
+</ul>
+<p>The purpose of generation is interoperability: a recipient should receive consistently structured metadata that software can inspect as well as people can read. Validation checks that the generated XML and any linked feature catalogue follow the bundled schemas and rules. It also checks registered codes, dates, extents, references, relevant semantic consistency, cited local files and package integrity. The validated package contains the metadata XML, any generated feature catalogue, its validation report and cited local supporting documents or scripts. It does not contain the dataset payload.</p>
+<p>The <strong>Essential — Prickly Porcupine</strong> and <strong>Full — Armoured Pangolin</strong> profiles control metadata entry and completion assessment; they are not different ISO standards or validation levels. A record prepared with either profile can produce locally validated ISO metadata. Essential can pass when the saved information is sufficient and consistent for that dataset, including any applicable detail added through <strong>Show additional metadata fields</strong>. Full prompts for richer metadata, but selecting or completing Full does not by itself guarantee ISO validity. In both profiles, the ISO validation result is the evidence that the saved export passed the selected local checks.</p>
+<p>To validate an export:</p>
+<ol type="1">
+<li>Save the current dataset edits.</li>
+<li>Open <strong>Dataset status → ISO metadata validation &amp; export</strong>.</li>
+<li>Choose the validation policy and select <strong>Check saved metadata</strong>.</li>
+<li>Use the reported issues to open and correct the relevant metadata sections, save, and check again.</li>
+<li>Download <strong>Validate &amp; download ISO package</strong> when it becomes available. DataPond reassesses the saved record and supporting files during download.</li>
+</ol>
+<p>The download remains blocked until the selected policy, export semantics and local-file checks pass. Additional validation requires Python with <code>lxml</code>, and ZIP download requires the <code>zip</code> utility. A local pass confirms conformance with DataPond’s declared validation scope; it does not verify that the entered facts are true, certify the dataset universally, or guarantee acceptance by a particular receiving catalogue.</p>
 
 
 </section>

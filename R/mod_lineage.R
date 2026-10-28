@@ -246,9 +246,9 @@ mod_lineage_ui <- function(id) {
     h4("Current saved lineage"),
     tags$p(class = "lineage-field-help",
       "The latest saved authority, status and summary are shown below. Unsaved form edits appear here after Save lineage. This is not a revision history; detailed sources, process steps and supporting documents are listed separately."),
-    tableOutput(ns("lineage_preview")),
+    DT::DTOutput(ns("lineage_preview")),
     h4("Documents supporting lineage"),
-    tableOutput(ns("lineage_docs_table"))
+    DT::DTOutput(ns("lineage_docs_table"))
   )
 }
 
@@ -430,7 +430,7 @@ mod_lineage_server <- function(
           check.names = FALSE, stringsAsFactors = FALSE
         )
       }
-      DT::datatable(display, rownames = FALSE, selection = "single", options = list(
+      datapond_datatable(display, rownames = FALSE, selection = "single", options = list(
         dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
       ), class = "compact stripe hover")
     })
@@ -447,7 +447,7 @@ mod_lineage_server <- function(
         `Value origin` = lineage_origin_display(x$value_origin_code),
         check.names = FALSE, stringsAsFactors = FALSE
       )
-      DT::datatable(display, rownames = FALSE, selection = "single", options = list(
+      datapond_datatable(display, rownames = FALSE, selection = "single", options = list(
         dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
       ), class = "compact stripe hover")
     })
@@ -822,7 +822,7 @@ mod_lineage_server <- function(
       showNotification("Lineage saved.", type = "message")
     })
 
-    output$lineage_preview <- renderTable({
+    output$lineage_preview <- DT::renderDT({
       access_require("read")
       x <- current_lineage()
       if (is.null(x) || nrow(x) == 0) {
@@ -839,16 +839,16 @@ mod_lineage_server <- function(
       display$lineage_status <- humanise_code_value(display$lineage_status)
       names(display) <- friendly_field_label(names(display))
       names(display)[names(display) == "Updated"] <- "Last updated"
-      display
-    }, striped = TRUE, rownames = FALSE)
+      datapond_summary_table(display)
+    })
 
-    output$lineage_docs_table <- renderTable({
+    output$lineage_docs_table <- DT::renderDT({
       access_require("read")
       display <- lineage_docs()
       names(display) <- friendly_field_label(names(display))
       names(display)[names(display) == "ID"] <- "Document ID"
-      display
-    }, striped = TRUE, rownames = FALSE)
+      datapond_summary_table(display)
+    })
 
     # clear the lineage forms
     clear_lineage_inputs <- function() {

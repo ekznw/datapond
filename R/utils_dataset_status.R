@@ -684,7 +684,15 @@ get_dataset_completion_status <- function(dataset_id, base_path, schema_grouped,
             "Review sharing terms if circumstances change.",
 
           partial =
-            "Complete or review the sharing assessment.",
+            if ("Sharing authority" %in% lic_missing) {
+              paste(
+                "Review 'Who controls the sharing rights?' in Sharing rights and licence,",
+                "select the applicable rights basis, and save the assessment.",
+                "'Existing record \u2014 rights basis needs review' does not complete this field."
+              )
+            } else {
+              paste("Complete and save the sharing assessment:", paste(unique(lic_missing), collapse = "; "))
+            },
 
           "Complete the sharing-rights and licence assessment."
         )

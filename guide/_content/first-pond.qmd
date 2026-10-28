@@ -1,6 +1,6 @@
 ## Open or create a pond
 
-In **Configuration → Open or create a data pond**, choose:
+Open **Configuration** with the gear button. Under **Pond management → Open or create a data pond**, choose:
 
 - **Open existing pond** for a folder that already contains a DataPond catalogue. You can also enter its path under **Open an existing pond by path**.
 - **Create new pond** for a new workspace. Choose its parent location and a new folder name, check the destination, then choose **Create and open pond**.

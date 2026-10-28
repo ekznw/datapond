@@ -37,7 +37,7 @@ mod_poc_ui <- function(id) {
     ),
     actionButton(ns("add_poc"), "Add POC"),
     actionButton(ns("remove_poc"), "Remove last"),
-    tableOutput(ns("poc_table"))
+    DT::DTOutput(ns("poc_table"))
   )
 }
 
@@ -158,11 +158,11 @@ mod_poc_server <- function(id, state, organisation_rows = NULL) {
     })
 
     # display
-    output$poc_table <- renderTable({
+    output$poc_table <- DT::renderDT({
       access_require("read")
       df <- poc_list()
       if (nrow(df) == 0) return(NULL)
-      df[, c("name", "organisation", "role")]
+      datapond_summary_table(df[, c("name", "organisation", "role")])
     })
     # expose to main app
     clear_poc <- function() {

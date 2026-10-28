@@ -239,7 +239,7 @@ connected_pond_stage <- function(dataset_path, pond_path) {
 
 
 read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
-  access_require("read", path)
+  connected_pond_require_read(path)
   identity <- read_data_pond_identity_read_only(path)
   conn <- DBI::dbConnect(
     RSQLite::SQLite(),
@@ -288,7 +288,7 @@ read_connected_pond_inventory_cached <- function(
   force = FALSE,
   include_hidden = FALSE
 ) {
-  access_require("read", path)
+  connected_pond_require_read(path)
   path <- normalizePath(path.expand(path[1]), mustWork = FALSE, winslash = "/")
   signature <- connected_pond_database_signature(path)
   key <- paste(path, isTRUE(include_hidden), sep = "|")
@@ -316,6 +316,7 @@ build_connected_pond_catalogue <- function(
   active_pond_path <- if (is.null(active_pond_path)) NA_character_ else
     normalizePath(active_pond_path[1], mustWork = FALSE, winslash = "/")
 
+  unavailable <- character()
   rows <- lapply(seq_len(nrow(registry)), function(i) {
     pond <- registry[i, , drop = FALSE]
     tryCatch(
@@ -331,10 +332,15 @@ build_connected_pond_catalogue <- function(
         inventory[, active_pond := identical(pond$data_pond_path, active_pond_path)]
         inventory
       },
-      error = function(e) NULL
+      error = function(e) {
+        unavailable <<- c(unavailable, paste0(pond$pond_name, ": ", conditionMessage(e)))
+        NULL
+      }
     )
   })
-  data.table::rbindlist(rows, fill = TRUE, use.names = TRUE)
+  result <- data.table::rbindlist(rows, fill = TRUE, use.names = TRUE)
+  attr(result, "unavailable") <- unavailable
+  result
 }
 
 
@@ -429,4 +435,38 @@ build_connected_overview_inventory <- function(local_catalogue, remote_ponds, in
     })
   }
   list(data = data.table::rbindlist(rows, fill = TRUE, use.names = TRUE), unavailable = unavailable)
+}
+
+# Connected credentials authorize catalogue reads only, never active-pond writes.
+connected_pond_require_read <- function(path) {
+  if (is.null(shiny::getDefaultReactiveDomain())) return(invisible(TRUE))
+  access_require("read")
+  if (access_allowed("read", path)) return(invisible(TRUE))
+  auth <- access_context()
+  token <- auth$connected_tokens[[access_path(path)]]
+  if (is.null(access_session(path, token, "read"))) {
+    stop("Sign-in required. Select this pond in Pond connections and sign in to its catalogue.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+connected_pond_sign_in <- function(path, username, password) {
+  access_require("read", touch = TRUE)
+  auth <- access_context()
+  stopifnot(!is.null(auth))
+  path <- access_path(path)
+  token <- access_login(path, username, password)
+  old <- auth$connected_tokens[[path]]
+  if (!is.null(old)) access_logout(path, old)
+  tokens <- auth$connected_tokens
+  tokens[[path]] <- token
+  auth$connected_tokens <- tokens
+  invisible(TRUE)
+}
+
+connected_pond_sign_out <- function(auth) {
+  tokens <- shiny::isolate(auth$connected_tokens)
+  for (path in names(tokens)) try(access_logout(path, tokens[[path]]), silent = TRUE)
+  auth$connected_tokens <- list()
+  invisible(TRUE)
 }

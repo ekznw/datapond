@@ -168,6 +168,7 @@ mod_dataset_status_ui <- function(id) {
     shiny::br(),
 
     shiny::tags$div(
+      class = "dataset-status-colour-key",
       style = paste(
         "padding:8px 10px;",
         paste0("background:", app_earth_palette()[["cream"]], ";"),
@@ -183,6 +184,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-complete",
         style = paste(
           paste0("background:", palette[["complete"]], ";"),
           paste0("border:1px solid ", borders[["complete"]], ";"),
@@ -193,6 +195,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-partial",
         style = paste(
           paste0("background:", palette[["partial"]], ";"),
           paste0("border:1px solid ", borders[["partial"]], ";"),
@@ -203,6 +206,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-needs-review",
         style = paste(
           paste0("background:", palette[["needs_review"]], ";"),
           paste0(
@@ -217,6 +221,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-not-started",
         style = paste(
           paste0("background:", palette[["not_started"]], ";"),
           paste0(
@@ -747,7 +752,7 @@ mod_dataset_status_server <- function(
             nrow(as.data.frame(display)) == 0L
           ) {
             return(
-              DT::datatable(
+              datapond_datatable(
                 data.frame(
                   Message =
                     "No status records are available."
@@ -775,7 +780,7 @@ mod_dataset_status_server <- function(
             )
 
             return(
-              DT::datatable(
+              datapond_datatable(
                 message_table,
                 rownames = FALSE,
                 selection = "none",
@@ -796,7 +801,7 @@ mod_dataset_status_server <- function(
             stringsAsFactors = FALSE
           )
 
-          table_widget <- DT::datatable(
+          table_widget <- datapond_datatable(
             display,
             rownames = FALSE,
             selection = "none",

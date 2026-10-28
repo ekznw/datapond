@@ -159,8 +159,8 @@ test_that("reference JSON routines import as data without execution", {
 test_that("movement tab exposes independent transfer and read-only cache workflows", {
   html <- as.character(mod_data_movement_ui("movement"))
   expect_match(html, "<h3>Flow</h3>", fixed = TRUE)
-  expect_match(html, "These setup steps are required before running flows.", fixed = TRUE)
-  expect_match(html, "Remote ponds \\(read-only\\)")
+  expect_match(html, "Connections and flow design are setup tasks", fixed = TRUE)
+  expect_match(html, 'data-value="remote"', fixed = TRUE)
   expect_match(html, "Preview flow")
   expect_match(html, "Sign in and discover libraries")
   expect_match(html, "Download / update selected dataset")

@@ -1822,7 +1822,7 @@ mod_data_files_server <- function(id, state) {
         names(df) <- "Message"
 
         return(
-          DT::datatable(
+          datapond_datatable(
             df,
             rownames = FALSE,
             selection = "none",
@@ -1867,7 +1867,7 @@ mod_data_files_server <- function(id, state) {
         )
       )
 
-      DT::datatable(
+      datapond_datatable(
         df,
         rownames = FALSE,
         selection = selection,
@@ -3094,7 +3094,7 @@ mod_data_files_server <- function(id, state) {
 
       if (is.null(df) || nrow(df) == 0) {
         return(
-          DT::datatable(
+          datapond_datatable(
             data.frame(
               message = paste(
                 "No saved data file review records",
@@ -3113,7 +3113,7 @@ mod_data_files_server <- function(id, state) {
 
       display_df <- prepare_saved_file_review_table(df)
 
-      tbl <- DT::datatable(
+      tbl <- datapond_datatable(
         display_df,
         rownames = FALSE,
         selection = "single",
@@ -4815,7 +4815,7 @@ mod_data_files_server <- function(id, state) {
         nrow(as.data.frame(extents)) == 0L
       ) {
         return(
-          DT::datatable(
+          datapond_datatable(
             data.frame(
               message = "No manual spatial extents have been saved."
             ),
@@ -4884,7 +4884,7 @@ mod_data_files_server <- function(id, state) {
         )
       ]
 
-      DT::datatable(
+      datapond_datatable(
         display,
         rownames = FALSE,
         selection = "single",
@@ -5168,7 +5168,7 @@ mod_data_files_server <- function(id, state) {
         nrow(as.data.frame(contributors)) == 0L
       ) {
         return(
-          DT::datatable(
+          datapond_datatable(
             data.frame(
               message = paste(
                 "No spatial records or manual extents are currently",
@@ -5278,7 +5278,7 @@ mod_data_files_server <- function(id, state) {
         )
       ]
 
-      DT::datatable(
+      datapond_datatable(
         display,
         rownames = FALSE,
         selection = "none",
@@ -7649,7 +7649,7 @@ mod_data_files_server <- function(id, state) {
         )
       }
 
-      table_widget <- DT::datatable(
+      table_widget <- datapond_datatable(
         as.data.frame(
           display_df,
           stringsAsFactors = FALSE

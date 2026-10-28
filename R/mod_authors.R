@@ -327,7 +327,7 @@ mod_authors_server <- function(id, state) {
           Author = df$name,
           stringsAsFactors = FALSE
         )
-        DT::datatable(
+        datapond_datatable(
           display_df,
           rownames = FALSE,
           selection = "single",
