@@ -274,6 +274,68 @@ test_that("normal online-resource details receive safe defaults", {
   expect_identical(explicit$media_type, "application/example")
 })
 
+test_that("quality file choices support large inventories and saved selections", {
+  local_trusted_access_fixture()
+  fixture <- wave2_fixture()
+  on.exit(unlink(fixture$path, recursive = TRUE, force = TRUE), add = TRUE)
+  conn <- datapond:::get_conn(fixture$path)
+  files <- data.frame(
+    dataset_id = fixture$dataset_id,
+    file_name = sprintf("CHELSA_%05d.tif", seq_len(10000)),
+    data_file_rel_path_full = sprintf("climate/CHELSA_%05d.tif", seq_len(10000))
+  )
+  DBI::dbAppendTable(conn, "data_file_tbl", files)
+  last_id <- as.character(DBI::dbGetQuery(conn, "SELECT MAX(id) AS id FROM data_file_tbl")$id)
+  DBI::dbDisconnect(conn)
+  state <- shiny::reactiveValues(data_pond = fixture$path, refresh_datasets = 0L,
+                                current_dataset_id = fixture$dataset_id)
+  registered <- new.env(parent = emptyenv())
+  messages <- new.env(parent = emptyenv())
+  test_session <- shiny::MockShinySession$new()
+  test_session$registerDataObj <- function(name, data, filterFunc) {
+    registered[[name]] <- data
+    paste0("/choices/", name)
+  }
+  test_session$sendInputMessage <- function(inputId, message) messages[[inputId]] <- message
+  shiny::testServer(datapond:::mod_iso_wave2_server, args = list(state = state), session = test_session, {
+    expect_warning(session$flushReact(), NA)
+    expect_equal(nrow(registered$quality_data_file), 10001L)
+    expect_null(messages$quality_data_file$options)
+    expect_identical(messages$quality_data_file$value, "")
+
+    session$setInputs(quality_data_file = last_id)
+    state$refresh_datasets <- 1L
+    session$flushReact()
+    expect_identical(messages$quality_data_file$value, last_id)
+
+    # Reload a saved quality row whose file is beyond the initial search results.
+    rows <- data.frame(scope_code = "dataset", data_file_id = as.integer(last_id),
+      attribute_id = NA_integer_, measure_identifier = "CHELSA-CHECK",
+      measure_type_code = "completeness", quality_element_code = "DQ_CompletenessOmission",
+      evaluation_method = "Checked raster coverage", evaluation_date = NA_character_,
+      result_type_code = "descriptive", result_value = NA_character_, result_unit = NA_character_,
+      conformance_specification = NA_character_, explanation = "Complete", pass = NA_integer_)
+    quality(rows)
+    session$setInputs(quality_results_table_rows_selected = 1L)
+    expect_identical(messages$quality_data_file$value, last_id)
+    expect_identical(attr(registered$quality_data_file, "selected_value"), last_id)
+    expect_equal(nrow(registered$quality_data_file), 10001L)
+
+    clear_quality()
+    expect_identical(messages$quality_data_file$value, "")
+    rows$data_file_id <- NA_integer_
+    quality(rows)
+    session$setInputs(quality_results_table_rows_selected = 1L)
+    expect_identical(messages$quality_data_file$value, "")
+
+    state$current_dataset_id <- NULL
+    session$flushReact()
+    expect_equal(nrow(registered$quality_data_file), 1L)
+    expect_identical(registered$quality_data_file$value, "")
+    expect_identical(messages$quality_data_file$value, "")
+  })
+})
+
 test_that("Wave 2 server hydrates staged editors without database writes", {
   local_trusted_access_fixture()
 

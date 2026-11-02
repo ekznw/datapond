@@ -341,13 +341,14 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 <p>Save edits before generating reports, validating exports or freezing a version. Use <strong>Dataset status</strong> to inspect outstanding metadata work. Add the detailed methods through <a href="./lineage.html">Lineage and development reports</a>.</p>
+<p>Use <strong>Dataset guide → Sync development report</strong> to copy selected title, dataset version, abstract and purpose fields between saved dataset metadata and a <code>data_dev*.qmd</code> or <code>.docx</code> report in the dataset root. Choose the report and direction, select fields, then <strong>Preview changes → Apply preview</strong>. Empty source fields are skipped. Exports update the cover and a marked <strong>Dataset metadata</strong> section and keep a hidden <code>.bak</code> copy beside the report. Imports read that section into the dataset form; review the values and use <strong>Save dataset</strong> with an update reason. Export once to initialise the section in an existing report before importing from it. UUID identifies the dataset and is never imported; report version and methods stay independent. Sync requires an unlocked draft and an active user, and is unavailable during an active metadata review.</p>
 </section>
 <section id="use-a-shared-organisation-email-as-the-contact" class="level2">
 <h2 class="anchored" data-anchor-id="use-a-shared-organisation-email-as-the-contact">Use a shared organisation email as the contact</h2>
 <p>A generic or shared mailbox, such as <code>data.requests@example.org</code>, belongs in the organisation’s <strong>Contact email</strong> field. Do not create a fictitious person called “Data Requests” to hold the address.</p>
 <ol type="1">
 <li>Under <strong>Organisations → Add / edit organisation</strong>, select the organisation, enter its <strong>Contact email</strong>, and choose <strong>Update selected organisation</strong>. For a new record, complete the required organisation fields and choose <strong>Add as new organisation</strong>.</li>
-<li>In <strong>Dataset Intro → Owning Organisation(s)</strong>, select the organisation, choose its appropriate role and click <strong>Add</strong> if it is not already listed. The point-of-contact organisation choices come from this list.</li>
+<li>In <strong>Dataset Intro → Owning Organisation(s)</strong>, select the organisation, choose its appropriate role and click <strong>Add organisation</strong> if that organisation-role link is not already listed. Select a table row and choose <strong>Remove selected</strong> to remove that link from the dataset; the pond directory entry is retained. Add the organisation again with a different role when needed. The point-of-contact organisation choices come from this list.</li>
 <li>Under <strong>Point of Contact</strong>, leave <strong>Select Contact Person</strong> set to <strong>No individual contact</strong>, select the <strong>Point of contact organisation</strong>, choose the appropriate <strong>Role</strong> (for example, <strong>Distributor</strong> when the organisation provides access or copies), and click <strong>Add POC</strong>.</li>
 <li>Choose <strong>Save dataset</strong> before generating metadata or exporting it.</li>
 </ol>
@@ -355,7 +356,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="check-the-human-readable-metadata" class="level2">
 <h2 class="anchored" data-anchor-id="check-the-human-readable-metadata">Check the human-readable metadata</h2>
-<p>In <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder &amp; download</strong>. This writes <code>metadata.pdf</code> and <code>citation.txt</code> at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.</p>
+<p>In <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder</strong>. This writes <code>metadata.pdf</code> and <code>citation.txt</code> at the dataset root. Select <strong>Also download the PDF for preview</strong> first when you want a browser copy, then open it and check the identity, version, description, contacts, rights, lineage and any missing information.</p>
 <p>Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.</p>
 </section>
 <section id="understand-iso-metadata-and-validation" class="level2">

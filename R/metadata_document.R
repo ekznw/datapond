@@ -1,5 +1,9 @@
 # Human-readable metadata uses a read-only saved snapshot. It never executes a
 # development document, migrates a pond, or treats PDF creation as release approval.
+# Bump when the generated QMD structure or its bundled rendering theme changes.
+# Kept separate from both the dataset version and the Data Pond package version.
+metadata_document_template_version <- function() "1.0.0"
+
 metadata_text <- function(x, default = "Not recorded") {
   if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x[1])))) return(default)
   trimws(enc2utf8(as.character(x[1])))
@@ -16,9 +20,16 @@ metadata_markdown <- function(x) {
   chars <- strsplit(x, "", fixed = TRUE)[[1]]
   special <- c("\\", "`", "*", "_", "{", "}", "[", "]", "<", ">", "(", ")", "#", "+", "-", ".", "!", "|", "$", "~", "^", "@")
   escaped <- ifelse(chars %in% special, paste0("\\", chars), chars)
-  # Permit line breaks in long filenames/identifiers without altering their
-  # visible text. The added raw command is fixed, never supplied by metadata.
-  escaped[chars %in% c("_", "/")] <- paste0(escaped[chars %in% c("_", "/")], "\\allowbreak{}")
+  # Break at identifier/URL punctuation, and within long uninterrupted tokens
+  # (e.g. portal item IDs). Spaces alone cannot wrap these in narrow columns.
+  # Only fixed layout commands are inserted; saved text remains escaped data.
+  breaks <- chars %in% c("_", "/", ".", "-", "?", "&", "=", "#", ":")
+  runs <- rle(grepl("[[:alnum:]]", chars))
+  ends <- cumsum(runs$lengths)
+  for (i in which(runs$values & runs$lengths >= 24L)) {
+    breaks[seq.int(ends[i] - runs$lengths[i] + 1L, ends[i] - 1L)] <- TRUE
+  }
+  escaped[breaks] <- paste0(escaped[breaks], "\\allowbreak{}")
   paste0(escaped, collapse = "")
 }
 
@@ -55,7 +66,7 @@ collect_metadata_document <- function(dataset_id, base_path) {
     "dataset_license_tbl", "dataset_lineage_tbl", "dataset_lineage_source_tbl", "dataset_lineage_process_step_tbl",
     "dataset_quality_result_tbl", "dataset_temporal_extent_tbl", "dataset_citation_date_tbl",
     "dataset_distribution_format_tbl", "dataset_online_resource_tbl", "dataset_spatial_summary_tbl", "dataset_vertical_extent_tbl",
-    "dataset_manual_spatial_extent_tbl", "data_file_spatial_metadata_tbl", "metadata_review_tbl")
+    "dataset_manual_spatial_extent_tbl", "data_file_spatial_metadata_tbl", "metadata_review_tbl", "dataset_edition_tbl")
   values <- stats::setNames(lapply(tables, read), tables)
   values$files <- active(read("data_file_tbl"))
   values$documents <- active(read("supporting_document_tbl"))
@@ -129,9 +140,21 @@ metadata_document_body <- function(snapshot) {
   }
   field("Dataset version", r$version, TRUE)
   field("Dataset identifier", r$uuid, TRUE)
+  edition <- s$dataset_edition_tbl
+  if (!is.null(edition) && nrow(edition)) {
+    field("Dataset edition", if (edition$edition[1] == "in_house") "In-house" else "Public", TRUE)
+    field("Dataset family", edition$family_uuid)
+    if (edition$edition[1] == "public") {
+      field("In-house source dataset", edition$source_dataset_uuid)
+      field("In-house source version", edition$source_version)
+      field("In-house source release", edition$source_release_id)
+      field("Public preparation method", edition$preparation_method, TRUE)
+    }
+  }
   field("Release identifier", r$release_uuid)
   field("Release frozen", r$frozen_at)
   field("Document generated", s$generated_at, TRUE)
+  field("Metadata template version", metadata_document_template_version(), TRUE)
   text("This document describes saved metadata. Missing information is marked 'Not recorded'. It does not establish permission to distribute the data.")
   heading("Dataset overview")
   field("Description", r$abstract, TRUE)
@@ -148,7 +171,8 @@ metadata_document_body <- function(snapshot) {
   orgs <- s$dataset_organisation_tbl
   for (i in seq_len(nrow(orgs))) field(paste0("Organisation (", metadata_text(orgs$role[i]), ")"), organisation(orgs$organisation_id[i]))
   heading("Citation")
-  text(r$citation)
+  add("```{=latex}", "\\begin{citationhang}", "```", "",
+    metadata_markdown(r$citation), "", "```{=latex}", "\\end{citationhang}", "```")
   if (!nrow(s$dataset_citation_date_tbl)) field("Citation date", r$citation_date)
   block(s$dataset_citation_date_tbl, c("Date type" = "date_type_code", "Date" = "date_value"), empty = "No additional citation dates recorded.")
   heading("Coverage and spatial reference")
@@ -315,6 +339,7 @@ write_metadata_document_source <- function(snapshot, directory) {
   }
   title <- as.character(jsonlite::toJSON(metadata_markdown(snapshot$record$title), auto_unbox = TRUE))
   writeLines(c("---", paste0("title: ", title), "subtitle: Dataset metadata", "date: ''",
+    paste0('metadata-template-version: "', metadata_document_template_version(), '"'),
     "metadata-files: [ekznw-theme/ekznw.yml]", "execute:", "  enabled: false", "---", "",
     metadata_document_body(snapshot)), file.path(directory, "metadata.qmd"), useBytes = TRUE)
   # The exact saved citation is shared by both outputs; no independent rewrite.
@@ -348,7 +373,7 @@ metadata_document_fingerprint <- function(snapshot) {
 
 metadata_document_ready <- function(dataset_id, pond, root) {
   directory <- metadata_document_directory(pond, dataset_id)
-  fail <- function() stop("Save and download metadata.pdf from Human-readable metadata, then open it and review the dataset folder before freezing. The prepared documents are missing, changed or out of date.", call. = FALSE)
+  fail <- function() stop("Prepare metadata.pdf from Human-readable metadata, then open it and review the dataset folder before freezing. The prepared documents are missing, changed or out of date.", call. = FALSE)
   if (!file.exists(file.path(directory, "prepared.json"))) fail()
   manifest <- tryCatch(jsonlite::read_json(file.path(directory, "prepared.json")), error = function(e) NULL)
   if (is.null(manifest) || !identical(manifest$fingerprint,

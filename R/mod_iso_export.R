@@ -83,6 +83,13 @@ iso_export_issues <- function(assessment) {
   result
 }
 
+iso_export_catalogue_warnings <- function(validation) {
+  if (!is.list(validation)) return(data.frame())
+  catalogue <- validation[["feature_catalogue"]]
+  if (!is.list(catalogue) || !is.data.frame(catalogue$warnings)) return(data.frame())
+  catalogue$warnings
+}
+
 mod_iso_export_ui <- function(id) {
   ns <- shiny::NS(id)
   shiny::tags$details(
@@ -182,7 +189,7 @@ mod_iso_export_server <- function(id, state, open_section) {
       semantic_warnings <- a$semantics$warnings
       if (is.data.frame(semantic_warnings) && nrow(semantic_warnings))
         warnings <- if (is.data.frame(warnings)) rbind(warnings, semantic_warnings) else semantic_warnings
-      catalogue_warnings <- a$validation$feature_catalogue$warnings
+      catalogue_warnings <- iso_export_catalogue_warnings(a$validation)
       if (is.data.frame(catalogue_warnings) && nrow(catalogue_warnings)) {
         catalogue_warnings$location <- paste("Feature catalogue:", catalogue_warnings$location)
         warnings <- if (is.data.frame(warnings)) rbind(warnings, catalogue_warnings) else catalogue_warnings

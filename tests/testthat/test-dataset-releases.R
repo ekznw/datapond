@@ -1,47 +1,84 @@
-release_fixture <- function(prepare = TRUE) {
-  root <- tempfile("release-test-"); dir.create(root)
-  pond <- file.path(root, "pond"); dir.create(pond)
-  datapond:::ensure_pond_structure(pond); datapond:::init_db(pond)
-  conn <- datapond:::get_conn(pond); on.exit(DBI::dbDisconnect(conn))
-  datapond:::ensure_columns(conn, "entry_tbl", c("citation", "purpose", "abstract"))
-  DBI::dbExecute(conn, "INSERT INTO persons_tbl(name_first,name_last) VALUES ('Release','Tester')")
-  person <- DBI::dbGetQuery(conn, "SELECT last_insert_rowid() AS id")$id[1]
-  DBI::dbExecute(conn, "INSERT INTO user_tbl(person_id,user_name,is_active,is_admin) VALUES (?,'release-tester',1,1)", params=list(person))
-  user <- DBI::dbGetQuery(conn, "SELECT last_insert_rowid() AS id")$id[1]
-  folder <- file.path(pond, "dev", "example__release-fixture-uuid"); dir.create(file.path(folder, "data"), recursive=TRUE)
-  writeLines(c("id,value", "1,20"), file.path(folder, "data", "measurements.csv"))
-  writeLines(c("---", "title: Development", "---", "```{r}", "stop('do not execute')", "```"), file.path(folder, "data_dev_test.qmd"))
-  datapond:::write_dataset_marker(folder, "release-fixture-uuid", datapond:::ensure_data_pond_id(pond, conn=conn))
-  DBI::dbExecute(conn, "INSERT INTO entry_tbl(uuid,title,version,citation,abstract,purpose,dataset_path,data_path,data_pond_id,lifecycle_status,folder_locked)
-    VALUES ('release-fixture-uuid','Release example','1.0.0','Example (2026). Release example.','Synthetic lifecycle fixture.','Test frozen versions.',?,?,?,'draft',0)",
-    params=list(folder,file.path(folder,"data"),datapond:::ensure_data_pond_id(pond,conn=conn)))
-  id <- DBI::dbGetQuery(conn,"SELECT last_insert_rowid() AS id")$id[1]
-  DBI::dbExecute(conn,"INSERT INTO data_file_tbl(dataset_id,data_file_rel_path_full,file_name,data_file_format,active) VALUES (?,'measurements.csv','measurements.csv','tabular',1)",params=list(id))
-  file_id <- DBI::dbGetQuery(conn,"SELECT last_insert_rowid() AS id")$id[1]
-  DBI::dbExecute(conn,"INSERT INTO dataset_attribute_tbl(dataset_id,data_file_id,data_field_name,data_field_desc) VALUES (?,?,'value','Measured value')",params=list(id,file_id))
-  f <- list(root=root,pond=pond,id=as.integer(id),user=as.integer(user),folder=folder)
-  if (prepare) release_prepare(f)
-  f
-}
+test_that("freezing enforces the selected completeness profile at preview and commit", {
+  f <- release_fixture(); on.exit(unlink(f$root, recursive=TRUE), add=TRUE)
+  conn <- datapond:::get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add=TRUE)
+  DBI::dbExecute(conn, "DELETE FROM authority_tbl WHERE dataset_id=?", params=list(f$id))
+  release_approve(f); release_prepare(f)
+  expect_error(datapond:::preview_dataset_release(f$id,f$pond,f$user,"full"), "Full metadata is incomplete.*Authors")
+  p <- datapond:::preview_dataset_release(f$id,f$pond,f$user,"rough")
+  expect_identical(p$approval$population_profile, "rough")
+  expect_error(datapond:::create_dataset_release(f$id,f$pond,f$user,"Check",p,
+    population_profile="full"), "Full metadata is incomplete.*Authors")
+  # A fully populated preview must not authorize a subsequently incomplete save.
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET abstract='' WHERE id=?", params=list(f$id))
+  release_approve(f)
+  for (close in c(FALSE,TRUE)) expect_error(datapond:::create_dataset_release(
+    f$id,f$pond,f$user,"Check",p,close_working=close,population_profile="rough"),
+    "Essential metadata is incomplete.*Abstract")
+  expect_equal(nrow(datapond:::dataset_release_history(f$id,f$pond)),0L)
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET abstract='Restored abstract' WHERE id=?", params=list(f$id))
+  release_approve(f); release_prepare(f)
+  p <- datapond:::preview_dataset_release(f$id,f$pond,f$user,"rough")
+  row <- datapond:::create_dataset_release(f$id,f$pond,f$user,"Essential release",p,population_profile="rough")
+  audit <- jsonlite::read_json(file.path(f$pond,row$relative_path,"release.json"))
+  expect_identical(audit$metadata_approval$population_profile,"rough")
+  expect_identical(audit$metadata_approval$reviewer,"Release Tester")
+  overview <- datapond:::build_pond_overview_data(f$pond,datapond:::dataset_overview_schema())
+  expect_identical(overview$overview_class,"Frozen release")
+  expect_identical(overview$metadata_readiness,"")
+  expect_equal(overview$release_count, 1L)
+  expect_identical(overview$release_summary, "1 frozen release: 1.0.0")
+  expect_false("Metadata readiness" %in% names(datapond:::pond_overview_inventory_display(overview)))
+  # Subsequent edits are a working draft, not a reassessment of the frozen ZIP.
+  DBI::dbExecute(conn,"UPDATE entry_tbl SET abstract='Later working draft' WHERE id=?",params=list(f$id))
+  expect_false(datapond:::build_pond_overview_data(f$pond,datapond:::dataset_overview_schema())$overview_class == "Frozen release")
+  changed <- datapond:::build_pond_overview_data(f$pond,datapond:::dataset_overview_schema())
+  expect_equal(changed$release_count, 1L)
+  expect_equal(changed$latest_release_version, "1.0.0")
+  expect_equal(datapond:::pond_overview_inventory_display(changed)$`Current version`, "1.0.0")
+})
 
-release_prepare <- function(f, download = NULL) {
-  testthat::local_mocked_bindings(render_metadata_document = function(directory) {
-    writeLines("Prepared PDF fixture", file.path(directory, "metadata.pdf"))
-    file.path(directory, "metadata.pdf")
-  }, .package = "datapond")
-  datapond:::save_working_metadata_document(f$id, f$pond, f$user, download = download)
-}
-
-release_test_renderer <- function(.env=parent.frame()) {
-  force(.env)
-  testthat::local_mocked_bindings(render_metadata_document=function(...) stop("Freezing must not render a PDF"),
-    .package="datapond", .env=.env)
-}
-
-release_freeze <- function(f, close=FALSE) {
+test_that("freezing requires current named approval and refuses superseded or legacy approval", {
+  f <- release_fixture(); on.exit(unlink(f$root, recursive=TRUE), add=TRUE)
+  conn <- datapond:::get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add=TRUE)
   p <- datapond:::preview_dataset_release(f$id,f$pond,f$user)
-  datapond:::create_dataset_release(f$id,f$pond,f$user,"Verified test version",p,close_working=close)
-}
+  for (status in c("draft","reviewed","needs_attention","deprecated")) {
+    datapond:::insert_metadata_review(f$id,f$pond,reviewer_id=1L,update_reason="Later review",metadata_status=status)
+    expect_error(datapond:::create_dataset_release(f$id,f$pond,f$user,"Check",p),"latest metadata review.*Approved")
+  }
+  release_approve(f)
+  DBI::dbExecute(conn,"DELETE FROM metadata_approval_tbl")
+  expect_error(datapond:::preview_dataset_release(f$id,f$pond,f$user),"approval is missing or out of date")
+  release_approve(f); release_prepare(f)
+  p <- datapond:::preview_dataset_release(f$id,f$pond,f$user)
+  DBI::dbExecute(conn,"UPDATE entry_tbl SET purpose='Changed after approval' WHERE id=?",params=list(f$id))
+  expect_error(datapond:::create_dataset_release(f$id,f$pond,f$user,"Check",p),"approval is missing or out of date")
+  release_prepare(f) # Generating a new PDF cannot renew approval.
+  expect_error(datapond:::preview_dataset_release(f$id,f$pond,f$user),"approval is missing or out of date")
+  expect_error(datapond:::insert_metadata_review(f$id,f$pond,update_reason="Anonymous",metadata_status="approved"),"named reviewer")
+  release_approve(f); release_prepare(f)
+  expect_silent(datapond:::preview_dataset_release(f$id,f$pond,f$user))
+  DBI::dbExecute(conn,"UPDATE persons_tbl SET name_last='Changed contact' WHERE id=1")
+  expect_error(datapond:::preview_dataset_release(f$id,f$pond,f$user),"approval is missing or out of date")
+  expect_equal(nrow(datapond:::dataset_release_history(f$id,f$pond)),0L)
+})
+
+test_that("changing assessment mode invalidates the release preview and confirmation", {
+  local_trusted_access_fixture()
+  f <- release_fixture(); on.exit(unlink(f$root,recursive=TRUE),add=TRUE)
+  profile <- shiny::reactiveVal("rough")
+  state <- shiny::reactiveValues(data_pond=f$pond,current_dataset_id=f$id,active_user_id=f$user)
+  shiny::testServer(datapond:::mod_dataset_releases_server,
+    args=list(state=state,population_profile=profile), {
+      session$setInputs(preview=0L,documents_reviewed=FALSE)
+      session$flushReact()
+      session$setInputs(preview=1L)
+      expect_identical(preview()$approval$population_profile,"rough")
+      session$setInputs(documents_reviewed=TRUE)
+      expect_true(reviewed())
+      profile("full"); session$flushReact()
+      expect_null(preview()); expect_false(reviewed())
+    })
+})
 
 test_that("frozen releases preserve working data and use one unpacked consumer cache", {
   release_test_renderer()
@@ -66,6 +103,64 @@ test_that("frozen releases preserve working data and use one unpacked consumer c
   payload <- datapond:::collect_dataset_transfer_payload(f$id,f$pond,f$user)
   expect_false(any(datapond:::release_control_tables() %in% names(payload$scoped)))
   expect_error(datapond:::hard_delete_dataset_record(f$id,f$user,f$pond),"frozen releases")
+})
+
+test_that("frozen ZIPs import through the transfer module from captured metadata", {
+  release_test_renderer()
+  f <- release_fixture(FALSE); on.exit(unlink(f$root, recursive = TRUE), add = TRUE)
+  conn <- datapond:::get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  expect_true(file.rename(file.path(f$folder, "data"), file.path(f$folder, "observations")))
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET data_path=? WHERE id=?",
+    params = list(file.path(f$folder, "observations"), f$id))
+  datapond:::insert_metadata_review(f$id, f$pond, reviewer_id = 1L,
+    reviewer_name = "Release Tester", reviewer_role = "editor", update_reason = "Checked frozen metadata", metadata_status="approved")
+  release_prepare(f)
+  row <- release_freeze(f, TRUE)
+  zip <- file.path(f$pond, row$relative_path, "dataset.zip")
+  manifest <- datapond:::read_dataset_transfer_manifest(zip)
+  expect_identical(manifest$release_id, row$release_id)
+  expect_identical(manifest$bundle_id, row$release_id)
+  expect_identical(manifest$release_version, "1.0.0")
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET title='Later catalogue title' WHERE id=?", params = list(f$id))
+
+  target <- file.path(f$root, "recipient"); dir.create(target)
+  datapond:::ensure_pond_structure(target); datapond:::init_db(target)
+  recipient <- datapond:::get_conn(target); on.exit(DBI::dbDisconnect(recipient), add = TRUE)
+  DBI::dbExecute(recipient, "INSERT INTO persons_tbl(name_first,name_last) VALUES ('Receiving','Editor')")
+  DBI::dbExecute(recipient, "INSERT INTO user_tbl(person_id,user_name,is_active,is_admin) VALUES (1,'recipient',1,1)")
+  imported <- datapond:::import_dataset_transfer_bundle(zip, target, 1L)
+  record <- datapond:::release_entry(recipient, imported$dataset_id)
+  expect_identical(record$title, "Release example")
+  expect_identical(record$version, "1.0.0")
+  expect_identical(record$uuid, "release-fixture-uuid")
+  expect_identical(record$lifecycle_status, "draft")
+  expect_identical(basename(imported$dataset_path), basename(f$folder))
+  expect_identical(record$data_pond_id, datapond:::ensure_data_pond_id(target))
+  expect_identical(record$data_path, file.path(imported$dataset_path, "observations"))
+  expect_identical(readLines(file.path(record$data_path, "measurements.csv")), c("id,value", "1,20"))
+  expect_true(file.exists(file.path(imported$dataset_path, "metadata.pdf")))
+  expect_false(dir.exists(file.path(imported$dataset_path, ".datapond_transfer")))
+  fields <- DBI::dbGetQuery(recipient, "SELECT a.data_field_desc, f.file_name FROM dataset_attribute_tbl a
+    JOIN data_file_tbl f ON a.data_file_id=f.id WHERE a.dataset_id=?", params = list(imported$dataset_id))
+  expect_identical(fields$data_field_desc, "Measured value")
+  expect_identical(fields$file_name, "measurements.csv")
+  reviews <- DBI::dbGetQuery(recipient, "SELECT r.update_reason, p.name_first, p.name_last
+    FROM metadata_review_tbl r JOIN persons_tbl p ON r.reviewer_id=p.id WHERE r.dataset_id=? AND r.update_reason='Checked frozen metadata'",
+    params = list(imported$dataset_id))
+  expect_identical(reviews$update_reason, "Checked frozen metadata")
+  expect_identical(reviews$name_first, "Release")
+  expect_identical(reviews$name_last, "Tester")
+  expect_equal(nrow(datapond:::dataset_release_history(imported$dataset_id, target)), 0L)
+  provenance <- datapond:::get_dataset_import_provenance(imported$dataset_id, target)
+  expect_true(row$release_id %in% provenance$bundle_id)
+  expect_error(datapond:::import_dataset_transfer_bundle(zip, target, 1L), "already exists")
+  expect_equal(nrow(DBI::dbGetQuery(recipient, "PRAGMA foreign_key_check")), 0L)
+
+  archive <- datapond:::dataset_transfer_archive_index(zip)
+  wrong <- manifest; wrong$release_id <- "another-release"
+  expect_error(datapond:::transfer_validate_release(archive, wrong), "identity")
+  wrong <- manifest; wrong$source_dataset_folder <- "../escape"
+  expect_error(datapond:::transfer_validate_release(archive, wrong), "unsafe")
 })
 
 test_that("changed previews and damaged archives are refused", {
@@ -261,6 +356,7 @@ test_that("freeze refuses an external data folder and restore keeps a custom dat
   expect_error(datapond:::preview_dataset_release(f$id,f$pond,f$user),"data folder must be inside")
   expect_true(file.rename(file.path(f$folder,"data"),file.path(f$folder,"spatial")))
   DBI::dbExecute(conn,"UPDATE entry_tbl SET data_path=?",params=list(file.path(f$folder,"spatial")))
+  release_approve(f); release_prepare(f)
   row <- release_freeze(f)
   restored <- datapond:::restore_dataset_release(row$release_id,f$pond,f$user,"Restore custom data folder")
   expect_identical(datapond:::release_entry(conn,f$id)$data_path,file.path(restored$dataset_path,"spatial"))
@@ -293,7 +389,7 @@ test_that("requested ISO export is packaged and validation failure aborts freezi
 test_that("explicit document preparation supplies identical download, working and frozen copies", {
   release_test_renderer()
   f <- release_fixture(FALSE); on.exit(unlink(f$root, recursive = TRUE), add = TRUE)
-  expect_error(release_freeze(f), "Save and download metadata.pdf")
+  expect_error(release_freeze(f), "Prepare metadata.pdf")
   download <- file.path(f$root, "browser.pdf")
   release_prepare(f, download)
   expected <- datapond:::release_sha(download)
@@ -320,13 +416,14 @@ test_that("citation-only downloads cannot certify a missing or stale PDF", {
   release_test_renderer()
   datapond:::save_working_metadata_document(f$id, f$pond, f$user, pdf = FALSE, download = download)
   expect_identical(readLines(download), readLines(file.path(f$folder, "citation.txt")))
-  expect_error(release_freeze(f), "Save and download metadata.pdf")
+  expect_error(release_freeze(f), "Prepare metadata.pdf")
   release_prepare(f)
   conn <- datapond:::get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add = TRUE)
   DBI::dbExecute(conn, "UPDATE entry_tbl SET citation='Corrected citation'")
   datapond:::save_working_metadata_document(f$id, f$pond, f$user, pdf = FALSE, download = download)
   expect_identical(readLines(download), "Corrected citation")
   expect_error(release_freeze(f), "out of date")
+  release_approve(f)
   release_prepare(f)
   expect_silent(datapond:::preview_dataset_release(f$id, f$pond, f$user))
   writeLines("Externally edited PDF", file.path(f$folder, "metadata.pdf"))
@@ -434,10 +531,88 @@ test_that("Shiny document downloads save the same bytes into the working folder"
   }, .package = "datapond")
   state <- shiny::reactiveValues(data_pond = f$pond, current_dataset_id = f$id, active_user_id = f$user)
   shiny::testServer(datapond:::mod_metadata_document_server, args = list(state = state), {
+    session$setInputs(download_preview = FALSE, save_pdf = 0L)
+    session$flushReact()
+    session$setInputs(save_pdf = 1L)
+    session$flushReact()
+    expect_true(file.exists(file.path(f$folder, "metadata.pdf")))
+    expect_true(file.exists(file.path(f$folder, "citation.txt")))
     download <- output$pdf
     expect_identical(datapond:::release_sha(download), datapond:::release_sha(file.path(f$folder, "metadata.pdf")))
     citation <- output$citation
     expect_identical(readLines(citation), readLines(file.path(f$folder, "citation.txt")))
   })
   expect_silent(datapond:::preview_dataset_release(f$id, f$pond, f$user))
+})
+
+test_that("human-readable metadata download is an optional preview extra", {
+  html <- as.character(datapond:::mod_metadata_document_ui("document"))
+  expect_match(html, 'id="document-download_preview"', fixed = TRUE)
+  expect_match(html, "Also download the PDF for preview", fixed = TRUE)
+  expect_match(html, "!input[&#39;document-download_preview&#39;]", fixed = TRUE)
+  expect_match(html, "input[&#39;document-download_preview&#39;]", fixed = TRUE)
+  expect_match(html, "Save PDF to dataset folder", fixed = TRUE)
+})
+
+test_that("readable release folders preserve archive identity, restore and legacy compatibility", {
+  release_test_renderer()
+  f <- release_fixture(); on.exit(unlink(f$root, recursive = TRUE), add = TRUE)
+  row <- release_freeze(f)
+  expect_match(row$relative_path, "^arc/releases/release_example__v1[.]0[.]0__")
+  paths <- verify_dataset_release(row$release_id, f$pond)
+  hashes <- tools::md5sum(c(paths$zip, paths$manifest, paths$snapshot, paths$source_manifest))
+  conn <- get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  # Represent an older archive with the UUID-only naming convention.
+  legacy <- file.path(release_store(f$pond), row$release_id)
+  expect_true(file.rename(paths$root, legacy))
+  DBI::dbExecute(conn, "UPDATE dataset_release_tbl SET relative_path=? WHERE release_id=?",
+    params = list(paste0("arc/releases/", row$release_id), row$release_id))
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET dataset_path=?,data_path=?,lifecycle_status='archived' WHERE id=?",
+    params = list(legacy, file.path(legacy, "data"), f$id))
+  renamed <- rename_dataset_release_folder(row$release_id, f$pond, f$user)
+  expect_identical(renamed, paths$root)
+  expect_false(dir.exists(legacy))
+  expect_identical(tools::md5sum(names(hashes)), hashes)
+  entry <- release_entry(conn, f$id)
+  expect_identical(entry$dataset_path, renamed)
+  expect_identical(entry$data_path, file.path(renamed, "data"))
+  expect_equal(nrow(dataset_release_history(f$id, f$pond)), 1L)
+  expect_silent(verify_dataset_release(row$release_id, f$pond))
+  expect_identical(rename_dataset_release_folder(row$release_id, f$pond, f$user), renamed)
+  restored <- restore_dataset_release(row$release_id, f$pond, f$user, "Restore renamed release")
+  expect_true(file.exists(file.path(restored$dataset_path, "data", "measurements.csv")))
+})
+
+test_that("release folder renames roll back failed commits and recover interrupted moves", {
+  release_test_renderer()
+  f <- release_fixture(); on.exit(unlink(f$root, recursive = TRUE), add = TRUE)
+  row <- release_freeze(f)
+  paths <- verify_dataset_release(row$release_id, f$pond)
+  conn <- get_conn(f$pond); on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  legacy_relative <- paste0("arc/releases/", row$release_id)
+  legacy <- file.path(f$pond, legacy_relative)
+  expect_true(file.rename(paths$root, legacy))
+  DBI::dbExecute(conn, "UPDATE dataset_release_tbl SET relative_path=? WHERE release_id=?",
+    params = list(legacy_relative, row$release_id))
+  local({
+    local_mocked_bindings(release_event = function(...) stop("Simulated commit failure"))
+    expect_error(rename_dataset_release_folder(row$release_id, f$pond, f$user), "Simulated commit failure")
+  })
+  expect_true(dir.exists(legacy)); expect_false(dir.exists(paths$root))
+  expect_identical(release_row(conn, row$release_id)$relative_path, legacy_relative)
+  expect_silent(verify_dataset_release(row$release_id, f$pond))
+  # Simulate process death after the directory move, before committing SQLite.
+  journal <- file.path(dirname(paths$snapshot), "rename-operation.json")
+  op <- jsonlite::read_json(journal); op$phase <- "prepared"
+  release_operation_write(op, journal)
+  expect_true(file.rename(legacy, paths$root))
+  expect_error(release_lock(f$pond, f$id), "rename needs recovery")
+  expect_match(recover_dataset_release_operations(f$id, f$pond, f$user), "rename: rolled_back")
+  expect_true(dir.exists(legacy)); expect_false(dir.exists(paths$root))
+  # Simulate process death after the SQLite commit, before finishing the journal.
+  rename_dataset_release_folder(row$release_id, f$pond, f$user)
+  op <- jsonlite::read_json(journal); op$phase <- "prepared"
+  release_operation_write(op, journal)
+  expect_match(recover_dataset_release_operations(f$id, f$pond, f$user), "rename: complete")
+  expect_silent(verify_dataset_release(row$release_id, f$pond))
 })

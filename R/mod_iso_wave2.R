@@ -332,6 +332,7 @@ move_wave2_row <- function(rows, selected, direction) {
 
 mod_iso_wave2_server <- function(id, state) {
   shiny::moduleServer(id, function(input, output, session) {
+    update_file_select <- data_files_select_updater(session)
     alternate_titles <- shiny::reactiveVal(wave2_empty_alternate_titles())
     online_resources <- shiny::reactiveVal(wave2_empty_online_resources())
     formats <- shiny::reactiveVal(wave2_empty_formats())
@@ -524,14 +525,17 @@ mod_iso_wave2_server <- function(id, state) {
     refresh_quality_choices <- function() {
       dataset_id <- suppressWarnings(as.integer(state$current_dataset_id[1]))
       if (length(dataset_id) == 0L || is.na(dataset_id)) {
-        shiny::updateSelectInput(session, "quality_data_file", choices = c("Dataset-wide" = ""))
+        update_file_select("quality_data_file", choices = c("Dataset-wide" = ""), selected = "")
         shiny::updateSelectInput(session, "quality_attribute", choices = c("No attribute" = ""))
         return()
       }
       conn <- get_conn(state$data_pond); on.exit(DBI::dbDisconnect(conn), add = TRUE)
       files <- DBI::dbGetQuery(conn, "SELECT id, COALESCE(NULLIF(file_name, ''), data_file_rel_path_full) AS label FROM data_file_tbl WHERE dataset_id = ? ORDER BY id", params = list(dataset_id))
       attributes <- DBI::dbGetQuery(conn, "SELECT id, data_field_name AS label FROM dataset_attribute_tbl WHERE dataset_id = ? ORDER BY id", params = list(dataset_id))
-      shiny::updateSelectInput(session, "quality_data_file", choices = c("Dataset-wide" = "", stats::setNames(as.character(files$id), files$label)))
+      file_choices <- c("Dataset-wide" = "", stats::setNames(as.character(files$id), files$label))
+      selected_file <- shiny::isolate(input$quality_data_file) %||% ""
+      if (length(selected_file) != 1L || !selected_file %in% unname(file_choices)) selected_file <- ""
+      update_file_select("quality_data_file", choices = file_choices, selected = selected_file)
       shiny::updateSelectInput(session, "quality_attribute", choices = c("No attribute" = "", stats::setNames(as.character(attributes$id), attributes$label)))
     }
     shiny::observe({ access_require("read");  state$refresh_datasets; state$current_dataset_id; refresh_quality_choices() })
@@ -545,7 +549,7 @@ mod_iso_wave2_server <- function(id, state) {
     })
     clear_quality <- function() {
       shiny::updateSelectInput(session, "quality_scope", selected = "dataset")
-      shiny::updateSelectInput(session, "quality_data_file", selected = "")
+      update_file_select("quality_data_file", selected = "")
       shiny::updateSelectInput(session, "quality_attribute", selected = "")
       for (field in c("quality_measure_identifier", "quality_measure_name", "quality_result_value", "quality_result_unit", "quality_specification")) shiny::updateTextInput(session, field, value = "")
       shiny::updateTextAreaInput(session, "quality_method", value = "")
@@ -561,7 +565,7 @@ mod_iso_wave2_server <- function(id, state) {
       if (length(selected) != 1L || selected > nrow(rows)) return()
       row <- rows[selected, ]
       shiny::updateSelectInput(session, "quality_scope", selected = row$scope_code)
-      shiny::updateSelectInput(session, "quality_data_file", selected = row$data_file_id %||% "")
+      update_file_select("quality_data_file", selected = if (non_empty_scalar(row$data_file_id)) as.character(row$data_file_id) else "")
       shiny::updateSelectInput(session, "quality_attribute", selected = row$attribute_id %||% "")
       shiny::updateTextInput(session, "quality_measure_identifier", value = row$measure_identifier)
       shiny::updateTextInput(session, "quality_measure_name", value = row$measure_name %||% "")
@@ -605,6 +609,21 @@ mod_iso_wave2_server <- function(id, state) {
       quality(rows); clear_quality()
     })
     shiny::observeEvent(input$clear_quality_result, { access_require("edit", touch = TRUE); clear_quality() })
+    # A cleanup is saved immediately. Prune deleted references from the buffered
+    # editor too, so the next Save Dataset cannot reintroduce removed results.
+    shiny::observeEvent(state$file_metadata_cleanup_tick, {
+      access_require("read")
+      conn <- get_conn(state$data_pond); on.exit(DBI::dbDisconnect(conn))
+      file_ids <- DBI::dbGetQuery(conn, "SELECT id FROM data_file_tbl WHERE dataset_id=?",
+        params = list(as.integer(state$current_dataset_id)))$id
+      attribute_ids <- DBI::dbGetQuery(conn, "SELECT id FROM dataset_attribute_tbl WHERE dataset_id=?",
+        params = list(as.integer(state$current_dataset_id)))$id
+      rows <- quality()
+      keep <- (is.na(rows$data_file_id) | rows$data_file_id %in% file_ids) &
+        (is.na(rows$attribute_id) | rows$attribute_id %in% attribute_ids)
+      quality(rows[keep, , drop = FALSE])
+      clear_quality()
+    }, ignoreInit = TRUE)
     shiny::observeEvent(input$remove_quality_result, {
       access_require("edit", touch = TRUE)
       selected <- input$quality_results_table_rows_selected; rows <- quality()

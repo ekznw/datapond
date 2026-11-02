@@ -20,8 +20,6 @@ test_that("overview polling redraws only for changed data or connected access", 
   withr::local_options(datapond.data_pond = first)
 
   shiny::testServer(datapond:::server, {
-    session$setInputs(access_login = 0L)
-    session$setInputs(access_username = "owner", access_password = password, access_login = 1L)
     html <- xml2::read_html(as.character(datapond:::ui))
     selects <- xml2::xml_find_all(html, "//select")
     defaults <- stats::setNames(lapply(selects, function(node) {
@@ -30,11 +28,23 @@ test_that("overview polling redraws only for changed data or connected access", 
       if (!length(selected)) return("")
       xml2::xml_attr(selected, "value")
     }), xml2::xml_attr(selects, "id"))
-    defaults$access_workspace_ready <- auth$workspace_nonce
-    defaults$overview_current_only <- FALSE
+    # A browser submits select defaults before observers run. Supply them on
+    # the first mock flush too, rather than starting modules with NULL choices.
+    defaults$access_login <- 0L
     do.call(session$setInputs, defaults)
-    datapond:::connected_pond_sign_in(second, "owner", password)
+    session$setInputs(access_username = "owner", access_password = password, access_login = 1L)
+    defaults$access_workspace_ready <- auth$workspace_nonce
+    defaults$overview_current_only <- TRUE
+    do.call(session$setInputs, defaults)
+    session$setInputs(
+      connected_pond_select = datapond:::read_data_pond_identity_read_only(second)$data_pond_id,
+      connected_login_username = "owner",
+      connected_login_password = password,
+      connected_login = 1L
+    )
     session$flushReact()
+    # Mock sessions do not echo updateCheckboxInput() back as browser input.
+    session$setInputs(overview_current_only = FALSE)
     expect_true("Original title" %in% overview_inventory_data()$title)
     updates <- new.env(); updates$n <- 0L
     watcher <- shiny::observe({
@@ -90,4 +100,12 @@ test_that("overview polling redraws only for changed data or connected access", 
     expect_identical(auth$pond, second)
     expect_false(auth$authenticated)
   })
+})
+
+test_that("connected pond sign-in reveals connected overview rows", {
+  source <- paste(deparse(body(datapond:::server)), collapse = "\n")
+  expect_match(
+    source,
+    'updateCheckboxInput\\(session, "overview_current_only",[[:space:]]+value = FALSE\\)'
+  )
 })

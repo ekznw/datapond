@@ -24,6 +24,7 @@ pond_overview_folder_path <- function(rows, selected_id, selection_cleared = FAL
 
 pond_overview_palette <- function() {
   c(
+    "Frozen release" = "#B99572",
     "Archive" =
       "#B99572",
 
@@ -277,6 +278,10 @@ build_pond_overview_data <- function(
     )
   }
 
+  conn <- get_conn(base_path)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  overview <- pond_overview_discovery_metadata(conn, overview)
+
   required_columns <- list(
     title = NA_character_,
     authors = NA_character_,
@@ -345,6 +350,24 @@ build_pond_overview_data <- function(
           lifecycle_stage_mismatch
       )
   ]
+
+  # A retained working copy can still match a frozen version. Describe that
+  # release without applying today's full-profile assessment to its snapshot.
+  if (DBI::dbExistsTable(conn, "dataset_release_tbl")) {
+    releases <- DBI::dbGetQuery(conn, "SELECT dataset_id, version, baseline_hash, relative_path
+      FROM dataset_release_tbl WHERE state='frozen'")
+    for (i in seq_len(nrow(overview))) {
+      candidates <- releases[which(releases$dataset_id == overview$id[i] &
+        releases$version == overview$version[i]), , drop = FALSE]
+      if (!nrow(candidates)) next
+      archived <- identical(overview$location_status[i], "frozen_release")
+      unchanged <- archived || tryCatch(
+        review_fingerprint(release_payload(conn, overview$id[i], base_path, NULL)) %in% candidates$baseline_hash,
+        error = function(e) FALSE)
+      if (unchanged) overview[i, `:=`(overview_class = "Frozen release",
+        metadata_readiness = "", next_action = if (archived) "Frozen release" else "Working copy retained")]
+    }
+  }
 
   overview[
     ,
@@ -417,6 +440,117 @@ build_pond_overview_data <- function(
 }
 
 
+# These fields are also carried through local connections and offline Flow caches.
+pond_overview_discovery_fields <- function() {
+  c("abstract", "purpose", "citation", "citation_key", "citation_date", "version",
+    "uuid", "folder_key", "keyword_object", "keyword_topic", "keyword_discipline",
+    "keyword_geo", "keyword_labels", "organisation_search", "release_count",
+    "release_versions", "latest_release_version", "release_summary", "dataset_edition",
+    "dataset_family_uuid", "published_version")
+}
+
+# A working record can change or be restored after freezing. Release existence
+# and version history come from the release register, not its current class.
+pond_overview_release_metadata <- function(conn, rows) {
+  rows <- data.table::as.data.table(data.table::copy(rows))
+  for (field in c("dataset_edition", "dataset_family_uuid", "published_version"))
+    data.table::set(rows, j = field, value = rep(NA_character_, nrow(rows)))
+  if (nrow(rows) && DBI::dbExistsTable(conn, "dataset_edition_tbl")) {
+    editions <- DBI::dbGetQuery(conn, "SELECT dataset_id,edition,family_uuid FROM dataset_edition_tbl")
+    matched <- match(rows$id, editions$dataset_id)
+    data.table::set(rows, j = "dataset_edition", value = editions$edition[matched])
+    data.table::set(rows, j = "dataset_family_uuid", value = editions$family_uuid[matched])
+    if (DBI::dbExistsTable(conn, "dataset_release_tbl") && DBI::dbExistsTable(conn, "dataset_publication_tbl")) {
+      published <- DBI::dbGetQuery(conn, "SELECT p.dataset_id,r.version FROM dataset_publication_tbl p
+        JOIN dataset_release_tbl r ON r.release_id=p.release_id WHERE p.action='published'
+        AND p.id IN (SELECT MAX(id) FROM dataset_publication_tbl GROUP BY dataset_id)")
+      data.table::set(rows, j = "published_version", value = published$version[match(rows$id, published$dataset_id)])
+    }
+  }
+  rows[, `:=`(release_count = 0L, release_versions = NA_character_,
+    latest_release_version = NA_character_, release_summary = "No frozen releases")]
+  if (!nrow(rows) || !DBI::dbExistsTable(conn, "dataset_release_tbl")) return(rows)
+  releases <- data.table::as.data.table(DBI::dbGetQuery(conn,
+    "SELECT dataset_id, version FROM dataset_release_tbl WHERE state='frozen' ORDER BY frozen_at DESC, rowid DESC"))
+  if (!nrow(releases)) return(rows)
+  totals <- releases[, .(release_count = .N, release_versions = paste(version, collapse = ", "),
+    latest_release_version = version[1]), by = dataset_id]
+  matched <- match(rows$id, totals$dataset_id)
+  for (field in c("release_count", "release_versions", "latest_release_version")) {
+    found <- which(!is.na(matched))
+    data.table::set(rows, i = found, j = field, value = totals[[field]][matched[found]])
+  }
+  rows[release_count > 0L, release_summary := paste0(release_count,
+    ifelse(release_count == 1L, " frozen release: ", " frozen releases: "), release_versions)]
+  rows[]
+}
+
+pond_overview_version_summary <- function(selected) {
+  value <- function(field, fallback) {
+    x <- selected[[field]]
+    if (!length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x[1])))) fallback else as.character(x[1])
+  }
+  shiny::p(class = "help-block",
+    shiny::strong("Current version: "), value("version", "Not recorded"),
+    shiny::tags$br(), shiny::strong("Archived releases: "),
+    value("release_summary", "Not available in this catalogue"))
+}
+
+# Read in bulk without schema migrations: connected catalogues can be older and
+# are opened read-only. Only metadata assigned to each dataset enters its index.
+pond_overview_discovery_metadata <- function(conn, rows) {
+  rows <- data.table::as.data.table(data.table::copy(rows))
+  if (!nrow(rows)) return(rows)
+  fields <- intersect(pond_overview_discovery_fields(), DBI::dbListFields(conn, "entry_tbl"))
+  if (length(fields)) {
+    records <- DBI::dbGetQuery(conn, paste("SELECT id,",
+      paste(DBI::dbQuoteIdentifier(conn, fields), collapse = ", "), "FROM entry_tbl"))
+    matched <- match(rows$id, records$id)
+    for (field in fields) rows[, (field) := records[[field]][matched]]
+  }
+
+  rows[, organisation_search := NA_character_]
+  if (DBI::dbExistsTable(conn, "organisation_tbl") &&
+      DBI::dbExistsTable(conn, "dataset_organisation_tbl")) {
+    org_fields <- intersect(c("organisation_name_full", "organisation_name_short",
+      "organisation_code", "organisation_department", "organisational_unit_name"),
+      DBI::dbListFields(conn, "organisation_tbl"))
+    expressions <- if (length(org_fields)) {
+      paste0("COALESCE(o.", DBI::dbQuoteIdentifier(conn, org_fields), ", '')")
+    } else character()
+    if ("role" %in% DBI::dbListFields(conn, "dataset_organisation_tbl")) {
+      expressions <- c(expressions, "COALESCE(dorg.role, '')")
+    }
+    if (length(expressions)) {
+      orgs <- DBI::dbGetQuery(conn, paste0(
+        "SELECT dorg.dataset_id, GROUP_CONCAT(", paste(expressions, collapse = " || ' ' || "),
+        ", ' ') AS organisation_search FROM dataset_organisation_tbl dorg ",
+        "LEFT JOIN organisation_tbl o ON o.id = dorg.organisation_id GROUP BY dorg.dataset_id"))
+      rows[, organisation_search := orgs$organisation_search[match(id, orgs$dataset_id)]]
+    }
+  }
+
+  rows[, keyword_labels := NA_character_]
+  if (DBI::dbExistsTable(conn, "keyword_vocab_tbl") &&
+      all(c("field_code", "option_value", "option_label") %in%
+        DBI::dbListFields(conn, "keyword_vocab_tbl"))) {
+    vocab <- DBI::dbGetQuery(conn, "SELECT field_code, option_value, option_label FROM keyword_vocab_tbl")
+    vocab$field_code[vocab$field_code == "keyword_topic"] <- "keyword_object"
+    keyword_fields <- intersect(c("keyword_object", "keyword_topic", "keyword_discipline", "keyword_geo"), names(rows))
+    labels <- lapply(seq_len(nrow(rows)), function(i) {
+      selected <- lapply(keyword_fields, function(field) {
+        canonical <- if (field == "keyword_topic") "keyword_object" else field
+        values <- tolower(split_keyword_values(rows[[field]][i]))
+        vocab$option_label[vocab$field_code == canonical & tolower(vocab$option_value) %in% values]
+      })
+      selected <- unlist(selected, use.names = FALSE)
+      paste(unique(selected[!is.na(selected)]), collapse = " ")
+    })
+    rows[, keyword_labels := unlist(labels, use.names = FALSE)]
+  }
+  pond_overview_release_metadata(conn, rows)
+}
+
 pond_overview_search_index <- function(overview) {
   dt <- data.table::as.data.table(overview)
   if (!nrow(dt)) return(character())
@@ -426,16 +560,49 @@ pond_overview_search_index <- function(overview) {
       "citation_key", "pond_location", "lifecycle_label",
       "metadata_readiness", "next_action", "dataset_path",
       "record_owner", "record_visibility", "location_status",
-      "title", "pond_name", "connection_type", "uuid", "stage", "availability"
+      "title", "pond_name", "connection_type", "uuid", "stage", "availability",
+      setdiff(pond_overview_discovery_fields(), "release_count")
     ),
     names(dt)
   )
   if (!length(fields)) return(rep("", nrow(dt)))
+  search_data <- as.data.frame(dt[, ..fields])
+  # "No frozen releases" is a display message, not evidence of a release.
+  if ("release_summary" %in% fields && "release_count" %in% names(dt)) {
+    search_data$release_summary[dt$release_count %in% 0L] <- ""
+  }
   tolower(apply(
-    as.data.frame(dt[, ..fields]),
+    search_data,
     1L,
     function(row) paste(row[!is.na(row)], collapse = " ")
   ))
+}
+
+pond_overview_search_input <- function(input_id) {
+  shiny::textInput(input_id, "Search pond datasets", width = "100%",
+    placeholder = paste(
+      "Title, author, full organisation name, keywords, abstract,",
+      "purpose, contact, identifier, date, version, status or folder"
+    ))
+}
+
+# Both controls edit one query. Keep them outside the DT widget so typing and
+# clearing a no-match search continue to work when the table is redrawn.
+pond_overview_search_server <- function(input, session) {
+  query <- shiny::reactiveVal("")
+  sync <- function(value, other_id) {
+    value <- as.character(value %||% "")
+    if (identical(value, query())) return(invisible(NULL))
+    query(value)
+    shiny::updateTextInput(session, other_id, value = value)
+  }
+  shiny::observeEvent(input$pond_dataset_search, {
+    sync(input$pond_dataset_search, "pond_inventory_search")
+  })
+  shiny::observeEvent(input$pond_inventory_search, {
+    sync(input$pond_inventory_search, "pond_dataset_search")
+  })
+  shiny::debounce(shiny::reactive(query()), 250)
 }
 
 filter_pond_overview_data <- function(overview, search_text = NULL) {
@@ -505,6 +672,8 @@ pond_overview_inventory_display <- function(overview) {
   if (!"active_pond" %in% names(overview)) overview[, active_pond := TRUE]
   if (!"pond_name" %in% names(overview)) overview[, pond_name := "Current pond"]
   for (field in c("availability", "refreshed")) if (!field %in% names(overview)) overview[, (field) := NA_character_]
+  for (field in c("dataset_edition", "published_version")) if (!field %in% names(overview)) overview[, (field) := NA_character_]
+  if (!"release_summary" %in% names(overview)) overview[, release_summary := "Not available in this catalogue"]
 
   overview[
     ,
@@ -514,15 +683,17 @@ pond_overview_inventory_display <- function(overview) {
       Title = display_title,
       Authors = pond_overview_author_label(authors),
       `Lifecycle status` = lifecycle_label,
-      `Metadata readiness` = metadata_readiness,
       `Next action` = next_action,
       `Spatial extent` = spatial_extent,
-      Version = version,
+      `Current version` = version,
       `Citation date` = citation_date,
       Organisations = organisations,
       Pond = ifelse(active_pond, paste0("\u2605 Current \u2014 ", pond_name), pond_name),
       `Files / cache` = availability,
-      `Metadata refreshed` = refreshed
+      `Metadata refreshed` = refreshed,
+      `Archived releases` = release_summary,
+      Edition = ifelse(dataset_edition == "in_house", "In-house", ifelse(dataset_edition == "public", "Public", "")),
+      `Published version` = published_version
     )
   ]
 }
@@ -550,17 +721,17 @@ pond_overview_responsive_column_defs <- function() {
       className = "all",
       responsivePriority = 3L,
       width = "110px",
-      targets = 9L
+      targets = 8L
     ),
     list(responsivePriority = 4L, targets = 4L),
     list(responsivePriority = 5L, targets = 5L),
-    list(responsivePriority = 6L, targets = 6L),
-    list(responsivePriority = 7L, targets = 8L),
-    list(responsivePriority = 8L, targets = 10L),
-    list(responsivePriority = 9L, targets = 7L),
-    list(className = "all", responsivePriority = 4L, targets = 11L),
-    list(responsivePriority = 10L, targets = 12L),
-    list(responsivePriority = 11L, targets = 13L)
+    list(responsivePriority = 7L, targets = 7L),
+    list(responsivePriority = 8L, targets = 9L),
+    list(responsivePriority = 9L, targets = 6L),
+    list(className = "all", responsivePriority = 4L, targets = 10L),
+    list(responsivePriority = 10L, targets = 11L),
+    list(responsivePriority = 11L, targets = 12L),
+    list(responsivePriority = 6L, targets = 13L)
   )
 }
 
@@ -572,7 +743,9 @@ pond_overview_responsive_table_options <- function() {
     order = list(),
     scrollX = FALSE,
     autoWidth = FALSE,
-    dom = "Bfrtip",
+    # The inventory's Shiny search uses the same query as the map. Retain DT's
+    # per-column filters, but omit its independent global search box (f).
+    dom = "Brtip",
     buttons = c("copy", "csv"),
     responsive = list(details = FALSE),
     columnDefs = pond_overview_responsive_column_defs()

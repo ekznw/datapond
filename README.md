@@ -18,6 +18,11 @@ do not grant access. Set up the first administrator from the local R console, th
 use Request access and administrator approval for colleagues. See
 [account setup, roles, recovery and storage](docs/user-access.md).
 
+**R data access:** the [local consumer API](docs/pond-consumer-api.md) searches
+working files and frozen release contents across ponds, then retrieves selected
+assets and their GIS companion files into a verified cache. It integrates with
+`ekznwr::dta_arc_extr()` and `dta_fp()` through an optional provider.
+
 ## User guide
 
 The editable [Quarto user guide](guide/index.qmd) covers installation, first-pond

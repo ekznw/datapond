@@ -288,6 +288,26 @@ data_files_inventory_ui <- function(ns) {
   )
 }
 
+# Keep large choice lists on the server. Reuse the full list for selection-only
+# updates so a table click can select a file outside the browser's search results.
+data_files_select_updater <- function(session) {
+  choices_by_input <- list()
+
+  function(inputId, choices = NULL, selected = NULL) {
+    if (!is.null(choices)) {
+      choices_by_input[[inputId]] <<- choices
+    }
+
+    shiny::updateSelectizeInput(
+      session,
+      inputId,
+      choices = choices_by_input[[inputId]] %||% character(),
+      selected = selected,
+      server = TRUE
+    )
+  }
+}
+
 # Shared selected saved-file control ----
 #
 # The selected saved file is shared by the File review
@@ -305,7 +325,7 @@ data_files_selected_file_ui <- function(ns) {
       shiny::column(
         width = 7,
 
-        shiny::selectInput(
+        shiny::selectizeInput(
           ns("saved_file_select"),
           metadata_field_label("Selected saved data file", "Conditional", "Select a saved file before reviewing it or editing and profiling its attributes."),
           choices = NULL
@@ -326,6 +346,7 @@ data_files_selected_file_ui <- function(ns) {
 # Saved file review UI ----
 data_files_review_ui <- function(ns) {
   shiny::tagList(
+    missing_file_cleanup_ui(ns("missing_files")),
     shiny::h3(
       "Saved data-file review"
     ),
@@ -1065,7 +1086,7 @@ data_files_spatial_manual_extents_ui <- function(ns) {
             "For example: KwaZulu-Natal rainfall stations"
         ),
 
-        shiny::selectInput(
+        shiny::selectizeInput(
           ns("manual_extent_data_file_id"),
           "Linked data file",
           choices = c(
@@ -1220,7 +1241,7 @@ data_files_spatial_record_review_ui <- function(ns) {
       shiny::column(
         width = 4,
 
-        shiny::selectInput(
+        shiny::selectizeInput(
           ns("spatial_record_select"),
           "Spatial file or layer",
           choices = NULL
@@ -1457,7 +1478,9 @@ mod_data_files_ui <- function(id, dictionary_ui = NULL, quality_ui = NULL) {
 
 mod_data_files_server <- function(id, state) {
   moduleServer(id, function(input, output, session) {
+    missing_file_cleanup_server("missing_files", state)
     ns <- session$ns
+    update_file_select <- data_files_select_updater(session)
 
     # Live scan panel visibility ----
     live_scan_dataset_key <- shiny::reactiveVal(NULL)
@@ -2166,8 +2189,7 @@ mod_data_files_server <- function(id, state) {
         )
       )
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "saved_file_select",
         choices = character(),
         selected = character(0)
@@ -2240,8 +2262,7 @@ mod_data_files_server <- function(id, state) {
         value = ""
       )
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "spatial_record_select",
         choices = character(),
         selected = character(0)
@@ -2282,8 +2303,7 @@ mod_data_files_server <- function(id, state) {
         value = ""
       )
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "manual_extent_data_file_id",
         selected = ""
       )
@@ -3252,8 +3272,7 @@ mod_data_files_server <- function(id, state) {
         data_file_id <-
           display_df$data_file_id[selected_row]
 
-        updateSelectInput(
-          session,
+        update_file_select(
           "saved_file_select",
           selected = as.character(data_file_id)
         )
@@ -4330,8 +4349,7 @@ mod_data_files_server <- function(id, state) {
         current <- ""
       }
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "manual_extent_data_file_id",
         choices = choices,
         selected = current
@@ -4419,8 +4437,7 @@ mod_data_files_server <- function(id, state) {
           value = record$extent_label[1]
         )
 
-        updateSelectInput(
-          session,
+        update_file_select(
           "manual_extent_data_file_id",
           selected = linked_file
         )
@@ -5332,8 +5349,7 @@ mod_data_files_server <- function(id, state) {
         is.null(df) ||
         nrow(df) == 0
       ) {
-        updateSelectInput(
-          session,
+        update_file_select(
           "spatial_record_select",
           choices = character(),
           selected = character(0)
@@ -5399,7 +5415,7 @@ mod_data_files_server <- function(id, state) {
       )
 
       valid_ids <- unname(choices)
-      current_id <- input$spatial_record_select
+      current_id <- isolate(input$spatial_record_select)
 
       if (
         is.null(current_id) ||
@@ -5412,8 +5428,7 @@ mod_data_files_server <- function(id, state) {
         current_id <- as.character(current_id[1])
       }
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "spatial_record_select",
         choices = choices,
         selected = current_id
@@ -5851,8 +5866,7 @@ mod_data_files_server <- function(id, state) {
         "Spatial metadata notes saved.",
         type = "message"
       )
-      updateSelectInput(
-        session,
+      update_file_select(
         "spatial_record_select",
         selected = as.character(selected_id)
       )
@@ -5871,8 +5885,7 @@ mod_data_files_server <- function(id, state) {
           "saved_file_select"
         )
 
-        shiny::updateSelectInput(
-          session,
+        update_file_select(
           "saved_file_select",
           choices = character(),
           selected = character(0)
@@ -5980,8 +5993,7 @@ mod_data_files_server <- function(id, state) {
         "saved_file_select"
       )
 
-      shiny::updateSelectInput(
-        session,
+      update_file_select(
         "saved_file_select",
         choices = choices,
         selected = current
@@ -7258,8 +7270,7 @@ mod_data_files_server <- function(id, state) {
         ""
       }
 
-      updateSelectInput(
-        session,
+      update_file_select(
         "spatial_record_select",
         choices = setNames(
           first_record_id,
@@ -7350,8 +7361,7 @@ mod_data_files_server <- function(id, state) {
         base_path <- state$data_pond
 
         # Clear the previous dataset's spatial form immediately.
-        updateSelectInput(
-          session,
+        update_file_select(
           "spatial_record_select",
           choices = character(),
           selected = character(0)
@@ -7730,8 +7740,7 @@ mod_data_files_server <- function(id, state) {
         selected_file_id <-
           display_df$id[selected_row]
 
-        shiny::updateSelectInput(
-          session,
+        update_file_select(
           "saved_file_select",
           selected =
             as.character(

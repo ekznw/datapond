@@ -24,6 +24,11 @@ test_that("document collection is read-only and preserves lineage authority", {
   expect_setequal(s$development_documents, c("data_dev_example.qmd", "data_dev_legacy.Rmd", "processing.qmd"))
   expect_identical(s$documents$include_in_lineage[s$documents$document_name == "Development report"], 0L)
   expect_match(body, "Recorded lineage references", fixed = TRUE)
+  expect_match(body, "\\begin{citationhang}", fixed = TRUE)
+  expect_match(gsub("\\allowbreak{}", "", body, fixed = TRUE),
+    "Example Office \\(2026\\)\\. Sample dataset \\(Version 1\\.2\\)\\.", fixed = TRUE)
+  expect_match(body, "\\end{citationhang}", fixed = TRUE)
+  expect_false(grepl("> Example Office", body, fixed = TRUE))
   expect_match(body, "Software|software")
   expect_false(grepl("PRIVATE|MUST NOT RUN|data_dev_old|/home/|file:///", body))
   expect_match(body, "Regional use only", fixed = TRUE)
@@ -33,10 +38,31 @@ test_that("document collection is read-only and preserves lineage authority", {
   datapond:::write_metadata_document_source(s, output)
   expect_identical(readLines(file.path(output, "citation.txt")), s$record$citation)
   expect_true(file.exists(file.path(output, "ekznw-theme", "pdf-header.tex")))
+  expect_true(any(grepl("\\newenvironment{citationhang}",
+    readLines(file.path(output, "ekznw-theme", "pdf-header.tex")), fixed = TRUE)))
   expect_true(file.exists(file.path(output, "ekznw-theme", "style", "img", "corplogo120.png")))
   qmd <- paste(readLines(file.path(output, "metadata.qmd")), collapse = "\n")
   expect_match(qmd, "enabled: false", fixed = TRUE)
+  expect_match(qmd, 'metadata-template-version: "1.0.0"', fixed = TRUE)
+  expect_match(gsub("\\allowbreak{}", "", qmd, fixed = TRUE),
+    "**Metadata template version:** 1\\.0\\.0", fixed = TRUE)
   expect_false(grepl(f$path, qmd, fixed = TRUE))
+  fingerprint <- datapond:::metadata_document_fingerprint(s)
+  testthat::local_mocked_bindings(metadata_document_template_version = function() "1.0.1", .package = "datapond")
+  expect_false(identical(fingerprint, datapond:::metadata_document_fingerprint(s)))
+})
+
+test_that("long URLs and code-like identifiers have safe wrapping opportunities", {
+  url <- "https://maps.geoscience.org.za/portal/sharing/rest/content/items/60d1ef10856d4948a3d0149da78e4862/data"
+  token <- paste(rep("a", 120), collapse = "")
+  for (value in c(url, token, paste0("result <- read_data('", url, "')"))) {
+    escaped <- datapond:::metadata_markdown(value)
+    parts <- strsplit(escaped, "\\allowbreak{}", fixed = TRUE)[[1]]
+    expect_lt(max(nchar(parts)), 40)
+    # Removing only the layout commands and Markdown escapes recovers the data.
+    plain <- gsub("\\allowbreak{}", "", escaped, fixed = TRUE)
+    expect_identical(gsub("\\\\(.)", "\\1", plain), value)
+  }
 })
 
 test_that("inactive and foreign file attributes do not leak into the dictionary", {

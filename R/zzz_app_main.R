@@ -420,14 +420,7 @@ pond_overview_ui <- function() {
     shiny::fluidRow(
       shiny::column(
         width = 7,
-        shiny::textInput(
-          "pond_dataset_search",
-          "Search pond datasets",
-          placeholder = paste(
-            "Title, author, organisation, contact, citation key,",
-            "status or folder"
-          )
-        )
+        pond_overview_search_input("pond_dataset_search")
       ),
       shiny::column(
         width = 2,
@@ -598,6 +591,11 @@ pond_overview_ui <- function() {
     ),
 
     shiny::uiOutput("overview_connected_summary"),
+    shiny::div(
+      style = "max-width:600px; margin-left:auto;",
+      pond_overview_search_input("pond_inventory_search"),
+      shiny::helpText("Uses the same search as above the map. Column filters below can narrow the table further.")
+    ),
     DT::DTOutput(
       "dataset_table"
     ),
@@ -644,7 +642,7 @@ dataset_transfer_ui <- function() {
         shiny::p("With edit access, open the dataset in Create / edit dataset and save any changes. Then use Compress selected dataset below. The ZIP is saved in that dataset's folder; send it to the recipient.")),
       pond_link_help_card(
         "Import a dataset bundle", "the receiving pond where the copy should be stored.",
-        shiny::p("With edit access, choose the ZIP under Import dataset and click Import into active pond. This creates a local record and folder in the receiving pond."))
+        shiny::p("With edit access, choose a dataset bundle or a frozen dataset.zip containing transfer metadata under Import dataset and click Import into active pond. This creates a local record and folder in the receiving pond."))
     ),
     shiny::tags$p(
       paste(
@@ -843,7 +841,8 @@ metadata_review_ui <- function() {
         shiny::strong("3. Set review status"),
         shiny::tags$p(shiny::strong("Metadata status: "),
           "shows whether the metadata is draft, checked or approved."),
-        shiny::tags$p("Save dataset to keep this update in the history.")
+        shiny::tags$p("Save dataset to keep this update in the history."),
+        shiny::tags$p("Freezing requires Approved metadata and complete required sections in the selected Essential or Full mode. Saved metadata changes require fresh approval.")
       ),
       shiny::tags$li(
         class = "metadata-responsibility-card",
@@ -1168,7 +1167,8 @@ dataset_workflow_panel_ui <- function() {
         "guide_open_dataset_folder",
         "Open folder",
         icon = shiny::icon("folder-open")
-      )
+      ),
+      mod_data_dev_sync_ui("guide_data_dev_sync")
     ),
 
     shiny::tags$h4(class = "dataset-guide-steps-heading", "Populate metadata"),
@@ -2438,6 +2438,7 @@ ui <- fluidPage(
           "Metadata review",
           value = "metadata_review",
 
+          missing_file_cleanup_ui("review_missing_files"),
           metadata_review_ui(),
           tags$div(
             class = "datapond-metadata-guidance",
@@ -2704,7 +2705,8 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
     supporting_docs = TRUE,
     data_files = TRUE,
     attributes = TRUE,
-    spatial_metadata = TRUE
+    spatial_metadata = TRUE,
+    shared_references = FALSE
   ) {
     if (isTRUE(datasets)) {
       state$refresh_datasets <- state$refresh_datasets + 1L
@@ -2726,6 +2728,11 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
     }
     if (isTRUE(spatial_metadata)) {
       state$refresh_spatial_metadata <- state$refresh_spatial_metadata + 1L
+    }
+    if (isTRUE(shared_references)) {
+      state$refresh_org <- state$refresh_org + 1L
+      state$refresh_person <- state$refresh_person + 1L
+      state$refresh_vocab <- state$refresh_vocab + 1L
     }
     invisible(TRUE)
   }
@@ -3489,9 +3496,16 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
     "dataset_lifecycle",
     state = state,
     schema_grouped = schema,
+    population_profile = population_profile,
     on_restored = function() {
       last_hydrated_dataset_id(NULL)
       refresh_dataset_context()
+    },
+    on_open = function(dataset_id) {
+      last_hydrated_dataset_id(NULL)
+      hydrate_selected_dataset(as.character(dataset_id))
+      updateSelectInput(session, "dataset_select", selected = as.character(dataset_id))
+      shiny::updateTabsetPanel(session, "main_dataset_tabs", selected = "dataset_workspace")
     }
   )
   mod_parties_server("parties", state = state)
@@ -3506,6 +3520,14 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   iso_wave2_mod <- mod_iso_wave2_server("iso_wave2", state = state)
   iso_wave3_mod <- mod_iso_wave3_server("iso_wave3", state = state)
   mod_metadata_document_server("metadata_document", state = state)
+  mod_data_dev_sync_server("guide_data_dev_sync", state = state,
+    get_form = function() list(title = input$title, version = input$version,
+      abstract = input$abstract, purpose = input$purpose, uuid = state$current_dataset_uuid),
+    import_values = function(values) {
+      for (field in intersect(names(values), c("title", "abstract", "purpose")))
+        shiny::updateTextAreaInput(session, field, value = values[[field]])
+      if (!is.null(values$version)) set_version_inputs(session, values$version)
+    })
   mod_iso_export_server("iso_export", state = state, open_section = function(section, field) {
     shiny::updateCheckboxInput(session, "show_population_detail", value = TRUE)
     shiny::updateTabsetPanel(session, "main_dataset_tabs", selected = "dataset_workspace")
@@ -3619,6 +3641,7 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
     "data_access", state = state
   )
   data_files_mod <- mod_data_files_server("data_files", state)
+  missing_file_cleanup_server("review_missing_files", state)
 
   required_data_files_methods <- c(
     "clear",
@@ -3839,10 +3862,9 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
   output$citation_fields <- shiny::renderUI({
     access_require("read")
-    # Explicit dependencies ensure this UI is rebuilt when
-    # the active pond or its keyword vocabulary changes.
+    # Rebuild for a pond change only. Vocabulary refreshes update choices
+    # in place below; replacing these controls discards the current edits.
     state$data_pond
-    state$refresh_vocab
 
     citation_fields_ready(
       FALSE
@@ -3877,10 +3899,9 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
   output$about_fields <- shiny::renderUI({
     access_require("read")
-    # Explicit dependencies ensure this UI is rebuilt when
-    # the active pond or its keyword vocabulary changes.
+    # Rebuild for a pond change only. Vocabulary refreshes update choices
+    # in place below; replacing these controls discards the current edits.
     state$data_pond
-    state$refresh_vocab
 
     about_fields_ready(
       FALSE
@@ -3907,7 +3928,6 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   output$about_discovery_fields <- shiny::renderUI({
     access_require("read")
     state$data_pond
-    state$refresh_vocab
 
     about_fields_ready(FALSE)
     base_path <- state$data_pond
@@ -3932,7 +3952,6 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   output$about_optional_fields <- shiny::renderUI({
     access_require("read")
     state$data_pond
-    state$refresh_vocab
 
     base_path <- state$data_pond
     generate_section(
@@ -4884,6 +4903,10 @@ metadata_review_context_data <-
     tryCatch({
       connected_pond_sign_in(pond$data_pond_path[1], input$connected_login_username, password)
       connected_inventory_refresh_tick(connected_inventory_refresh_tick() + 1L)
+      # A user signing in to another catalogue is explicitly asking to browse
+      # it. Do not leave the overview's current-only filter hiding the rows
+      # that this action has just made readable.
+      updateCheckboxInput(session, "overview_current_only", value = FALSE)
       showNotification("Signed in. Connected datasets are now available in Pond overview.", type = "message")
     }, error = function(e) showNotification(conditionMessage(e), type = "error", duration = NULL))
   })
@@ -5708,7 +5731,7 @@ metadata_review_context_data <-
 
   mod_dataset_review_server("dataset_review", state, on_accepted = function() {
     last_hydrated_dataset_id(NULL)
-    refresh_dataset_context()
+    refresh_dataset_context(shared_references = TRUE)
   })
 
   # Portable dataset transfer ----
@@ -5892,7 +5915,7 @@ metadata_review_context_data <-
         state$current_dataset_folder <- result$dataset_path
         state$dataset_path <- result$dataset_path
         state$data_path <- file.path(result$dataset_path, "data")
-        refresh_dataset_context()
+        refresh_dataset_context(shared_references = TRUE)
         updateSelectInput(
           session,
           "dataset_select",
@@ -7208,7 +7231,7 @@ metadata_review_context_data <-
     rows
   })
 
-  overview_search <- shiny::debounce(shiny::reactive(input$pond_dataset_search), 250)
+  overview_search <- pond_overview_search_server(input, session)
 
   pond_overview_data <- shiny::reactive({
     filter_pond_overview_data(
@@ -7310,15 +7333,18 @@ metadata_review_context_data <-
   overview_selected_abstract <- shiny::reactive({
     selected <- overview_selected_connection()
     if (!is.null(selected)) return(tryCatch(
-      list(title = selected$title, abstract = read_connected_overview_abstract(selected), error = NULL),
-      error = function(e) list(title = selected$title, abstract = NULL, error = conditionMessage(e))
+      list(title = selected$title, abstract = read_connected_overview_abstract(selected),
+        version = selected$version, release_summary = selected$release_summary, error = NULL),
+      error = function(e) list(title = selected$title, abstract = NULL,
+        version = selected$version, release_summary = selected$release_summary, error = conditionMessage(e))
     ))
     selected_id <- overview_current_id()
     if (length(selected_id) != 1L) return(NULL)
     rows <- pond_overview_all_data()
     row <- rows[rows$id %in% selected_id, ]
     if (!nrow(row)) return(NULL)
-    list(title = row$display_title[1], abstract = row$abstract[1], error = NULL)
+    list(title = row$display_title[1], abstract = row$abstract[1], version = row$version[1],
+      release_summary = row$release_summary[1], error = NULL)
   })
   output$overview_dataset_abstract <- shiny::renderUI({
     access_require("read")
@@ -7326,9 +7352,11 @@ metadata_review_context_data <-
     text <- selected$abstract
     if (!length(text) || is.na(text) || !nzchar(trimws(text))) text <- "No abstract recorded."
     shiny::div(class = "overview-abstract-card",
-      shiny::h4("Selected dataset abstract"),
+      shiny::h4("Selected dataset summary"),
       if (is.null(selected)) shiny::p("Select a dataset in the inventory or map to preview its abstract.") else shiny::tagList(
         shiny::tags$strong(selected$title),
+        pond_overview_version_summary(selected),
+        shiny::strong("Abstract"),
         shiny::p(style = "white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow-y:auto; margin-top:6px;",
           selected$error %||% text)
       )
@@ -8280,7 +8308,7 @@ metadata_review_context_data <-
       ),
 
       stat_row(
-        "Archive \u2014 arc/",
+        "Current records in arc/",
         sum(
           overview$stage == "arc",
           na.rm = TRUE
@@ -8289,14 +8317,17 @@ metadata_review_context_data <-
       ),
 
       stat_row(
-        "Required metadata complete",
-        sum(
-          overview$ready_for_archive %in%
-            TRUE,
-          na.rm = TRUE
-        ),
+        "Datasets with frozen releases",
+        sum(overview$release_count > 0L, na.rm = TRUE),
         "#A8C49A"
       ),
+
+      stat_row(
+        "Archived frozen versions",
+        sum(overview$release_count, na.rm = TRUE),
+        "#B99572"
+      ),
+      shiny::p(class = "help-block", "Frozen releases remain in arc/ even when a working copy is in src/ or dev/."),
 
       stat_row(
         "Mapped datasets",
@@ -8306,15 +8337,6 @@ metadata_review_context_data <-
           na.rm = TRUE
         ),
         "#F1E9DA"
-      ),
-
-      stat_row(
-        "Metadata needing work",
-        sum(
-          !overview$ready_for_archive %in% TRUE,
-          na.rm = TRUE
-        ),
-        "#E9DFB5"
       ),
 
       stat_row(
@@ -8567,12 +8589,6 @@ metadata_review_context_data <-
             "Lifecycle status: ",
             escape_text(
               mapped$lifecycle_label[i]
-            ),
-            "<br>",
-
-            "Metadata readiness: ",
-            escape_text(
-              mapped$metadata_readiness[i]
             ),
             "<br>",
 

@@ -3,6 +3,12 @@
 \usepackage{xcolor}
 \usepackage{scrlayer-scrpage}
 \usepackage{needspace}
+% Wrap real hyperlinks and both highlighted and plain verbatim code blocks.
+\usepackage{xurl}
+\usepackage{fvextra}
+\fvset{breaklines=true,breakanywhere=true,breaknonspaceingroup=true}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{}
 \definecolor{ekznwOlive}{HTML}{495C3F}
 \definecolor{ekznwBrown}{HTML}{554838}
 \definecolor{ekznwAccent}{HTML}{8B4513}
@@ -21,6 +27,22 @@
 \setlength{\emergencystretch}{3em}
 \renewcommand{\arraystretch}{1.18}
 \raggedbottom
+% Reference-style hanging indent: the first line remains on the text margin,
+% while continuation lines are inset by 1.5em.
+\newenvironment{citationhang}{%
+  \begin{list}{}{%
+    \setlength{\leftmargin}{1.5em}%
+    \setlength{\rightmargin}{0pt}%
+    \setlength{\itemindent}{-1.5em}%
+    \setlength{\labelwidth}{0pt}%
+    \setlength{\labelsep}{0pt}%
+    \setlength{\topsep}{0pt}%
+    \setlength{\partopsep}{0pt}%
+    \setlength{\parsep}{0pt}%
+    \setlength{\itemsep}{0pt}%
+  }%
+  \item[]%
+}{\end{list}}
 \makeatletter
 \renewcommand{\maketitle}{%
   \thispagestyle{plain}%

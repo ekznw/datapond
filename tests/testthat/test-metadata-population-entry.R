@@ -120,6 +120,13 @@ for (create_action in c("save", "new_dataset")) {
     testthat::local_mocked_bindings(
       app_state_dir = function() config_dir, .package = "datapond"
     )
+    renders <- new.env(parent = emptyenv())
+    renders$count <- 0L
+    generate <- datapond:::generate_section
+    testthat::local_mocked_bindings(generate_section = function(...) {
+      renders$count <- renders$count + 1L
+      generate(...)
+    }, .package = "datapond")
     startup_session <- shiny::MockShinySession$new()
     register_flushed <- startup_session$onFlushed
     unlockBinding("onFlushed", startup_session)
@@ -235,6 +242,30 @@ for (create_action in c("save", "new_dataset")) {
       }
       expect_identical(datapond:::get_dataset_topic_categories(dataset_id, pond)$topic_category_code, "biota")
       expect_identical(datapond:::get_dataset_alternate_titles(dataset_id, pond)$alternate_title, "Field survey")
+
+      # Saving a new custom keyword refreshes the vocabulary. Replacing any
+      # renderUI here would erase the browser's hydrated fields and unsaved edits
+      # (MockShinySession alone does not emulate that DOM replacement).
+      before_renders <- renders$count
+      before_vocab <- state$refresh_vocab
+      session$setInputs(keyword_object = c("biota", "Southern boundary review"),
+        abstract = "Unsaved boundary review.", purpose = "")
+      session$setInputs(save = 61L)
+      expect_gt(state$refresh_vocab, before_vocab)
+      expect_identical(renders$count, before_renders)
+      session$setInputs(main_dataset_tabs = "dataset_status")
+      state$refresh_vocab <- state$refresh_vocab + 1L
+      session$flushReact()
+      session$setInputs(main_dataset_tabs = "dataset_workspace", save = 62L)
+      expect_identical(renders$count, before_renders)
+      preserved <- datapond:::get_dataset_record(dataset_id, pond)
+      for (field in c("title", "citation_date", "version")) {
+        expect_identical(preserved[[field]], retained[[field]], info = field)
+      }
+      expect_identical(preserved$abstract[1], "Unsaved boundary review.")
+      expect_identical(preserved$purpose[1], "")
+      # Restore the fixture detail for the subsequent reload assertion.
+      session$setInputs(purpose = "Monitor change.", save = 63L)
 
       # An existing record cannot lose its version on save in either mode.
       for (profile in c("rough", "full")) {

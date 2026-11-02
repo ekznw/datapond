@@ -8,7 +8,11 @@ legacy_patch_v1_components <- function() {
     wave2 = list(table = "entry_tbl", marker = "legacy_wave2_v1_migrated_at"),
     parties = list(table = "organisation_tbl", marker = "legacy_party_v1_migrated_at"),
     licensing = list(table = "dataset_license_tbl", marker = "legacy_licensing_v1_migrated_at"),
-    lineage = list(table = "dataset_lineage_tbl", marker = "legacy_lineage_migrated_at")
+    lineage = list(table = "dataset_lineage_tbl", marker = "legacy_lineage_migrated_at"),
+    review_timestamps = list(
+      table = "metadata_review_tbl",
+      marker = "legacy_review_timezone_v1_migrated_at"
+    )
   )
 }
 

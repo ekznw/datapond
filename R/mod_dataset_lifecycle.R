@@ -285,6 +285,7 @@ mod_dataset_lifecycle_ui <- function(id, record_controls = NULL) {
       ns("current_lifecycle_summary")
     ),
 
+    mod_dataset_editions_ui(ns("editions")),
     mod_dataset_releases_ui(ns("releases")),
 
     shiny::tags$div(
@@ -498,14 +499,20 @@ mod_dataset_lifecycle_server <- function(
   id,
   state,
   schema_grouped,
-  on_restored = function() NULL
+  on_restored = function() NULL,
+  on_open = function(id) NULL,
+  population_profile = function() "rough"
 ) {
   shiny::moduleServer(
     id,
     function(input, output, session) {
       refresh_token <- shiny::reactiveVal(0L)
       folder_verification_result <- shiny::reactiveVal(NULL)
-      mod_dataset_releases_server("releases", state, on_changed = function() {
+      mod_dataset_editions_server("editions", state, on_changed = function() {
+        refresh_selected_state()
+        on_restored()
+      }, on_open = on_open)
+      mod_dataset_releases_server("releases", state, population_profile = population_profile, on_changed = function() {
         refresh_selected_state()
         on_restored()
       })

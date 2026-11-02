@@ -137,6 +137,17 @@ test_that("assembly failure is reported separately from XML conformance", {
   expect_identical(result$crosswalk_version, datapond:::current_iso_crosswalk_version())
 })
 
+test_that("catalogue warnings do not partially match the schema-package label", {
+  validation <- list(feature_catalogue_schema_package = "ISO 19110 GFC 2.2.0")
+  warnings <- datapond:::iso_export_catalogue_warnings(validation)
+  expect_s3_class(warnings, "data.frame")
+  expect_equal(nrow(warnings), 0L)
+
+  expected <- data.frame(location = "/catalogue", reason = "unknown")
+  validation$feature_catalogue <- list(warnings = expected)
+  expect_identical(datapond:::iso_export_catalogue_warnings(validation), expected)
+})
+
 test_that("core spatial database exports validate and retain document lineage", {
   require_iso_validation_engine()
   ponds <- character()

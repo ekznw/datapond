@@ -97,6 +97,7 @@ test_that("pond inventory omits location and visibility detail columns", {
 
   expect_false(any(c(
     "Pond location",
+    "Metadata readiness",
     "Dataset folder",
     "Record visibility",
     "Location check",
@@ -158,7 +159,7 @@ test_that("pond inventory keeps title authors and date in the compact view", {
 
   expect_setequal(
     vapply(essential, function(definition) definition$targets, integer(1)),
-    c(2L, 3L, 9L, 11L)
+    c(2L, 3L, 8L, 10L)
   )
   expect_identical(
     vapply(essential, function(definition) definition$responsivePriority, integer(1)),

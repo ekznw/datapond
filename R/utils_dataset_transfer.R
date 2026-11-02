@@ -330,6 +330,7 @@ create_dataset_transfer_bundle <- function(
     base_path = base_path,
     exporting_user_id = exporting_user_id
   )
+  payload <- edition_transfer_payload(payload)
   dataset_path <- payload$manifest$source_dataset_path[1]
 
   pond_path <- normalizePath(base_path, mustWork = TRUE, winslash = "/")
@@ -428,19 +429,45 @@ dataset_transfer_archive_index <- function(path) {
   }
 
   metadata <- names[grepl(
-    "^[^/]+/\\.datapond_transfer/dataset_metadata\\.sqlite$",
+    "^([^/]+/)?\\.datapond_transfer/dataset_metadata\\.sqlite$",
     names
   )]
   if (length(metadata) != 1L) {
     stop("This ZIP is not a Data Pond dataset bundle.", call. = FALSE)
   }
 
-  root <- strsplit(metadata[1], "/", fixed = TRUE)[[1]][1]
-  if (any(!(names == root | startsWith(names, paste0(root, "/"))))) {
+  frozen <- identical(metadata[1], ".datapond_transfer/dataset_metadata.sqlite")
+  root <- if (frozen) "dataset" else strsplit(metadata[1], "/", fixed = TRUE)[[1]][1]
+  release <- NULL
+  if (frozen) {
+    if (anyDuplicated(names) || !"metadata.json" %in% names || !any(startsWith(names, "dataset/")))
+      stop("The frozen dataset bundle is incomplete or has duplicate paths.", call. = FALSE)
+    stream <- unz(path, "metadata.json")
+    release <- tryCatch(jsonlite::fromJSON(paste(readLines(stream, warn = FALSE), collapse = "\n")),
+      error = function(e) NULL, finally = close(stream))
+    if (!is.list(release) || !identical(release$format, "datapond-release-metadata") ||
+        !identical(transfer_scalar_integer(release$version), 1L))
+      stop("The frozen dataset release metadata is invalid.", call. = FALSE)
+  } else if (any(!(names == root | startsWith(names, paste0(root, "/"))))) {
     stop("A dataset bundle must contain exactly one top-level dataset folder.", call. = FALSE)
   }
 
-  list(index = index, names = names, metadata = metadata[1], root = root)
+  list(index = index, names = names, metadata = metadata[1], root = root, release = release)
+}
+
+transfer_validate_release <- function(archive, manifest) {
+  if (is.null(archive$release)) return(invisible(NULL))
+  release <- archive$release
+  for (pair in list(c("release_id", "release_id"), c("dataset_uuid", "source_dataset_uuid"),
+                   c("dataset_version", "release_version"))) {
+    value <- transfer_scalar_text(release[[pair[1]]])
+    if (is.na(value) || !identical(value, transfer_scalar_text(manifest[[pair[2]]])))
+      stop("The frozen release identity does not match its transfer metadata.", call. = FALSE)
+  }
+  folder <- transfer_scalar_text(manifest$source_dataset_folder)
+  if (is.na(folder) || folder %in% c(".", "..") || grepl("[/\\\\:]|[[:cntrl:]]", folder))
+    stop("The frozen bundle contains an unsafe dataset folder name.", call. = FALSE)
+  invisible(NULL)
 }
 
 
@@ -473,6 +500,7 @@ read_dataset_transfer_manifest <- function(path) {
     stop("This bundle was created by a newer, unsupported Data Pond format.", call. = FALSE)
   }
 
+  transfer_validate_release(archive, manifest)
   manifest
 }
 
@@ -720,11 +748,7 @@ import_dataset_transfer_bundle <- function(
   utils::unzip(path, exdir = extract_dir)
 
   source_dataset_path <- file.path(extract_dir, archive$root)
-  database_path <- file.path(
-    source_dataset_path,
-    ".datapond_transfer",
-    "dataset_metadata.sqlite"
-  )
+  database_path <- file.path(extract_dir, archive$metadata)
   source_conn <- DBI::dbConnect(RSQLite::SQLite(), database_path)
   on.exit({
     if (!is.null(source_conn) && DBI::dbIsValid(source_conn)) {
@@ -745,6 +769,7 @@ import_dataset_transfer_bundle <- function(
   if (is.na(version) || version > dataset_transfer_format_version()) {
     stop("This bundle was created by a newer, unsupported Data Pond format.", call. = FALSE)
   }
+  transfer_validate_release(archive, manifest)
 
   kind <- transfer_scalar_text(manifest$review_kind, "transfer")
   if (kind == "return" && is.null(.review))
@@ -764,6 +789,9 @@ import_dataset_transfer_bundle <- function(
   if (is.na(source_uuid) || !identical(source_uuid, transfer_scalar_text(entry$uuid))) {
     stop("The bundle dataset identity does not match its manifest.", call. = FALSE)
   }
+  if (!is.null(archive$release) &&
+      !identical(transfer_scalar_text(entry$version), transfer_scalar_text(manifest$release_version)))
+    stop("The frozen release version does not match its dataset record.", call. = FALSE)
 
   bundle_tables <- DBI::dbListTables(source_conn)
   read_optional <- function(table) {
@@ -848,6 +876,17 @@ import_dataset_transfer_bundle <- function(
       params = list(.review$dataset_id))
     target_dataset_path <- master_entry$dataset_path[1]
   } else {
+  if (!is.null(archive$release)) {
+    # The release container calls its payload dataset/. Restore the original
+    # folder name before the standard copy/import path runs.
+    archive$root <- transfer_scalar_text(manifest$source_dataset_folder)
+    import_root <- tempfile("dataset-", tmpdir = extract_dir)
+    dir.create(import_root)
+    renamed <- file.path(import_root, archive$root)
+    if (!file.rename(source_dataset_path, renamed))
+      stop("Could not prepare the frozen dataset folder for import.", call. = FALSE)
+    source_dataset_path <- renamed
+  }
   source_parent <- transfer_scalar_text(manifest$source_parent_dir, "dev")
   if (!source_parent %in% c("src", "dev", "arc")) source_parent <- "dev"
   relative_parent <- transfer_scalar_text(
@@ -1042,7 +1081,7 @@ import_dataset_transfer_bundle <- function(
       mustWork = TRUE,
       winslash = "/"
     )
-    entry_row$data_path <- file.path(entry_row$dataset_path, "data")
+    if (is.null(archive$release)) entry_row$data_path <- file.path(entry_row$dataset_path, "data")
     entry_row$data_pond_id <- target_pond_id
     entry_row$created_by_user_id <- importing_user_id
     if ("source_dataset_id" %in% names(entry_row)) entry_row$source_dataset_id <- NA_integer_

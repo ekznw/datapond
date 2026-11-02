@@ -1,6 +1,67 @@
 # Retirable data conversions for legacy-v1. Keep original source columns.
 # Permanent schema setup and row completion markers live outside this file.
 
+legacy_review_timestamp_source_timezone <- function() {
+  zone <- trimws(Sys.getenv(
+    "DATAPOND_LEGACY_REVIEW_TIMEZONE",
+    unset = "Africa/Johannesburg"
+  ))
+  if (!nzchar(zone) || !zone %in% OlsonNames()) stop(
+    "DATAPOND_LEGACY_REVIEW_TIMEZONE must name a valid IANA time zone, for example Africa/Johannesburg.",
+    call. = FALSE
+  )
+  zone
+}
+
+legacy_patch_v1_review_timestamps <- function(conn) {
+  source_zone_field <- "legacy_review_timezone_v1_source_zone"
+  ensure_columns(conn, "metadata_review_tbl", source_zone_field,
+    stats::setNames("TEXT", source_zone_field))
+  rows <- DBI::dbGetQuery(conn, "
+    SELECT id, review_timestamp
+    FROM metadata_review_tbl
+    WHERE legacy_review_timezone_v1_migrated_at IS NULL
+    ORDER BY id
+  ")
+  if (!nrow(rows)) return(invisible(TRUE))
+
+  source_zone <- legacy_review_timestamp_source_timezone()
+  zoned_pattern <- "(Z|[+-][0-9]{2}:[0-9]{2})$"
+  legacy_pattern <- paste0(
+    "^[0-9]{4}-[0-9]{2}-[0-9]{2}[ T]",
+    "([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"
+  )
+  for (i in seq_len(nrow(rows))) {
+    value <- trimws(rows$review_timestamp[i])
+    if (grepl(zoned_pattern, value)) {
+      DBI::dbExecute(conn, paste(
+        "UPDATE metadata_review_tbl SET", source_zone_field, "= 'recorded' WHERE id = ?"
+      ), params = list(rows$id[i]))
+      next
+    }
+    if (!grepl(legacy_pattern, value)) stop(
+      "Legacy review timestamp migration cannot interpret metadata_review_tbl row ",
+      rows$id[i], ": ", value,
+      ". Correct it or add an explicit ISO 8601 time-zone suffix before reopening the pond.",
+      call. = FALSE
+    )
+    wall_time <- sub(" ", "T", value, fixed = TRUE)
+    instant <- as.POSIXct(wall_time, format = "%Y-%m-%dT%H:%M:%S", tz = source_zone)
+    round_trip <- format(instant, "%Y-%m-%dT%H:%M:%S", tz = source_zone)
+    if (is.na(instant) || !identical(round_trip, wall_time)) stop(
+      "Legacy review timestamp migration found an invalid or ambiguous local time in metadata_review_tbl row ",
+      rows$id[i], ": ", value, ".", call. = FALSE
+    )
+    DBI::dbExecute(conn, paste(
+      "UPDATE metadata_review_tbl SET review_timestamp = ?,",
+      source_zone_field, "= ? WHERE id = ?"
+    ), params = list(
+      format(instant, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), source_zone, rows$id[i]
+    ))
+  }
+  invisible(TRUE)
+}
+
 legacy_patch_v1_keywords <- function(conn) {
   entry_fields <- DBI::dbListFields(conn, "entry_tbl")
   if ("keyword_topic" %in% entry_fields && !"keyword_object" %in% entry_fields) {

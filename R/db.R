@@ -484,6 +484,7 @@ init_db <- function(base_path) {
   ensure_dataset_import_table(conn)
   ensure_dataset_citation_key_column(conn)
   ensure_dataset_lifecycle_columns(conn)
+  ensure_dataset_edition_schema(conn)
   ensure_dataset_record_control_columns(conn)
   ensure_entry_creation_scale_columns_conn(conn)
   ensure_iso_profile_schema(conn, migrate = FALSE)
@@ -3293,10 +3294,25 @@ ensure_metadata_review_table <- function(conn) {
 
       notes TEXT,
 
+      legacy_review_timezone_v1_migrated_at TEXT,
+      legacy_review_timezone_v1_source_zone TEXT,
+
       FOREIGN KEY (dataset_id) REFERENCES entry_tbl(id),
       FOREIGN KEY (reviewer_id) REFERENCES persons_tbl(id)
     )
   ")
+  ensure_columns(
+    conn,
+    "metadata_review_tbl",
+    fields = c(
+      "legacy_review_timezone_v1_migrated_at",
+      "legacy_review_timezone_v1_source_zone"
+    ),
+    types = c(
+      legacy_review_timezone_v1_migrated_at = "TEXT",
+      legacy_review_timezone_v1_source_zone = "TEXT"
+    )
+  )
   invisible(TRUE)
 }
 
@@ -3390,7 +3406,17 @@ insert_metadata_review <- function(
 
   ensure_metadata_review_table(conn)
 
+  # Store the review and its approval evidence from one saved generation.
+  ensure_metadata_approval_table(conn)
+  dbBegin(conn)
+  committed <- FALSE
+  on.exit(if (!committed) dbRollback(conn), add = TRUE, after = FALSE)
+
   now <- Sys.time()
+  # Review timestamps are application-generated instants. Record them in UTC so
+  # their order can be compared with the UTC metadata-creation timestamp made
+  # by save_entry_dynamic(); a timezone-free local wall time loses information.
+  review_timestamp <- format(now, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
   dbExecute(conn, "
     INSERT INTO metadata_review_tbl (
@@ -3407,12 +3433,14 @@ insert_metadata_review <- function(
       metadata_status,
       source_of_change,
       app_version,
-      notes
+      notes,
+      legacy_review_timezone_v1_migrated_at,
+      legacy_review_timezone_v1_source_zone
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'recorded')
   ", params = list(
     dataset_id,
-    format(now, "%Y-%m-%d %H:%M:%S"),
+    review_timestamp,
     format(as.Date(now), "%Y-%m-%d"),
     reviewer_id,
     reviewer_name,
@@ -3424,10 +3452,21 @@ insert_metadata_review <- function(
     metadata_status,
     source_of_change,
     app_version,
-    notes
+    notes,
+    review_timestamp
   ))
 
-  dbGetQuery(conn, "SELECT last_insert_rowid() AS id")$id[1]
+  review_id <- dbGetQuery(conn, "SELECT last_insert_rowid() AS id")$id[1]
+  if (identical(metadata_status, "approved")) {
+    if (is.na(reviewer_id) || !nrow(dbGetQuery(conn,
+        "SELECT id FROM persons_tbl WHERE id=?", params = list(reviewer_id))))
+      stop("Select a named reviewer before approving metadata.")
+    dbExecute(conn, "INSERT INTO metadata_approval_tbl(review_id,dataset_id,metadata_hash) VALUES (?,?,?)",
+      params = list(review_id, as.integer(dataset_id), metadata_approval_hash(conn, dataset_id)))
+  }
+  dbCommit(conn)
+  committed <- TRUE
+  review_id
 }
 
 get_metadata_reviews <- function(dataset_id, base_path) {

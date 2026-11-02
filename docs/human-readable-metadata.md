@@ -1,15 +1,16 @@
 # Human-readable dataset metadata
 
-`Dataset status → Human-readable metadata → Save PDF to dataset folder & download`
+`Dataset status → Human-readable metadata → Save PDF to dataset folder`
 creates **metadata.pdf** and **citation.txt** from saved metadata in the working
-dataset folder root, and downloads the identical PDF to the browser. The separate
+dataset folder root. Select **Also download the PDF for preview** before preparing
+the documents to download the identical PDF to the browser. The separate
 citation download also saves `citation.txt` at the dataset root, without rendering
 a PDF. Select an active user and use an unlocked draft in `src/` or `dev/`.
 Save edits first; these actions replace previous working copies only after
 successful preparation. Rendering or delivery failure preserves the previous
 copies. Frozen releases are never modified.
 
-Open the downloaded PDF and inspect the dataset folder before freezing. Freezing
+Open the saved or downloaded PDF and inspect the dataset folder before freezing. Freezing
 requires current, unmodified prepared documents and a review confirmation in the
 app; it copies the prepared PDF and citation without regenerating them. If saved
 metadata changes the document, download and review it again. A citation-only
@@ -20,6 +21,14 @@ and inspected the documents.
 The PDF uses the EKZNW corporate logo,
 cream banner, olive headings and brown accents derived from the existing
 `~/.ekznw_quarto` HTML theme. It has A4 pages, repeating headers and page numbers.
+The first page records **Metadata template version** (currently `1.0.0`), also
+stored as `metadata-template-version` in the generated QMD front matter. This is
+separate from the dataset and application versions. Bump the template version
+when changing the QMD structure or bundled theme; previously prepared documents
+then need preparing and reviewing again before freezing. Existing PDFs retain
+the version with which they were generated.
+Long URLs, identifiers and code wrap within the available width, including in
+tables. The shared theme also wraps hyperlinks and code blocks in PDF and HTML.
 Quarto and XeLaTeX are required for PDF rendering, and Python 3.9+ for verifying the
 prepared files in the app. Run `datapond::setup_document_tools()` once after
 installation to check these tools, provision TinyTeX if needed, and test both

@@ -1,6 +1,6 @@
 # Immutable release store. Catalogue records and operation journals are separate
 # from working metadata; ordinary transfers must never copy these local controls.
-release_control_tables <- function() c("dataset_release_tbl", "dataset_release_event_tbl")
+release_control_tables <- function() c("dataset_release_tbl", "dataset_release_event_tbl", "metadata_approval_tbl", "dataset_publication_tbl")
 
 release_ensure_schema <- function(conn) {
   DBI::dbExecute(conn, "CREATE TABLE IF NOT EXISTS dataset_release_tbl (
@@ -64,6 +64,19 @@ release_lock <- function(pond, dataset_id, recovery = FALSE) {
   release_json(list(pid = Sys.getpid(), host = Sys.info()[["nodename"]],
     started = as.numeric(ps::ps_create_time(ps::ps_handle()))), file.path(path, "owner.json"))
   if (!recovery) {
+    edition_pending_drafts(pond, dataset_id)
+    renames <- release_journals(release_private(pond), "rename-operation.json")
+    for (file in renames) {
+      op <- jsonlite::read_json(file)
+      if (op$dataset_id == dataset_id && !op$phase %in% c("complete", "rolled_back"))
+        stop("A release folder rename needs recovery before another operation can start.")
+    }
+    removals <- release_journals(release_private(pond), "remove-operation.json")
+    for (file in removals) {
+      op <- jsonlite::read_json(file)
+      if (op$dataset_id == dataset_id && !op$phase %in% c("complete", "rolled_back"))
+        stop("A release ZIP removal needs recovery before another operation can start.")
+    }
     pending <- release_journals(release_private(pond, "operations"), "operation.json")
     for (file in pending) {
       op <- jsonlite::read_json(file)
@@ -123,11 +136,14 @@ release_working_root <- function(pond, record) {
 
 #' @export
 #' @noRd
-preview_dataset_release <- function(dataset_id, base_path, user_id) {
+preview_dataset_release <- function(dataset_id, base_path, user_id, population_profile = c("full", "rough")) {
+  population_profile <- match.arg(population_profile)
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn))
   release_ensure_schema(conn); release_require_user(conn, user_id)
   record <- release_entry(conn, dataset_id)
   root <- release_working_root(base_path, record)
+  release_open_review(conn, dataset_id)
+  approval <- release_metadata_gate(dataset_id, base_path, conn, population_profile)
   for (field in c("title", "uuid", "version", "citation"))
     if (!metadata_present(record[[field]])) stop(paste("Save the dataset", field, "before freezing a release."))
   if (!grepl("^[A-Za-z0-9][A-Za-z0-9._-]+$", record$uuid[1])) stop("Dataset UUID is not a portable identifier.")
@@ -135,8 +151,9 @@ preview_dataset_release <- function(dataset_id, base_path, user_id) {
   if (!length(files)) stop("The working dataset folder contains no files.")
   documents <- metadata_document_ready(dataset_id, base_path, root)
   payload <- release_payload(conn, dataset_id, base_path, user_id)
+  edition_validate(payload)
   list(dataset_id = as.integer(dataset_id), dataset_uuid = record$uuid[1], version = record$version[1],
-    source = root, files = files, documents = documents, file_count = length(files),
+    source = root, files = files, documents = documents, approval = approval, file_count = length(files),
     bytes = sum(vapply(files, function(x) x$size, numeric(1))),
     metadata_hash = review_fingerprint(payload), files_hash = review_hash(files))
 }
@@ -169,6 +186,8 @@ release_paths <- function(pond, row) {
 verify_dataset_release <- function(release_id, base_path, extract_to = NULL) {
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn))
   row <- release_row(conn, release_id); paths <- release_paths(base_path, row)
+  if (!identical(row$state[1], "frozen"))
+    stop("This release ZIP has been removed or is awaiting removal recovery; it is unavailable for download, verification or restore.")
   expected <- c(zip = row$zip_sha256[1], manifest = row$manifest_sha256[1], snapshot = row$snapshot_sha256[1],
     source_manifest = row$source_manifest_sha256[1])
   for (name in names(expected)) if (!file.exists(paths[[name]]) || !identical(release_sha(paths[[name]]), expected[[name]]))
@@ -176,6 +195,11 @@ verify_dataset_release <- function(release_id, base_path, extract_to = NULL) {
   public <- jsonlite::read_json(file.path(paths$root, "release.json"))
   for (field in c("release_id", "dataset_uuid", "version", "frozen_at", "notes", "zip_sha256", "manifest_sha256", "state"))
     if (!identical(as.character(public[[field]]), as.character(row[[field]][1]))) stop("Release descriptor differs from the registered release.")
+  edition <- edition_descriptor(release_read_payload(paths$snapshot))
+  if (!is.null(edition)) {
+    expected_edition <- jsonlite::fromJSON(jsonlite::toJSON(edition, auto_unbox = TRUE, na = "null", null = "null"), simplifyVector = FALSE)
+    if (!identical(public$edition, expected_edition)) stop("Release edition provenance differs from the frozen metadata snapshot.")
+  }
   release_archive_tool(if (is.null(extract_to)) "verify" else "extract", paths$zip, paths$manifest, extract_to)
   invisible(c(paths, list(record = row)))
 }
@@ -210,6 +234,10 @@ release_write_documents <- function(context, dataset_id, package, id, frozen_at,
     "Start with metadata.pdf. Use citation.txt for citation and LICENSE.txt for recorded terms.",
     "The PDF and citation are the prepared working copies, preserved without regeneration.",
     "The original dataset folder is under dataset/, with its relative paths preserved.",
+    "Import this ZIP through Portable dataset transfer > Import dataset in another DataPond.",
+    "The .datapond_transfer database carries dataset metadata and referenced contacts.",
+    "Public editions omit local review/import history and application accounts from that database.",
+    "Import preserves the dataset UUID and version; source-pond release history stays in the source pond.",
     "Data-file inventory paths in metadata.pdf are relative to the dataset's data folder.",
     "Development-document paths are relative to the dataset root.", "",
     "Development and lineage documents", if (length(docs)) paste0("dataset/", docs) else "No root QMD/Rmd documents were found.",
@@ -230,7 +258,9 @@ release_write_documents <- function(context, dataset_id, package, id, frozen_at,
     dataset_version = snapshot$record$version[1], release_id = id, frozen_at = frozen_at,
     title = snapshot$record$title[1], citation = metadata_text(snapshot$record$citation),
     description = metadata_text(snapshot$record$abstract), purpose = metadata_text(snapshot$record$purpose),
-    development_documents = docs, iso_policy = iso_policy), file.path(package, "metadata.json"))
+    development_documents = docs, iso_policy = iso_policy,
+    edition = if (nrow(snapshot$dataset_edition_tbl)) as.list(snapshot$dataset_edition_tbl[1,
+      setdiff(names(snapshot$dataset_edition_tbl), c("id", "dataset_id")), drop = FALSE]) else NULL), file.path(package, "metadata.json"))
   if (iso_policy != "none") {
     paths <- write_iso_wave3_documents(dataset_id, context, package, validation_policy = iso_policy)
     if (!length(paths)) stop("Requested ISO package was not generated.")
@@ -247,20 +277,24 @@ release_event <- function(conn, dataset_id, release_id, op, action, user_id, not
 #' @export
 #' @noRd
 create_dataset_release <- function(dataset_id, base_path, user_id, notes, preview,
-                                   close_working = FALSE, iso_policy = c("none", "pinned", "datapond")) {
+                                   close_working = FALSE, iso_policy = c("none", "pinned", "datapond"),
+                                   population_profile = c("full", "rough")) {
   iso_policy <- match.arg(iso_policy)
+  population_profile <- match.arg(population_profile)
   if (!metadata_present(notes)) stop("Record release notes before freezing.")
   lock <- release_lock(base_path, dataset_id); on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn), add = TRUE)
   release_ensure_schema(conn); release_require_user(conn, user_id); release_open_review(conn, dataset_id)
-  current <- preview_dataset_release(dataset_id, base_path, user_id)
+  current <- preview_dataset_release(dataset_id, base_path, user_id, population_profile)
   if (!identical(current, preview)) stop("Dataset changed since preview. Preview the release again.")
   if (nrow(DBI::dbGetQuery(conn, "SELECT release_id FROM dataset_release_tbl WHERE dataset_id=? AND version=?",
       params = list(as.integer(dataset_id), current$version)))) stop("This version is already frozen. Save a new working version first.")
   id <- uuid::UUIDgenerate(); frozen_at <- release_now()
+  folder_name <- release_folder_name(release_entry(conn, dataset_id), current$version, id)
+  destination <- file.path(release_store(base_path), folder_name)
   private <- release_safe_directory(base_path, release_private(base_path, id), TRUE)
   registered <- FALSE
-  on.exit(if (!registered && !file.exists(file.path(release_store(base_path), id))) unlink(private, recursive = TRUE), add = TRUE)
+  on.exit(if (!registered && !file.exists(destination)) unlink(private, recursive = TRUE), add = TRUE)
   stage <- release_safe_directory(base_path, file.path(release_store(base_path), paste0(".stage-", id)), TRUE)
   on.exit(unlink(stage, recursive = TRUE), add = TRUE)
   package <- file.path(stage, "package"); dir.create(package)
@@ -269,13 +303,28 @@ create_dataset_release <- function(dataset_id, base_path, user_id, notes, previe
   to <- DBI::dbConnect(RSQLite::SQLite(), get_db_path(context))
   tryCatch(RSQLite::sqliteCopyDatabase(conn, to), finally = DBI::dbDisconnect(to))
   captured <- DBI::dbConnect(RSQLite::SQLite(), get_db_path(context))
-  payload <- tryCatch(release_payload(captured, dataset_id, base_path, user_id), finally = DBI::dbDisconnect(captured))
+  payload <- tryCatch({
+    if (!identical(metadata_approval_hash(captured, dataset_id), current$approval$metadata_hash))
+      stop("Metadata changed after approval; release cancelled.")
+    release_payload(captured, dataset_id, base_path, user_id)
+  }, finally = DBI::dbDisconnect(captured))
   if (!identical(review_fingerprint(payload), current$metadata_hash)) stop("Metadata changed during snapshot capture.")
   write_dataset_transfer_database(payload, file.path(private, "snapshot.sqlite"))
   release_json(current$files, file.path(private, "source-files.json"))
   release_archive_tool("space", stage, file.path(private, "source-files.json"))
   release_copy_tree(current$source, file.path(package, "dataset"), current$files)
   release_copy_tree(current$documents$directory, package, current$documents$files)
+  # Use the normal transfer schema from the captured generation. Keep this
+  # transport database outside dataset/ so restores retain the original files.
+  transfer <- payload
+  transfer <- edition_transfer_payload(transfer)
+  transfer$manifest$bundle_id <- id
+  transfer$manifest$exported_at <- frozen_at
+  transfer$manifest$release_id <- id
+  transfer$manifest$release_version <- current$version
+  dir.create(file.path(package, ".datapond_transfer"))
+  write_dataset_transfer_database(transfer,
+    file.path(package, ".datapond_transfer", "dataset_metadata.sqlite"))
   captured <- DBI::dbConnect(RSQLite::SQLite(), get_db_path(context))
   # Exporters must resolve documents against the staged dataset, never live data.
   staged_entry <- transfer_rewrite_row_paths(payload$entry_tbl, current$source, file.path(package, "dataset"))
@@ -288,10 +337,11 @@ create_dataset_release <- function(dataset_id, base_path, user_id, notes, previe
   release_archive_tool("pack", package, file.path(stage, "files.json"), file.path(stage, "dataset.zip"))
   row <- data.frame(release_id = id, dataset_id = as.integer(dataset_id), dataset_uuid = current$dataset_uuid,
     version = current$version, frozen_at = frozen_at, frozen_by_user_id = as.integer(user_id), notes = notes,
-    relative_path = paste0("arc/releases/", id), zip_sha256 = release_sha(file.path(stage, "dataset.zip")),
+    relative_path = paste0("arc/releases/", folder_name), zip_sha256 = release_sha(file.path(stage, "dataset.zip")),
     manifest_sha256 = release_sha(file.path(stage, "files.json")), snapshot_sha256 = release_sha(file.path(private, "snapshot.sqlite")),
     baseline_hash = current$metadata_hash, source_manifest_sha256 = release_sha(file.path(private, "source-files.json")), state = "frozen")
-  release_json(as.list(row[1, c("release_id", "dataset_uuid", "version", "frozen_at", "notes", "zip_sha256", "manifest_sha256", "state")]),
+  release_json(c(as.list(row[1, c("release_id", "dataset_uuid", "version", "frozen_at", "notes", "zip_sha256", "manifest_sha256", "state")]),
+    list(metadata_approval = current$approval, edition = edition_descriptor(payload))),
     file.path(stage, "release.json"))
   writeLines(paste(row$zip_sha256, " dataset.zip"), file.path(stage, "checksums.sha256"))
   unlink(package, recursive = TRUE); unlink(context, recursive = TRUE)
@@ -302,6 +352,7 @@ create_dataset_release <- function(dataset_id, base_path, user_id, notes, previe
   DBI::dbWithTransaction(conn, {
     DBI::dbExecute(conn, "UPDATE entry_tbl SET id=id WHERE id=?", params = list(as.integer(dataset_id)))
     release_require_user(conn, user_id)
+    release_open_review(conn, dataset_id)
     if (!identical(review_fingerprint(release_payload(conn, dataset_id, base_path, user_id)), current$metadata_hash) ||
         !identical(review_hash(release_inventory(current$source)), current$files_hash)) stop("Working dataset changed while freezing; release cancelled.")
     if (file.exists(destination) || !file.rename(stage, destination)) stop("Could not finalise the frozen release.")
@@ -357,7 +408,7 @@ release_cleanup_operation <- function(op, pond) {
 release_rollback_files <- function(op) {
   # On a DB rollback, preserve the uncommitted restored copy for diagnosis and
   # put the prior working directory back. Never delete unrecognised user files.
-  if (op$kind == "restore" && dir.exists(op$new_path)) {
+  if (op$kind %in% c("restore", "public_update") && dir.exists(op$new_path)) {
     if (!file.rename(op$new_path, file.path(op$directory, "uncommitted-restored")))
       stop("Could not preserve the uncommitted restore. Use lifecycle recovery.")
   }
@@ -416,6 +467,7 @@ archive_dataset_release <- function(release_id, base_path, user_id, note) {
 }
 
 release_restore_metadata <- function(conn, snapshot, current, target) {
+  snapshot <- edition_restore_snapshot(conn, snapshot, current$id[1])
   # Local restore preserves the dataset identity and the ongoing audit history.
   # Shared people/vocabulary records are not rolled back for unrelated datasets.
   for (name in c("organisation_tbl", "persons_tbl", "license_template_tbl", "party_address_tbl", "keyword_thesaurus_tbl")) {
@@ -488,11 +540,18 @@ restore_dataset_release <- function(release_id, base_path, user_id, note) {
 release_restore_impl <- function(release_id, base_path, user_id, note, .checkpoint = NULL) {
   if (!metadata_present(note)) stop("Record the reason for restoring this release.")
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn), add = TRUE)
-  row <- release_row(conn, release_id); dataset_id <- row$dataset_id[1]
+  if (is.null(.checkpoint)) {
+    row <- release_row(conn, release_id)
+  } else {
+    release_verify_checkpoint(.checkpoint)
+    saved <- release_read_payload(file.path(.checkpoint$directory, "prior-metadata.sqlite"))
+    row <- data.frame(dataset_id = .checkpoint$dataset_id, dataset_uuid = saved$entry_tbl$uuid[1], release_id = release_id)
+  }
+  dataset_id <- row$dataset_id[1]
   lock <- release_lock(base_path, dataset_id); on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   release_require_user(conn, user_id); release_open_review(conn, dataset_id)
-  paths <- verify_dataset_release(release_id, base_path)
-  if (!is.null(.checkpoint)) paths$snapshot <- file.path(.checkpoint$directory, "prior-metadata.sqlite")
+  paths <- if (is.null(.checkpoint)) verify_dataset_release(release_id, base_path) else
+    list(snapshot = file.path(.checkpoint$directory, "prior-metadata.sqlite"))
   snapshot <- release_read_payload(paths$snapshot)
   current <- release_entry(conn, dataset_id)
   if (!identical(current$uuid[1], row$dataset_uuid[1])) stop("Dataset identity does not match the release.")
@@ -564,7 +623,7 @@ dataset_release_checkpoints <- function(dataset_id, base_path) {
   conn <- get_conn(base_path); on.exit(DBI::dbDisconnect(conn))
   release_ensure_schema(conn)
   rows <- DBI::dbGetQuery(conn, "SELECT operation_id,happened_at,note FROM dataset_release_event_tbl
-    WHERE dataset_id=? AND action IN ('restore_draft','rollback_draft') ORDER BY happened_at DESC,id DESC",
+    WHERE dataset_id=? AND action IN ('restore_draft','rollback_draft','update_public_draft') ORDER BY happened_at DESC,id DESC",
     params = list(as.integer(dataset_id)))
   rows[vapply(rows$operation_id, function(id) file.exists(release_private(base_path, "operations", id, "prior-working.zip")), logical(1)), , drop = FALSE]
 }
@@ -653,7 +712,9 @@ recover_dataset_release_operations <- function(dataset_id, base_path, user_id) {
   }
   lock <- release_lock(base_path, dataset_id, recovery = TRUE); on.exit(unlink(lock, recursive = TRUE), add = TRUE)
   private <- release_private(base_path)
-  messages <- character()
+  messages <- c(release_recover_renames(conn, base_path, dataset_id),
+    release_recover_removals(conn, base_path, dataset_id, user_id),
+    edition_recover_drafts(conn, base_path, dataset_id))
   journals <- release_journals(private, "freeze-operation.json")
   for (file in journals) {
     job <- jsonlite::read_json(file)
@@ -691,7 +752,8 @@ recover_dataset_release_operations <- function(dataset_id, base_path, user_id) {
     for (p in c(op$old_path, op$new_path, op$backup)) release_safe_directory(base_path, p)
     event <- DBI::dbGetQuery(conn, "SELECT * FROM dataset_release_event_tbl WHERE operation_id=?", params = list(op$operation_id))
     if (nrow(event)) {
-      verify_dataset_release(op$release_id, base_path)
+      if (file.exists(file.path(op$directory, "prior-working.zip"))) release_verify_checkpoint(op) else
+        verify_dataset_release(op$release_id, base_path)
       if (!identical(release_entry(conn, dataset_id)$dataset_path[1], op$new_path)) stop("Dataset moved after the interrupted operation; inspect recovery manually.")
       if (op$kind == "restore" && file.exists(file.path(op$directory, "prior-working.zip")))
         release_archive_tool("verify", file.path(op$directory, "prior-working.zip"), file.path(op$directory, "prior-files.json"))

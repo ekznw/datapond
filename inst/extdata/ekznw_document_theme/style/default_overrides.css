@@ -13,3 +13,12 @@
 header#title-block-header .title {
   color: #495c3f !important;
 }
+
+/* Keep URLs, identifiers and code within the document or table cell. */
+main, .quarto-title-block {
+  overflow-wrap: anywhere;
+}
+pre, pre code, code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

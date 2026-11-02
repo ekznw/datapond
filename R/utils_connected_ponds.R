@@ -275,6 +275,7 @@ read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
   if (!isTRUE(include_hidden)) {
     rows <- rows[(is.na(is_hidden) | as.integer(is_hidden) == 0L) & is.na(deleted_at)]
   }
+  rows <- pond_overview_discovery_metadata(conn, rows)
   rows[, stage := connected_pond_stage(dataset_path, identity$data_pond_path)]
   rows[, data_pond_id := identity$data_pond_id]
   rows[, data_pond_path := identity$data_pond_path]
@@ -407,13 +408,17 @@ build_connected_overview_inventory <- function(local_catalogue, remote_ponds, in
   rows <- list()
   unavailable <- character()
   local <- as.data.frame(local_catalogue)
-  if (nrow(local)) rows[[1L]] <- data.frame(
-    pond_name = local$pond_name, connection_type = "Local pond", title = local$title,
-    stage = local$stage, version = local$version, citation_key = local$citation_key, citation_date = local$citation_date,
-    uuid = local$uuid, source_record_id = local$id, dataset_path = local$dataset_path, availability = "Local catalogue",
-    refreshed = "Current local catalogue", open_path = local$data_pond_path,
-    stringsAsFactors = FALSE
-  )
+  if (nrow(local)) {
+    rows[[1L]] <- data.frame(
+      pond_name = local$pond_name, connection_type = "Local pond", title = local$title,
+      stage = local$stage, version = local$version, citation_key = local$citation_key, citation_date = local$citation_date,
+      uuid = local$uuid, source_record_id = local$id, dataset_path = local$dataset_path, availability = "Local catalogue",
+      refreshed = "Current local catalogue", open_path = local$data_pond_path,
+      stringsAsFactors = FALSE
+    )
+    extra <- setdiff(intersect(pond_overview_discovery_fields(), names(local)), names(rows[[1L]]))
+    rows[[1L]][extra] <- local[extra]
+  }
   for (saved in remote_ponds) {
     tryCatch({
       current <- movement_cache_current(saved$cache)
@@ -430,6 +435,9 @@ build_connected_overview_inventory <- function(local_catalogue, remote_ponds, in
         refreshed = current$state$refreshed, open_path = saved$cache,
         stringsAsFactors = FALSE
       )
+      extra <- setdiff(intersect(pond_overview_discovery_fields(), names(inventory)),
+        names(rows[[length(rows)]]))
+      rows[[length(rows)]][extra] <- inventory[extra]
     }, error = function(e) {
       unavailable <<- c(unavailable, paste0(saved$name, ": ", conditionMessage(e)))
     })

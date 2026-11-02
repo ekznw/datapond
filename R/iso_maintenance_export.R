@@ -56,9 +56,12 @@ iso_maintenance_reviewer <- function(row, conn) {
     name <- paste(parts[vapply(parts, non_empty_scalar, logical(1))], collapse = " ")
     if (!nzchar(name)) stop("ISO maintenance reviewer has no usable name.", call. = FALSE)
   }
-  # Legacy reviewer_role may be a job title, not a CI_RoleCode. Preserve it in
-  # the event note and use an explicit unknown role instead of guessing.
-  role <- tryCatch(iso_contact_role(row$reviewer_role), error = function(e) NA_character_)
+  # A metadata-review event establishes the ISO "editor" responsibility when
+  # no narrower ISO role was recorded. A non-empty legacy reviewer_role may be
+  # a job title; preserve it in the event note, while deriving "editor" from the
+  # review event itself rather than emitting an unknown CI_RoleCode.
+  role <- tryCatch(iso_contact_role(row$reviewer_role, default = "editor"),
+    error = function(e) "editor")
   list(id = id, name = name, role = role)
 }
 

@@ -7550,13 +7550,14 @@ Custom software locations
 </tbody>
 </table>
 <p>Save edits before generating reports, validating exports or freezing a version. Use <strong>Dataset status</strong> to inspect outstanding metadata work. Add the detailed methods through <a href="./lineage.html">Lineage and development reports</a>.</p>
+<p>Use <strong>Dataset guide → Sync development report</strong> to copy selected title, dataset version, abstract and purpose fields between saved dataset metadata and a <code>data_dev*.qmd</code> or <code>.docx</code> report in the dataset root. Choose the report and direction, select fields, then <strong>Preview changes → Apply preview</strong>. Empty source fields are skipped. Exports update the cover and a marked <strong>Dataset metadata</strong> section and keep a hidden <code>.bak</code> copy beside the report. Imports read that section into the dataset form; review the values and use <strong>Save dataset</strong> with an update reason. Export once to initialise the section in an existing report before importing from it. UUID identifies the dataset and is never imported; report version and methods stay independent. Sync requires an unlocked draft and an active user, and is unavailable during an active metadata review.</p>
 </section>
 <section id="use-a-shared-organisation-email-as-the-contact" class="level2">
 <h2 class="anchored" data-anchor-id="use-a-shared-organisation-email-as-the-contact">Use a shared organisation email as the contact</h2>
 <p>A generic or shared mailbox, such as <code>data.requests@example.org</code>, belongs in the organisation’s <strong>Contact email</strong> field. Do not create a fictitious person called “Data Requests” to hold the address.</p>
 <ol type="1">
 <li>Under <strong>Organisations → Add / edit organisation</strong>, select the organisation, enter its <strong>Contact email</strong>, and choose <strong>Update selected organisation</strong>. For a new record, complete the required organisation fields and choose <strong>Add as new organisation</strong>.</li>
-<li>In <strong>Dataset Intro → Owning Organisation(s)</strong>, select the organisation, choose its appropriate role and click <strong>Add</strong> if it is not already listed. The point-of-contact organisation choices come from this list.</li>
+<li>In <strong>Dataset Intro → Owning Organisation(s)</strong>, select the organisation, choose its appropriate role and click <strong>Add organisation</strong> if that organisation-role link is not already listed. Select a table row and choose <strong>Remove selected</strong> to remove that link from the dataset; the pond directory entry is retained. Add the organisation again with a different role when needed. The point-of-contact organisation choices come from this list.</li>
 <li>Under <strong>Point of Contact</strong>, leave <strong>Select Contact Person</strong> set to <strong>No individual contact</strong>, select the <strong>Point of contact organisation</strong>, choose the appropriate <strong>Role</strong> (for example, <strong>Distributor</strong> when the organisation provides access or copies), and click <strong>Add POC</strong>.</li>
 <li>Choose <strong>Save dataset</strong> before generating metadata or exporting it.</li>
 </ol>
@@ -7564,7 +7565,7 @@ Custom software locations
 </section>
 <section id="check-the-human-readable-metadata" class="level2">
 <h2 class="anchored" data-anchor-id="check-the-human-readable-metadata">Check the human-readable metadata</h2>
-<p>In <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder &amp; download</strong>. This writes <code>metadata.pdf</code> and <code>citation.txt</code> at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.</p>
+<p>In <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder</strong>. This writes <code>metadata.pdf</code> and <code>citation.txt</code> at the dataset root. Select <strong>Also download the PDF for preview</strong> first when you want a browser copy, then open it and check the identity, version, description, contacts, rights, lineage and any missing information.</p>
 <p>Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.</p>
 </section>
 <section id="understand-iso-metadata-and-validation" class="level2">
@@ -7601,6 +7602,8 @@ Custom software locations
 <li>Choose <strong>Add template to dataset folder</strong>. The app creates <code>data_dev_pisr.docx</code> or <code>data_dev_pisr.qmd</code> at the dataset root. A Quarto copy also receives its portable <code>data_dev_pisr_theme/</code> folder.</li>
 </ol>
 <p>Existing files are never overwritten. The report is registered in <strong>Supporting documents</strong>, but is not automatically treated as finished lineage evidence. Adding a template needs no rendering software. An active review or lifecycle operation may prevent adding it until that operation is completed or cancelled.</p>
+<p>Optionally select <strong>Populate title, dataset version, abstract and purpose from saved metadata</strong> before adding the template. This also adds the dataset UUID and a marked <strong>Dataset metadata</strong> section. Population and later sync need Python 3.9+, but do not need Quarto or Word. Use <strong>Dataset guide → Sync development report</strong> for subsequent changes: choose a report, direction and fields, preview, then apply. Export uses saved metadata and backs up the existing report. Import reads the marked section into the dataset form for review and normal saving. Edit that section in Word or Quarto when preparing an import; retain its field labels or markers. Empty source values never erase destination values. Each report is synced explicitly, and the report’s own version is separate from the dataset version.</p>
+<p>Word superscripts and subscripts convert to Unicode where supported: for example, <code>10⁻⁶</code>, <code>m²</code> and <code>CO₂</code>. Scientific notation such as <code>1.25e-6</code> remains exact text. Unsupported characters use explicit <code>^{...}</code> or <code>_{...}</code> notation, with a warning beside the preview. Word equations and embedded objects receive visible placeholders and warnings; their mathematical layout is not reconstructed. Other warnings identify rich character styling, manually raised or lowered text, tracked changes and fields whose stored results may need review. Check the proposed text against the source report, and correct the source or deselect affected fields before applying when needed. Quarto math and markup remain literal source text in dataset metadata and are flagged in the preview. Exports preserve the existing Word formatting in unselected metadata fields.</p>
 </section>
 <section id="write-the-development-history" class="level2">
 <h2 class="anchored" data-anchor-id="write-the-development-history">Write the development history</h2>
@@ -7756,14 +7759,70 @@ Custom software locations
 <section id="what-a-frozen-version-means" class="level2">
 <h2 class="anchored" data-anchor-id="what-a-frozen-version-means">What a frozen version means</h2>
 <p>A frozen release preserves a verified set of dataset files and saved metadata under <code>arc/</code>. Continuing work or restoring an older draft does not overwrite that release. Use <strong>Dataset lifecycle → Frozen releases</strong>.</p>
-<p>The current controls implement local freezing, restoration, checkpoints and recovery. They do not yet implement release publication/withdrawal, a remote published-current pointer or a QGIS plugin. Flow catalogue publication is a separate workflow.</p>
+<p>The current controls implement local freezing, restoration, checkpoints and recovery. They do not upload or withdraw remote files, maintain a remote published-current pointer or provide a QGIS plugin. The edition controls can record publication and withdrawal locally. Flow catalogue publication is a separate workflow.</p>
+</section>
+<section id="keep-in-house-and-public-editions" class="level2">
+<h2 class="anchored" data-anchor-id="keep-in-house-and-public-editions">Keep in-house and public editions</h2>
+<p>Use <strong>Dataset lifecycle → In-house and public editions</strong> when the internal and public products have different files, attributes or documentation. Each edition is a separate dataset record with its own UUID, working folder, metadata, citation and version history. A shared family identifier groups them. A public edition records the exact in-house release UUID, source version and ZIP checksum used to prepare it.</p>
+<p>Freezing an in-house edition creates a stable operational baseline without publishing it. The public edition can have a different version number and release schedule: for example, public <code>1.4.0</code> may derive from in-house <code>2.3.0</code>. Later internal edits never change either frozen ZIP.</p>
+<section id="freeze-the-in-house-baseline" class="level3">
+<h3 class="anchored" data-anchor-id="freeze-the-in-house-baseline">Freeze the in-house baseline</h3>
+<ol type="1">
+<li>Select the internal dataset and open <strong>Dataset lifecycle → In-house and public editions</strong>.</li>
+<li>Choose <strong>Designate this draft as in-house</strong>. This requires an unlocked working draft. Existing frozen releases remain unchanged; an older release of this designated dataset can still be selected as a source.</li>
+<li>Complete the internal metadata and documentation. Designating an edition changes saved metadata, so obtain fresh approval and prepare the PDF again before the next freeze.</li>
+<li>Use <strong>Frozen releases</strong> to preview and freeze the version, keeping or closing the working copy as needed.</li>
+</ol>
+</section>
+<section id="make-a-public-edition" class="level3">
+<h3 class="anchored" data-anchor-id="make-a-public-edition">Make a public edition</h3>
+<p>Select the <strong>Frozen in-house source</strong>, then choose <strong>Make public edition</strong>. The three-step workflow replaces copying folders and rebuilding a metadata template:</p>
+<ol type="1">
+<li><strong>Choose public content.</strong> Common data files are suggested automatically. Supporting documents remain opt-in. CSV/TSV columns and GeoPackage/GeoJSON layers and attributes can be selected directly. Untick unwanted layers or remove attributes; geometry is retained. Other formats copy intact, so include companion files and inspect their contents. Prepared metadata documents, hidden application files and archive/database transport files are excluded from the source selection.</li>
+<li><strong>Review public documentation.</strong> The public title, abstract, purpose, keywords, authors, owners, citation dates, topic categories and coverage are prefilled from the frozen source. Definitions, aliases and units follow retained attributes only. Edit the public wording and version; inspect <strong>All prefilled metadata and field definitions</strong>. Rights, licence restrictions, use limitations and embargo information are inherited and need review. Copying metadata does not grant permission to distribute.</li>
+<li><strong>Prepare public draft.</strong> Review the summary of included/excluded files and attributes, inherited metadata and remaining review items. Choose <strong>Create and open public draft</strong>. Datapond creates a separate UUID and folder in <code>dev/</code>, scans the files, registers the retained attributes, extracts supported spatial extents, generates a citation for the public title/version, and opens the new dataset for editing.</li>
+</ol>
+<p>The in-house dataset and frozen ZIP stay unchanged. Review temporal coverage and the geographic description against the actual public selection; dates and place names cannot always be inferred from the files. Geometry simplification and row filtering are performed in your GIS or processing tools, then checked in the public draft. Maintain scripts and lineage for those transformations.</p>
+<p>Complete the public metadata and documentation, obtain fresh approval, prepare and inspect the public PDF and complete folder, then freeze the public version. Internal review records, approval, internal lineage narratives, licence notes and development history are not copied by the metadata defaults. A development document is copied only if you select that file explicitly.</p>
+</section>
+<section id="set-reusable-metadata-and-contact-defaults" class="level3">
+<h3 class="anchored" data-anchor-id="set-reusable-metadata-and-contact-defaults">Set reusable metadata and contact defaults</h3>
+<p>Before freezing the in-house source, choose <strong>Public metadata defaults</strong>. Mark descriptive fields or groups that contain internal wording and should be omitted from future public drafts. The policy is captured with the frozen source, so changing the working policy does not change an older release. Rights and restrictions cannot be excluded using these defaults.</p>
+<p>You can also nominate a public contact for an organisation. New public editions use their first owner organisation and its nominated person. Without a nominated person, they use the organisation contact itself; they do not copy the in-house dataset’s individual points of contact. If there is no owner organisation, add the appropriate public contact in the new draft. Organisation contact defaults apply to future creation; an update preserves existing public contacts.</p>
+</section>
+<section id="update-the-same-public-edition-from-a-newer-source" class="level3">
+<h3 class="anchored" data-anchor-id="update-the-same-public-edition-from-a-newer-source">Update the same public edition from a newer source</h3>
+<ol type="1">
+<li>Select the existing public dataset and its newer <strong>Frozen in-house source</strong>, then choose <strong>Update this public edition</strong>. If its working copy was closed, restore a public release as a draft first.</li>
+<li>Previous file, layer and attribute choices are selected again. New files and attributes are listed for review and are not added to the saved selection automatically. Removed source items are highlighted. Adjust the selection where needed.</li>
+<li>Review the comparison between the previous source metadata, current public metadata and new source. Unchanged source values keep the public wording. Source changes are adopted when the public value still matches the old source. When both versions changed differently, choose <strong>Current public</strong> or <strong>New source</strong>. For descriptive text, you can then refine the wording in the form.</li>
+<li>Existing public supporting documents and contacts are retained. If a managed data file was edited in the public draft and the source replacement also changed, choose whether to keep the public file or use the new selected source content. This also protects local simplifications and row filtering from silent replacement; keeping such a file does not apply newer source observations to it.</li>
+<li>Review the summary and create the updated draft. It keeps the public UUID, uses the chosen public version, records the new exact source and adds a lineage step. A recovery checkpoint preserves the complete previous public metadata and working folder. Under <strong>Frozen releases</strong>, select the checkpoint and restore it to undo an update—even if this public edition has never been frozen.</li>
+</ol>
+<p>The updated draft is scanned again. Attribute descriptions survive for retained fields; automatic spatial extents are recalculated. Refresh file-specific quality assessments and manually entered file extents, which belong to the earlier data. Review coverage, rights, citation and documentation, obtain fresh approval, prepare the PDF and freeze the new public version. Earlier releases and the currently published pointer stay unchanged.</p>
+<p>The comparison baseline is private to the creating pond. Local frozen snapshots and recovery checkpoints preserve it. Public transport packages omit it, so an imported public dataset can be edited and linked manually but cannot use the automated update workflow without a locally created comparison baseline.</p>
+</section>
+<section id="link-an-already-prepared-public-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="link-an-already-prepared-public-dataset">Link an already prepared public dataset</h3>
+<p>Select that dataset, choose the exact <strong>Frozen in-house source</strong>, describe the preparation method and choose <strong>Link this existing public draft to source</strong>. This records provenance for files you have already prepared. It does not generate files or a metadata comparison baseline. The public record must have a different UUID from its source. Manually changing a source link clears any saved comparison baseline; use the guided update for editions created with this workflow.</p>
+<p>An edition cannot be switched between in-house and public, and an existing public edition cannot move to a different family. Restoring a public release restores the source link and method captured with that version. If a snapshot predates edition designation, the edition identity is retained; for a public edition its source link is cleared, so link the correct source before reviewing and freezing again. Portable transfer preserves family and source UUIDs even when the source dataset is absent from the receiving pond.</p>
+</section>
+<section id="track-which-public-version-was-distributed" class="level3">
+<h3 class="anchored" data-anchor-id="track-which-public-version-was-distributed">Track which public version was distributed</h3>
+<p>Distribute the reviewed public package through your usual authorised publishing process. Then select its <strong>Frozen public release</strong>, record the <strong>Publication location or URL</strong> and note, and choose <strong>Record as currently published</strong>. This records distribution already carried out; it does not upload files or grant distribution permission.</p>
+<p>Pond overview also labels editions and their published version. The family table shows each edition’s <strong>Latest frozen version</strong>, the <strong>Currently published version</strong>, and the working public edition’s <strong>In-house source version</strong> independently. Freezing a newer public version does not change the published pointer. Recording a replacement updates that pointer and retains the publication history. After withdrawing the current release externally, choose <strong>Record withdrawal</strong>. This does not remove remote copies. The currently published ZIP is protected from stale-release removal until a replacement or withdrawal is recorded.</p>
+<p>Publication records are local to the pond and are not transferred or rolled back when a draft is restored. The public frozen metadata and portable transfer database omit local review/import history, application accounts, internal-field policies and private comparison baselines; the private restoration snapshot retains them. Explicit public author/contact records and selected supporting documents still accompany the public package, so inspect them before distribution.</p>
+<p>If public-draft creation is interrupted, select the in-house source dataset and use <strong>Recover interrupted lifecycle operation</strong>. A committed public record is retained; an unregistered draft is preserved privately for inspection. For an interrupted update, select the public dataset and use the same recovery control. Backups should include <code>.metadata_pond/edition-drafts/</code> and <code>.metadata_pond/releases/operations/</code> with the rest of <code>.metadata_pond/</code>.</p>
+</section>
 </section>
 <section id="prepare-the-dataset-for-freezing" class="level2">
 <h2 class="anchored" data-anchor-id="prepare-the-dataset-for-freezing">Prepare the dataset for freezing</h2>
-<p>Save a meaningful version in <code>major.minor.patch</code> form (for example <code>1.0.0</code>) and a citation. Finish or cancel an active metadata review. Prepare <code>metadata.pdf</code> through <strong>Dataset status → Human-readable metadata → Save PDF to dataset folder &amp; download</strong>. Open the PDF, inspect the complete dataset folder, and check what an external recipient will receive.</p>
+<p>Save a meaningful version in <code>major.minor.patch</code> form (for example <code>1.0.0</code>) and a citation. Finish or cancel an active metadata review. Under <strong>Dataset status → Human-readable metadata</strong>, choose <strong>Save PDF to dataset folder</strong>. Open <code>metadata.pdf</code> from the dataset folder, or first select <strong>Also download the PDF for preview</strong> for a browser copy. Inspect the complete dataset folder and check what an external recipient will receive.</p>
+<p>Before preparing that PDF, select <strong>Essential</strong> or <strong>Full</strong> in Configuration and complete all required sections in Dataset status for that mode. A reviewer must save the latest metadata review with status <strong>Approved</strong>. Approval applies to the saved metadata: later changes require fresh approval. Older approvals without a saved approval snapshot also need a new review before a new freeze. Preparing a PDF or ticking the folder-review confirmation does not replace metadata approval.</p>
 <div class="guide-checklist" role="group" aria-label="Release preparation checklist">
 <strong>Before freezing a version</strong>
 <label><input type="checkbox" data-check="release-saved">Metadata, version and citation are saved.</label>
+<label><input type="checkbox" data-check="release-approved">Metadata is complete in the selected mode and a reviewer has approved the saved metadata.</label>
 <label><input type="checkbox" data-check="release-methods">Methods, inputs, outputs and quality limitations are documented.</label>
 <label><input type="checkbox" data-check="release-pdf">I regenerated and opened the current metadata PDF.</label>
 <label><input type="checkbox" data-check="release-files">The folder contains the intended files and no unwanted temporary material.</label>
@@ -7801,12 +7860,13 @@ Custom software locations
 </div>
 </div>
 <ol type="1">
-<li>Choose <strong>Preview saved dataset</strong>. Review the file list and checks. Unsafe paths, symbolic links, case-colliding names or stale/changed prepared documents stop the operation.</li>
+<li>Choose <strong>Preview saved dataset</strong>. Review the displayed Essential or Full assessment, reviewer, file list and checks. Incomplete metadata, missing or stale approval, unsafe paths, symbolic links, case-colliding names or stale/changed prepared documents stop the operation. Switching assessment modes clears the preview.</li>
 <li>Confirm in the app that you opened the PDF and reviewed the previewed folder, and enter release notes.</li>
 <li>Choose <strong>Freeze version; keep working copy</strong> to continue developing, or <strong>Freeze version and close development</strong> to retire the working folder after verification.</li>
 <li>Select the new release and verify it. A frozen version cannot be overwritten; save a different version before making the next release.</li>
 </ol>
 <p>Choose an ISO validation policy only when that release requires an ISO package. A requested ISO export failure stops the freeze. For an already frozen matching draft, <strong>Close development using selected release</strong> avoids making another release and checks that its metadata and files still match.</p>
+<p>Both freeze choices recheck completeness and approval. The release manifest records the assessment mode and reviewer. Pond overview identifies frozen versions without reporting metadata completeness; a retained working copy stays identified as frozen while its saved metadata matches. Later edits are development work and do not change the frozen release. Existing frozen releases remain intact.</p>
 </section>
 <section id="distribute-the-release" class="level2">
 <h2 class="anchored" data-anchor-id="distribute-the-release">Distribute the release</h2>
@@ -7816,8 +7876,9 @@ Custom software locations
   files.json
   checksums.sha256</code></pre>
 <p>Keep the three sidecars with the ZIP when distributing outside DataPond. The app’s ZIP download currently downloads the ZIP alone; collect the sidecars from the release folder as well.</p>
-<p>The ZIP preserves the dataset in <code>dataset/</code>, plus public metadata, <code>metadata.pdf</code>, its QMD source and portable theme, <code>citation.txt</code>, <code>README.txt</code> and a licence summary. Root QMD/Rmd development documents are acknowledged and preserved without execution. Read the recorded rights before sending the files: a successful freeze is not a distribution approval.</p>
-<p>Private metadata snapshots remain inside <code>.metadata_pond/</code>. Back them up with the catalogue and archive; the public ZIP alone is not all the state needed for in-app restoration. Checksums detect changed files but do not prevent someone modifying them outside the app.</p>
+<p>The ZIP preserves the dataset in <code>dataset/</code>, plus a portable dataset metadata database, <code>metadata.pdf</code>, its QMD source and portable theme, <code>citation.txt</code>, <code>README.txt</code> and a licence summary. The metadata database includes referenced contacts. In-house and unclassified editions also include review history; public editions omit local review/import history and application accounts. Root QMD/Rmd development documents are acknowledged and preserved without execution. Read the recorded rights before sending the files: a successful freeze is not a distribution approval.</p>
+<p>To import a new frozen release into another pond, select its <code>dataset.zip</code> under <strong>Portable dataset transfer → Import dataset</strong> in the receiving pond. The dataset UUID, version, files and metadata are retained, with paths and linked records adapted to that pond. The release UUID is recorded as the import bundle ID. An existing dataset with the same UUID will not be overwritten. This creates a working dataset record; the original pond’s release history stays there.</p>
+<p>Private metadata snapshots remain inside <code>.metadata_pond/</code> for restoring releases in the original pond. Back them up with the catalogue and archive. Earlier frozen ZIPs without a transfer database still use that original restore workflow. Checksums detect changed files but do not prevent someone modifying them outside the app.</p>
 </section>
 <section id="restore-an-older-release-or-roll-back-a-draft" class="level2">
 <h2 class="anchored" data-anchor-id="restore-an-older-release-or-roll-back-a-draft">Restore an older release or roll back a draft</h2>
@@ -7848,6 +7909,13 @@ Custom software locations
 </div>
 </div>
 <p>Restoration can stop when shared people, organisation, licence or vocabulary references have changed. Resolve the reported differences with the curator; do not overwrite shared definitions merely to force the restore.</p>
+</section>
+<section id="remove-stale-release-zips" class="level2">
+<h2 class="anchored" data-anchor-id="remove-stale-release-zips">Remove stale release ZIPs</h2>
+<p>To reclaim space, a pond administrator can select an older release in <strong>Release history</strong>, enter a reason in <strong>Release notes / reason for the operation</strong>, and choose <strong>Remove selected stale release ZIP…</strong>. The preview shows the version being removed, the space it occupies and the version that will remain. Read the preview, tick the permanent-removal confirmation, then choose <strong>Permanently remove this ZIP</strong>.</p>
+<p>This removes the ZIP and keeps its metadata, checksums and history. The history row shows <code>removed</code>; that version can no longer be downloaded or restored from this pond, and its version number cannot be reused. The newest frozen release is protected. A release backing the current archived dataset, or needed by a working-draft recovery checkpoint, is also protected. Checkpoints and other releases are not deleted automatically.</p>
+<p>Removal affects local storage. If you upload with <code>rclone copy</code>, the SharePoint copy stays there. A suitably scoped <code>rclone sync</code> can propagate the deletion; inspect its <code>--dry-run</code> first. SharePoint retention or recycle-bin policies may delay storage reclamation. Existing consumer caches are independent copies.</p>
+<p>If removal is interrupted, the row may show <code>removing</code>. Use <strong>Recover interrupted lifecycle operation</strong> as a pond administrator to finish it before another lifecycle action. The operation keeps an audit record of who removed the ZIP, when and why.</p>
 </section>
 <section id="recover-an-interrupted-operation" class="level2">
 <h2 class="anchored" data-anchor-id="recover-an-interrupted-operation">Recover an interrupted operation</h2>

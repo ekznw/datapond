@@ -66,3 +66,9 @@ datapond_summary_table <- function(data) {
       dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE, info = FALSE
     ))
 }
+
+table_editor_selected_row <- function(selected, n) {
+  if (length(selected) != 1L || !is.numeric(selected) || !is.finite(selected) ||
+      selected < 1L || selected > n || selected != floor(selected)) return(integer())
+  as.integer(selected)
+}

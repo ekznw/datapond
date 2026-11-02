@@ -28,7 +28,7 @@ def safe_name(name):
     return name
 
 
-def inventory(root):
+def inventory(root, hash_files=True):
     root = Path(root)
     if root.is_symlink() or not root.is_dir():
         raise ValueError("Dataset must be a real directory")
@@ -43,15 +43,17 @@ def inventory(root):
                 raise ValueError("Paths differ only by case: " + rel)
             names.add(rel.casefold())
             if path.is_file():
-                with path.open("rb") as f:
-                    value = digest(f)
+                value = None
+                if hash_files:
+                    with path.open("rb") as f:
+                        value = digest(f)
                 files.append(dict(path=rel, size=path.stat().st_size, sha256=value))
             elif not path.is_dir():
                 raise ValueError("Unsupported file type: " + rel)
     return sorted(files, key=lambda x: x["path"])
 
 
-def check_archive(archive, manifest, output=None):
+def check_archive(archive, manifest, output=None, members=None):
     expected = {safe_name(f["path"]): f for f in manifest}
     if len(expected) != len(manifest) or len({p.casefold() for p in expected}) != len(expected):
         raise ValueError("Duplicate manifest paths")
@@ -69,6 +71,13 @@ def check_archive(archive, manifest, output=None):
                 raise ValueError("Unsupported ZIP member: " + i.filename)
             if i.file_size != expected[i.filename]["size"]:
                 raise ValueError("ZIP size mismatch: " + i.filename)
+        if members is not None:
+            if (not isinstance(members, list) or not members
+                    or any(not isinstance(n, str) for n in members)
+                    or len(set(members)) != len(members)
+                    or not set(members).issubset(expected)):
+                raise ValueError("Invalid selected archive members")
+            entries = [i for i in entries if i.filename in set(members)]
         if output:
             output = Path(output)
             if output.exists():
@@ -103,13 +112,14 @@ def check_archive(archive, manifest, output=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("action", choices=["inventory", "space", "pack", "verify", "extract"])
+    p.add_argument("action", choices=["inventory", "list", "space", "pack", "verify", "extract", "extract-selected"])
     p.add_argument("source")
     p.add_argument("manifest")
     p.add_argument("--output")
+    p.add_argument("--members")
     args = p.parse_args()
-    if args.action == "inventory":
-        Path(args.manifest).write_text(json.dumps(inventory(args.source), indent=2), encoding="utf-8")
+    if args.action in ("inventory", "list"):
+        Path(args.manifest).write_text(json.dumps(inventory(args.source, hash_files=args.action == "inventory"), indent=2), encoding="utf-8")
         return
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     if args.action == "space":
@@ -126,6 +136,11 @@ def main():
             for row in manifest:
                 z.write(Path(args.source) / row["path"], row["path"])
         check_archive(args.output, manifest)
+    elif args.action == "extract-selected":
+        if not args.output or not args.members:
+            p.error("extract-selected requires --output and --members")
+        members = json.loads(Path(args.members).read_text(encoding="utf-8"))
+        check_archive(args.source, manifest, args.output, members)
     else:
         check_archive(args.source, manifest, args.output if args.action == "extract" else None)
 

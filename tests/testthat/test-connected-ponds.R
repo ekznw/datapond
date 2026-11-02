@@ -320,7 +320,7 @@ test_that("main overview lists remote caches and opens them in Flow without swit
     session$setInputs(pond_dataset_search = "absent title")
     session$elapse(300)
     expect_equal(nrow(overview_inventory_data()), 0L)
-    session$setInputs(pond_dataset_search = "Team pond")
+    session$setInputs(pond_inventory_search = "Team pond")
     session$elapse(300)
     expect_equal(nrow(overview_inventory_data()), 1L)
     expect_null(overview_selected_connection())

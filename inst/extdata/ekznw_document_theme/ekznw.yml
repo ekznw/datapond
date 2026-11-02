@@ -1,5 +1,7 @@
 # Paths are relative to the document folder containing the copied theme.
 # Reuse in data_dev*.qmd with: metadata-files: [ekznw-theme/ekznw.yml]
+filters:
+  - ekznw-theme/wrap-code.lua
 format:
   pdf:
     pdf-engine: xelatex
@@ -15,14 +17,15 @@ format:
       - left=21mm
       - right=21mm
     colorlinks: true
-    linkcolor: "#554838"
-    urlcolor: "#554838"
+    linkcolor: ekznwBrown
+    urlcolor: ekznwBrown
     number-sections: false
     toc: false
     keep-tex: false
     latex-auto-install: false
     include-in-header: ekznw-theme/pdf-header.tex
   html:
+    code-overflow: wrap
     embed-resources: true
     theme: ekznw-theme/style/_ekznw_theme.scss
     css: ekznw-theme/style/default_overrides.css

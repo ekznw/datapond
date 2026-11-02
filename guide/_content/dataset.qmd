@@ -37,12 +37,14 @@ To profile attributes, open **Configuration → Attribute profiling**, select **
 
 Save edits before generating reports, validating exports or freezing a version. Use **Dataset status** to inspect outstanding metadata work. Add the detailed methods through [Lineage and development reports](lineage.qmd).
 
+Use **Dataset guide → Sync development report** to copy selected title, dataset version, abstract and purpose fields between saved dataset metadata and a `data_dev*.qmd` or `.docx` report in the dataset root. Choose the report and direction, select fields, then **Preview changes → Apply preview**. Empty source fields are skipped. Exports update the cover and a marked **Dataset metadata** section and keep a hidden `.bak` copy beside the report. Imports read that section into the dataset form; review the values and use **Save dataset** with an update reason. Export once to initialise the section in an existing report before importing from it. UUID identifies the dataset and is never imported; report version and methods stay independent. Sync requires an unlocked draft and an active user, and is unavailable during an active metadata review.
+
 ## Use a shared organisation email as the contact
 
 A generic or shared mailbox, such as `data.requests@example.org`, belongs in the organisation's **Contact email** field. Do not create a fictitious person called "Data Requests" to hold the address.
 
 1. Under **Organisations → Add / edit organisation**, select the organisation, enter its **Contact email**, and choose **Update selected organisation**. For a new record, complete the required organisation fields and choose **Add as new organisation**.
-2. In **Dataset Intro → Owning Organisation(s)**, select the organisation, choose its appropriate role and click **Add** if it is not already listed. The point-of-contact organisation choices come from this list.
+2. In **Dataset Intro → Owning Organisation(s)**, select the organisation, choose its appropriate role and click **Add organisation** if that organisation-role link is not already listed. Select a table row and choose **Remove selected** to remove that link from the dataset; the pond directory entry is retained. Add the organisation again with a different role when needed. The point-of-contact organisation choices come from this list.
 3. Under **Point of Contact**, leave **Select Contact Person** set to **No individual contact**, select the **Point of contact organisation**, choose the appropriate **Role** (for example, **Distributor** when the organisation provides access or copies), and click **Add POC**.
 4. Choose **Save dataset** before generating metadata or exporting it.
 
@@ -50,7 +52,7 @@ The shared mailbox is then associated with the organisation and included in its 
 
 ## Check the human-readable metadata
 
-In **Dataset status → Human-readable metadata**, choose **Save PDF to dataset folder & download**. This writes `metadata.pdf` and `citation.txt` at the dataset root and downloads the same PDF. Open it and check the identity, version, description, contacts, rights, lineage and any missing information.
+In **Dataset status → Human-readable metadata**, choose **Save PDF to dataset folder**. This writes `metadata.pdf` and `citation.txt` at the dataset root. Select **Also download the PDF for preview** first when you want a browser copy, then open it and check the identity, version, description, contacts, rights, lineage and any missing information.
 
 Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.
 

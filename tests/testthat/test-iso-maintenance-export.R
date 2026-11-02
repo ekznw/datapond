@@ -43,14 +43,51 @@ test_that("maintenance exports preserve event values and contact ownership acros
       expect_match(notes[2], "Reason: Correct citation\nSummary: Added source references", fixed = TRUE)
       expect_match(notes[4], "Recorded reviewer role: Senior ecologist", fixed = TRUE)
       expect_identical(core_xpath_text(maintenance, "mmi:contact//cit:CI_Individual/cit:name/*"), c("Maya", "Former Reviewer", "Maya"))
-      expect_identical(core_xpath_text(maintenance, "mmi:contact//cit:role/*"), c("custodian", "pointOfContact"))
-      expect_length(xml2::xml_find_all(maintenance, "mmi:contact//cit:role[@gco:nilReason='unknown']", ns), 1L)
+      expect_identical(core_xpath_text(maintenance, "mmi:contact//cit:role/*"),
+        c("custodian", "editor", "pointOfContact"))
+      expect_length(xml2::xml_find_all(maintenance, "mmi:contact//cit:role[@gco:nilReason='unknown']", ns), 0L)
       expect_identical(core_xpath_text(maintenance, "mmi:contact//cit:electronicMailAddress/*"), rep("maya@example.test", 2))
       expect_length(xml2::xml_find_all(xml, "//mri:citation//cit:citedResponsibleParty", ns), 0L)
       expect_false(grepl("STALE NAME|PRIVATE REVIEW NOTE|INTERNAL SOURCE|INTERNAL VERSION|needs_attention|metadata_correction|2020-01-01", as.character(xml)))
     }
     unlink(f$path, recursive = TRUE)
   }
+})
+
+test_that("metadata reviewers without a narrower recorded role export as editors", {
+  core_validation_engine()
+  f <- maintenance_fixture(); on.exit(unlink(f$path, recursive = TRUE), add = TRUE)
+  conn <- datapond:::get_conn(f$path); on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  DBI::dbExecute(conn, "DELETE FROM metadata_review_tbl WHERE id > 1")
+  DBI::dbExecute(conn, "UPDATE metadata_review_tbl SET reviewer_role = NULL WHERE id = 1")
+
+  a <- datapond:::assess_iso_metadata_export(1, f$path, sections = "core")
+  expect_true(a$validation$valid)
+  expect_identical(core_xpath_text(a$document,
+    "//mdb:metadataMaintenance//mmi:contact//cit:role/*"), "editor")
+  expect_length(xml2::xml_find_all(a$document,
+    "//mdb:metadataMaintenance//mmi:contact//cit:role[@gco:nilReason='unknown']",
+    xml2::xml_ns(a$document)), 0L)
+})
+
+test_that("new metadata reviews retain their generated instant in UTC", {
+  f <- maintenance_fixture(); on.exit(unlink(f$path, recursive = TRUE), add = TRUE)
+  conn <- datapond:::get_conn(f$path); on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  DBI::dbExecute(conn, "DELETE FROM metadata_review_tbl")
+  DBI::dbExecute(conn,
+    "UPDATE entry_tbl SET metadata_creation_date = '2020-01-01T00:00:00Z' WHERE id = 1")
+
+  datapond:::insert_metadata_review(
+    dataset_id = 1, base_path = f$path, reviewer_name = "Review Editor",
+    update_reason = "Checked the metadata record."
+  )
+  timestamp <- DBI::dbGetQuery(conn,
+    "SELECT review_timestamp FROM metadata_review_tbl WHERE dataset_id = 1")$review_timestamp
+  expect_match(timestamp, "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
+
+  core_validation_engine()
+  a <- datapond:::assess_iso_metadata_export(1, f$path, sections = "core")
+  expect_false(any(grepl("zoned and unzoned", a$semantics$warnings$reason)))
 })
 
 test_that("unknown resource values retain text and blank values do not invent status", {

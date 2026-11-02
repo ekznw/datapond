@@ -114,6 +114,48 @@ test_that("older records arriving after a completed startup are still migrated",
   expect_identical(DBI::dbGetQuery(conn, "SELECT description FROM dataset_lineage_source_tbl WHERE dataset_id = 2")$description, "Late source")
 })
 
+test_that("legacy review wall times are converted once from South African time to UTC", {
+  pond <- legacy_patch_fixture()
+  on.exit(unlink(pond, recursive = TRUE))
+  conn <- datapond:::get_conn(pond)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE, after = FALSE)
+  DBI::dbExecute(conn, "INSERT INTO metadata_review_tbl
+    (dataset_id, review_timestamp, review_date, update_type)
+    VALUES (1, '2026-10-28 15:49:21', '2026-10-28', 'routine_review')")
+  DBI::dbExecute(conn, "INSERT INTO metadata_review_tbl
+    (dataset_id, review_timestamp, review_date, update_type)
+    VALUES (1, '2026-10-28T13:49:21Z', '2026-10-28', 'metadata_revision')")
+
+  expect_true(datapond:::init_db(pond))
+  rows <- DBI::dbGetQuery(conn, "SELECT review_timestamp,
+    legacy_review_timezone_v1_migrated_at, legacy_review_timezone_v1_source_zone
+    FROM metadata_review_tbl ORDER BY id")
+  expect_identical(rows$review_timestamp,
+    c("2026-10-28T13:49:21Z", "2026-10-28T13:49:21Z"))
+  expect_true(all(!is.na(rows$legacy_review_timezone_v1_migrated_at)))
+  expect_identical(rows$legacy_review_timezone_v1_source_zone,
+    c("Africa/Johannesburg", "recorded"))
+
+  first <- rows
+  expect_true(datapond:::init_db(pond))
+  expect_identical(DBI::dbGetQuery(conn, "SELECT review_timestamp,
+    legacy_review_timezone_v1_migrated_at, legacy_review_timezone_v1_source_zone
+    FROM metadata_review_tbl ORDER BY id"), first)
+})
+
+test_that("an uninterpretable legacy review timestamp rolls back its migration", {
+  pond <- legacy_patch_fixture()
+  on.exit(unlink(pond, recursive = TRUE))
+  conn <- datapond:::get_conn(pond)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE, after = FALSE)
+  DBI::dbExecute(conn, "INSERT INTO metadata_review_tbl
+    (dataset_id, review_timestamp) VALUES (1, 'not-a-timestamp')")
+  expect_error(datapond:::init_db(pond), "cannot interpret metadata_review_tbl row")
+  row <- DBI::dbReadTable(conn, "metadata_review_tbl")
+  expect_identical(row$review_timestamp, "not-a-timestamp")
+  expect_true(is.na(row$legacy_review_timezone_v1_migrated_at))
+})
+
 test_that("existing structured metadata wins over old snapshots on first upgrade", {
   pond <- legacy_patch_fixture()
   on.exit(unlink(pond, recursive = TRUE))

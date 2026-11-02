@@ -9,6 +9,7 @@ mod_supporting_documents_ui <- function(id) {
       "Supporting documents are optional unless chosen as the authoritative lineage source; select those documents in Lineage."
     ),
     br(),
+    missing_file_cleanup_ui(ns("missing_files")),
     actionButton(
       ns("scan_docs"),
       "Scan supporting documents",
@@ -47,6 +48,8 @@ mod_supporting_documents_ui <- function(id) {
 
 mod_supporting_documents_server <- function(id, state) {
   moduleServer(id, function(input, output, session) {
+
+    missing_file_cleanup_server("missing_files", state)
 
     scan_summary <- reactiveVal(NULL)
 

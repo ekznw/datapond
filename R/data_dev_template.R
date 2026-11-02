@@ -9,7 +9,7 @@ data_dev_template_names <- function(format = "docx", project = "") {
   list(document = paste0(stem, ".", format), theme = paste0(stem, "_theme"))
 }
 
-add_dataset_data_dev_template <- function(dataset_id, base_path, user_id, format = "docx", project = "") {
+add_dataset_data_dev_template <- function(dataset_id, base_path, user_id, format = "docx", project = "", populate = FALSE) {
   names <- data_dev_template_names(format, project)
   if (length(dataset_id) != 1L || is.na(dataset_id) || !metadata_present(base_path))
     stop("Select and save a dataset before adding a template.", call. = FALSE)
@@ -57,6 +57,12 @@ add_dataset_data_dev_template <- function(dataset_id, base_path, user_id, format
       writeLines(gsub("ekznw-theme/", paste0(names$theme, "/"), lines, fixed = TRUE), path, useBytes = TRUE)
     }
   }
+  if (isTRUE(populate)) {
+    staged <- file.path(stage, names$document)
+    populated <- file.path(stage, paste0("populated.", format))
+    data_dev_sync_document(staged, data_dev_sync_values(record), populated)
+    if (!file.copy(populated, staged, overwrite = TRUE)) stop("Could not populate the template.")
+  }
   published <- character()
   committed <- FALSE
   on.exit(if (!committed) unlink(published, recursive = TRUE), add = TRUE)
@@ -102,10 +108,11 @@ mod_data_dev_template_ui <- function(id) {
         "Quarto \u2014 render to PDF, Word and HTML" = "qmd"), selected = "docx"),
     shiny::textInput(ns("project"), "Project short name (optional)", placeholder = "e.g. pisr or pu"),
     shiny::textOutput(ns("destination")),
+    shiny::checkboxInput(ns("populate"), "Populate title, dataset version, abstract and purpose from saved metadata", value = FALSE),
     shiny::p(class = "help-block", "Use an unlocked draft in src/ or dev/. Existing files are never replaced. Quarto includes portable styles; adding either template requires no rendering software."),
     shiny::actionButton(ns("add"), "Add template to dataset folder", class = "datapond-requires-active-user"),
     shiny::textOutput(ns("result")),
-    shiny::p(class = "help-block", "The report is registered under Supporting documents. After writing it, select it as the authoritative document and save your lineage summary. Word and Quarto copies do not synchronise automatically.")
+    shiny::p(class = "help-block", "The report is registered under Supporting documents. After writing it, select it as the authoritative document and save your lineage summary. Use Sync development report in the Dataset guide to copy selected metadata in either direction. Sync is always explicit; Word and Quarto copies remain independent.")
   )
 }
 
@@ -128,7 +135,7 @@ mod_data_dev_template_server <- function(id, state) {
       result("")
       tryCatch({
         path <- add_dataset_data_dev_template(state$current_dataset_id, state$data_pond,
-          state$active_user_id, input$format %||% "docx", input$project %||% "")
+          state$active_user_id, input$format %||% "docx", input$project %||% "", isTRUE(input$populate))
         state$refresh_supporting_docs <- (state$refresh_supporting_docs %||% 0L) + 1L
         result(paste("Created:", path))
         shiny::showNotification("Template added and registered under Supporting documents.", type = "message")
