@@ -1,0 +1,84 @@
+.datapond-table-options svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+div.dt-buttons .dt-button.datapond-table-options {
+  background: var(--dp-raised, #F1E9DA);
+  color: var(--dp-text, #302F2C);
+  border-color: var(--dp-border, #C6B797);
+  box-shadow: none;
+}
+div.dt-buttons .dt-button.datapond-table-options:not(.disabled):hover,
+div.dt-buttons .dt-button.datapond-table-options:focus-visible,
+div.dt-buttons .dt-button.datapond-table-options[aria-expanded="true"] {
+  background: var(--dp-selected, #E7EEE3);
+  color: var(--dp-text, #302F2C);
+  border-color: var(--dp-active-border, #87966C);
+  box-shadow: none;
+}
+div.dt-button-collection.datapond-table-menu {
+  background: var(--dp-surface, #F8F6F0);
+  color: var(--dp-text, #302F2C);
+  border: 1px solid var(--dp-border, #C6B797);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+div.dt-button-collection.datapond-table-menu .dt-button {
+  background: transparent;
+  color: var(--dp-text, #302F2C);
+  border: 0;
+  box-shadow: none;
+  text-align: left;
+}
+div.dt-button-collection.datapond-table-menu .dt-button:not(.disabled):hover,
+div.dt-button-collection.datapond-table-menu .dt-button:not(.disabled):focus-visible {
+  background: var(--dp-raised, #E7EEE3);
+  color: var(--dp-text, #302F2C);
+  box-shadow: none;
+}
+div.dt-button-collection.datapond-table-menu .dt-button:focus-visible,
+div.dt-buttons .dt-button.datapond-table-options:focus-visible {
+  outline: 2px solid var(--dp-focus, #526657);
+  outline-offset: -2px;
+}
+
+.datapond-table-dialog {
+  width: min(600px, 90vw);
+  max-height: 80vh;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--dp-box-border, #D3CEC4);
+  border-radius: 6px;
+  background: var(--dp-surface, #F8F6F0);
+  color: var(--dp-text, #302F2C);
+}
+.datapond-table-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+.datapond-table-dialog h4 { margin: 0 0 12px; }
+.datapond-table-dialog p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.datapond-table-dialog label { display: block; margin: 10px 0; }
+.datapond-table-dialog select { display: block; width: 100%; }
+.datapond-table-dialog input[type="range"] { display: block; width: 100%; }
+.datapond-table-dialog form { margin-top: 16px; }
+.datapond-table-columns label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: normal;
+}
+.datapond-table-columns input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  accent-color: var(--dp-accent, #526657);
+}
+
+
+.datapond-table-viewport { clear: both; width: 100%; max-width: 100%; overflow-x: auto; }
+.datapond-table-tools { max-width: 100%; }
+.datapond-table-cell-content { white-space: normal; overflow-wrap: anywhere; }
+.datapond-table-dialog .datapond-table-width-help { font-size: 13px; }
+.datapond-table-dialog input[type="range"] { accent-color: var(--dp-accent, #526657); }
+.datapond-table-dialog .btn { background: var(--dp-raised, #F1E9DA); color: var(--dp-text, #302F2C); border-color: var(--dp-border, #C6B797); }
+.datapond-table-dialog .btn:hover { background: var(--dp-selected, #E7EEE3); }
+.datapond-table-dialog select { background: var(--dp-bg, #fff); color: var(--dp-text, #302F2C); border-color: var(--dp-border, #C6B797); }

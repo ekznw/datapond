@@ -1011,14 +1011,19 @@ list_supporting_document_files <- function(dataset_path) {
     mustWork = FALSE,
     winslash = "/"
   )
-  rel_path <- sub(
-    paste0("^", gsub("([\\W])", "\\\\\\1", dataset_path), "/?"),
-    "",
+  # Treat the dataset root as a literal path, including capitals and regex
+  # metacharacters. Regex escaping here previously broke paths containing W.
+  prefix <- paste0(sub("/+$", "", dataset_path), "/")
+  rel_path <- ifelse(
+    startsWith(all_files, prefix),
+    substring(all_files, nchar(prefix) + 1L),
     all_files
   )
   in_data <- grepl("^data/", rel_path, ignore.case = TRUE)
   ext <- tolower(tools::file_ext(all_files))
-  keep <- !in_data & ext %in% supporting_document_exts
+  # The bundled Word style reference is an asset, not a methods document.
+  template_style <- grepl("^data_dev(_[A-Za-z0-9_-]+)?_theme/reference\\.docx$", rel_path)
+  keep <- !in_data & !template_style & ext %in% supporting_document_exts
   if (!any(keep)) {
     return(data.table(
       message = "No supporting documents detected outside the data folder."

@@ -1,0 +1,5 @@
+---
+title: "Troubleshooting"
+---
+
+{{< include _content/troubleshooting.qmd >}}

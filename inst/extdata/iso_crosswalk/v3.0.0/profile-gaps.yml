@@ -1,0 +1,6 @@
+gaps:
+  - id: GAP-018
+    priority: high
+    iso_target: 'ISO 19115-3 XML instance validation'
+    issue: No serializer or XSD/Schematron conformance test currently consumes this crosswalk.
+    recommendation: Build XML exports for vector, raster, and nonspatial fixtures and validate them against the official ISO/TC 211 schemas and Schematron rules.

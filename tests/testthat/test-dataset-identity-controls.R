@@ -350,6 +350,15 @@ test_that("role and data-type guidance is exposed in the UI", {
     "not app permissions",
     fixed = TRUE
   )
+  expect_identical(
+    unname(datapond:::point_of_contact_role_choices()),
+    c("author", "owner", "custodian", "publisher", "distributor")
+  )
+  expect_match(
+    names(datapond:::point_of_contact_role_choices())[1],
+    "created or contributed",
+    fixed = TRUE
+  )
 
   data_files_html <- as.character(datapond:::mod_data_files_ui("files"))
   expect_match(data_files_html, "original data", fixed = TRUE)
@@ -357,4 +366,5 @@ test_that("role and data-type guidance is exposed in the UI", {
 
   poc_html <- as.character(datapond:::mod_poc_ui("poc"))
   expect_match(poc_html, "Point of contact organisation", fixed = TRUE)
+  expect_match(poc_html, "Author", fixed = TRUE)
 })

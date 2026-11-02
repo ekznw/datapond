@@ -1,0 +1,704 @@
+[
+  {
+    "source_database": "/home/paulg/dta_scp/metadata.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-01",
+    "records": 16,
+    "source_sha256_before": [
+      "df2688d42cda890c4aa2c084ca3a109509cf8615634011e93f16043ed8d0f882",
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ],
+    "source_sha256_after": [
+      "df2688d42cda890c4aa2c084ca3a109509cf8615634011e93f16043ed8d0f882",
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ],
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 16
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 16
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 59
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 16
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 4
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 16,
+      "dataset_online_resource_tbl": 2,
+      "dataset_temporal_extent_tbl": 14,
+      "organisation_tbl": 59,
+      "party_address_tbl": 58,
+      "dataset_license_tbl": 16,
+      "dataset_lineage_tbl": 4,
+      "dataset_lineage_source_tbl": 1,
+      "dataset_lineage_process_step_tbl": 0
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/metadata.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-02",
+    "records": 66,
+    "source_sha256_before": "a1a3df26447f90be9c742e961059171c5f982bee272e9b749fbc298faa202750",
+    "source_sha256_after": "a1a3df26447f90be9c742e961059171c5f982bee272e9b749fbc298faa202750",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 66
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 66
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 57
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 61
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 97,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 57,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 61,
+      "dataset_lineage_tbl": 66,
+      "dataset_lineage_source_tbl": 67,
+      "dataset_lineage_process_step_tbl": 68
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-arc-soils-update-20261016T122906.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-03",
+    "records": 2,
+    "source_sha256_before": "eee839664bb49e64ed39173c751cec2ba95c29e778999af67361cec7c0fcc13c",
+    "source_sha256_after": "eee839664bb49e64ed39173c751cec2ba95c29e778999af67361cec7c0fcc13c",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 48
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 1
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 2
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 2,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 48,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 1,
+      "dataset_lineage_tbl": 2,
+      "dataset_lineage_source_tbl": 3,
+      "dataset_lineage_process_step_tbl": 3
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-marine-cba-20261016T123846.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-04",
+    "records": 2,
+    "source_sha256_before": "7ed6dc3c36ffd42f9891744cf7058cb8afc565b85ea318525713563ea6f80ceb",
+    "source_sha256_after": "7ed6dc3c36ffd42f9891744cf7058cb8afc565b85ea318525713563ea6f80ceb",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 48
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 2
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 2,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 48,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 2,
+      "dataset_lineage_tbl": 2,
+      "dataset_lineage_source_tbl": 3,
+      "dataset_lineage_process_step_tbl": 4
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-remaining-datasets-20261016T125151.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-05",
+    "records": 3,
+    "source_sha256_before": "ffeddc80468a97f1fb7fa28a38ecef383eb70eec2b81c24f10c556734b325f0f",
+    "source_sha256_after": "ffeddc80468a97f1fb7fa28a38ecef383eb70eec2b81c24f10c556734b325f0f",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 3
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 3
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 50
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 2
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 3
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 3,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 50,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 2,
+      "dataset_lineage_tbl": 3,
+      "dataset_lineage_source_tbl": 4,
+      "dataset_lineage_process_step_tbl": 5
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-soils-earthworms-20261016T120925.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-06",
+    "records": 0,
+    "source_sha256_before": "e1de676e0e63b90643f8bb6875d9cc6096a485c38083e7a81a487e42946978c8",
+    "source_sha256_after": "e1de676e0e63b90643f8bb6875d9cc6096a485c38083e7a81a487e42946978c8",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 46
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 0,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 46,
+      "party_address_tbl": 46,
+      "dataset_license_tbl": 0,
+      "dataset_lineage_tbl": 0,
+      "dataset_lineage_source_tbl": 0,
+      "dataset_lineage_process_step_tbl": 0
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-storage-cleanup-20261016T131054.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-07",
+    "records": 11,
+    "source_sha256_before": "92e9a5326bfe49213f4ab0545c81dd165582341cf9c5dda92d88336ac292029e",
+    "source_sha256_after": "92e9a5326bfe49213f4ab0545c81dd165582341cf9c5dda92d88336ac292029e",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 11
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 11
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 51
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 8
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 11
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 11,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 51,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 8,
+      "dataset_lineage_tbl": 11,
+      "dataset_lineage_source_tbl": 12,
+      "dataset_lineage_process_step_tbl": 13
+    }
+  },
+  {
+    "source_database": "/mnt/pjg_dta/bspi_data/bspi_xdrive/.metadata_pond/intake_backups/before-temp2-20261016T135851.db",
+    "copy": "/tmp/datapond-startup-v1-rehearsal/copy-08",
+    "records": 11,
+    "source_sha256_before": "fe4617e4cddf8010a237543e34f8419745ce711150617467d738be7d465a1e25",
+    "source_sha256_after": "fe4617e4cddf8010a237543e34f8419745ce711150617467d738be7d465a1e25",
+    "source_unchanged": true,
+    "source_fields_preserved": true,
+    "existing_populated_rights_preserved": true,
+    "people_and_users_preserved": true,
+    "before": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 11
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 11
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 51
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 8
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 11
+      }
+    ],
+    "after": [
+      {
+        "patch": "legacy-v1",
+        "component": "keywords",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "citation",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "wave2",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "parties",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "licensing",
+        "pending": 0
+      },
+      {
+        "patch": "legacy-v1",
+        "component": "lineage",
+        "pending": 0
+      }
+    ],
+    "repeated_conversion_tables_identical": true,
+    "resulting_row_counts": {
+      "dataset_citation_date_tbl": 11,
+      "dataset_online_resource_tbl": 0,
+      "dataset_temporal_extent_tbl": 0,
+      "organisation_tbl": 51,
+      "party_address_tbl": 47,
+      "dataset_license_tbl": 8,
+      "dataset_lineage_tbl": 11,
+      "dataset_lineage_source_tbl": 12,
+      "dataset_lineage_process_step_tbl": 13
+    }
+  }
+]

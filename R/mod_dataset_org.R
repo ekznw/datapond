@@ -7,23 +7,60 @@ organisation_select_choices <- function(df) {
     df,
     stringsAsFactors = FALSE
   )
-  labels <- paste0(
-    df$organisation_name_short,
-    " (", df$organisation_code, ")"
+
+  field_value <- function(field) {
+    if (!field %in% names(df)) {
+      return(rep("", nrow(df)))
+    }
+    value <- as.character(df[[field]])
+    value[is.na(value)] <- ""
+    trimws(value)
+  }
+
+  full_name <- field_value("organisation_name_full")
+  short_name <- field_value("organisation_name_short")
+  code <- field_value("organisation_code")
+  departments <- field_value("organisation_department")
+  addresses <- field_value("organisation_address")
+  display_name <- ifelse(nzchar(short_name), short_name, full_name)
+  missing_name <- !nzchar(display_name)
+  display_name[missing_name] <- paste(
+    "Organisation",
+    df$id[missing_name]
   )
-  departments <- trimws(
-    as.character(df$organisation_department)
+
+  labels <- display_name
+  has_code <- nzchar(code)
+  labels[has_code] <- paste0(
+    labels[has_code],
+    " (", code[has_code], ")"
   )
-  has_department <- !is.na(departments) & nzchar(departments)
+  has_department <- nzchar(departments)
   labels[has_department] <- paste0(
     labels[has_department],
     " \u2014 ",
     departments[has_department]
   )
+  has_address <- nzchar(addresses)
+  labels[has_address] <- paste0(
+    labels[has_address],
+    " \u2014 Address: ",
+    addresses[has_address]
+  )
+
+  sorted <- order(
+    tolower(display_name),
+    has_department,
+    tolower(departments),
+    tolower(code),
+    suppressWarnings(as.integer(df$id)),
+    na.last = TRUE,
+    method = "radix"
+  )
 
   setNames(
-    as.character(df$id),
-    labels
+    as.character(df$id[sorted]),
+    labels[sorted]
   )
 }
 
@@ -40,7 +77,7 @@ dataset_organisation_role_choices <- function() {
 
 dataset_organisation_role_descriptor <- function() {
   paste(
-    "Choose every role that applies to the organisation.",
+    "Add the organisation once for each role that applies.",
     "Owner is accountable for the dataset and use decisions; Custodian handles",
     "day-to-day maintenance and safeguarding; Publisher formally releases a",
     "dataset or version; Distributor supplies access or copies.",
@@ -52,10 +89,15 @@ dataset_organisation_role_descriptor <- function() {
 mod_dataset_org_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    h4("Owning Organisation(s)"),
+    h4(metadata_field_label("Owning Organisation(s)", "Mandatory", "Add at least one organisation with a usable code before creating or saving the dataset.")),
+    shiny::helpText(paste(
+      "Add at least one organisation. The first added organisation's code,",
+      "publication date and first theme keyword form the folder name and citation key.",
+      "Selecting an organisation alone does not add it; click Add organisation."
+    )),
     selectizeInput(
       ns("org_select"),
-      "Select organisation",
+      metadata_field_label("Select organisation", "Conditional", "Choose an organisation, then click Add organisation to include it."),
       choices = NULL,
       options = list(
         placeholder = "Select organisation..."
@@ -63,16 +105,18 @@ mod_dataset_org_ui <- function(id) {
     ),
     selectInput(
       ns("org_role"),
-      "Role",
+      metadata_field_label("Role", "Conditional", "Choose a role when adding an owning organisation."),
       choices = dataset_organisation_role_choices()
     ),
     tags$small(
       style = "display:block; color:#666; margin-bottom:10px;",
       dataset_organisation_role_descriptor()
     ),
-    actionButton(ns("add_org"), "Add"),
-    actionButton(ns("remove_org"), "Remove last"),
-    tableOutput(ns("org_table"))
+    actionButton(ns("add_org"), "Add organisation", disabled = TRUE),
+    shiny::helpText("Select a row to remove its organisation and role from this dataset."),
+    actionButton(ns("remove_org"), "Remove selected", disabled = TRUE,
+      title = "Remove this dataset link; keep the organisation in the pond directory"),
+    DT::DTOutput(ns("org_table"))
   )
 }
 
@@ -90,6 +134,10 @@ mod_dataset_org_server <- function(id, state) {
       role = character(),
       stringsAsFactors = FALSE
     ))
+    org_table_proxy <- DT::dataTableProxy("org_table", session = session, deferUntilFlush = FALSE)
+    select_org_row <- function(row) {
+      session$onFlushed(function() DT::selectRows(org_table_proxy, row), once = TRUE)
+    }
     # load organisations from DB
     org_choices <- reactive({
       state$refresh_org
@@ -99,26 +147,50 @@ mod_dataset_org_server <- function(id, state) {
     })
     # populate dropdown
     observe({
+      access_require("read")
       choices <- org_choices()
+      selected <- isolate(input$org_select)
+      if (is.null(selected) || !selected %in% unname(choices)) selected <- ""
       updateSelectizeInput(
         session,
         "org_select",
-        choices = choices,
+        choices = c("Choose an organisation" = "", choices),
+        selected = selected,
         server = FALSE
       )
     })
+    observe({
+      access_require("read")
+      selected <- table_editor_selected_row(input$org_table_rows_selected, nrow(org_list()))
+      shiny::updateActionButton(session, "remove_org", disabled = !length(selected))
+      shiny::updateActionButton(session, "add_org", disabled =
+        !isTRUE(input$org_select %in% unname(org_choices())) ||
+        !isTRUE(input$org_role %in% unname(dataset_organisation_role_choices())))
+    })
     # ADD ORGANISATION
     observeEvent(input$add_org, {
+      access_require("edit", touch = TRUE)
       req(input$org_select)
       current <- org_list()
-      selected_id <- as.integer(input$org_select)
+      selected_id <- suppressWarnings(as.integer(input$org_select))
       selected_role <- as.character(input$org_role)
-      if (any(
+      req(length(selected_id) == 1L, !is.na(selected_id),
+        selected_role %in% unname(dataset_organisation_role_choices()))
+      duplicate <- which(
         current$id == selected_id &
           tolower(current$role) == tolower(selected_role)
-      )) return()
+      )
+      if (length(duplicate)) {
+        select_org_row(duplicate[1])
+        showNotification("This organisation already has that role in the dataset.", type = "message")
+        return()
+      }
       df <- get_organisations(state$data_pond)
       selected <- df[df$id == selected_id, ]
+      if (nrow(selected) != 1L) {
+        showNotification("The selected organisation is no longer available. Choose another.", type = "warning")
+        return()
+      }
       new_row <- data.frame(
         id = selected$id,
         name = selected$organisation_name_full,
@@ -130,19 +202,34 @@ mod_dataset_org_server <- function(id, state) {
         stringsAsFactors = FALSE
       )
       org_list(rbind(current, new_row))
+      select_org_row(nrow(current) + 1L)
     })
-    # REMOVE LAST
+    # Remove exactly the selected relationship, including its role.
     observeEvent(input$remove_org, {
+      access_require("edit", touch = TRUE)
       df <- org_list()
-      if (nrow(df) == 0) return()
-      org_list(df[-nrow(df), ])
+      selected <- table_editor_selected_row(input$org_table_rows_selected, nrow(df))
+      if (!length(selected)) return()
+      org_list(df[-selected, , drop = FALSE])
+      select_org_row(NULL)
     })
     # DISPLAY TABLE
-    output$org_table <- renderTable({
+    output$org_table <- DT::renderDT({
+      access_require("read")
       df <- org_list()
-      if (nrow(df) == 0) return(NULL)
-      df
-    }, striped = TRUE)
+      display <- data.frame(
+        Order = seq_len(nrow(df)), Organisation = df$name,
+        `Short name` = df$short, Code = df$code,
+        Department = df$department, Address = df$address,
+        Role = humanise_code_value(df$role), check.names = FALSE
+      )
+      datapond_datatable(display, rownames = FALSE, selection = "single",
+        class = "compact stripe hover", options = list(
+          dom = "t", paging = FALSE, ordering = FALSE, searching = FALSE,
+          info = FALSE, scrollX = TRUE,
+          language = list(emptyTable = "No organisations added yet.")
+        ))
+    })
     # expose to main app
     clear_orgs <- function() {
       org_list(data.frame(
@@ -155,6 +242,7 @@ mod_dataset_org_server <- function(id, state) {
         role = character(),
         stringsAsFactors = FALSE
       ))
+      select_org_row(NULL)
       invisible(TRUE)
     }
 
@@ -178,6 +266,7 @@ mod_dataset_org_server <- function(id, state) {
         role = df$role,
         stringsAsFactors = FALSE
       ))
+      select_org_row(NULL)
       invisible(TRUE)
     }
 

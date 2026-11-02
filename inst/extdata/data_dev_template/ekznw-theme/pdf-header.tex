@@ -1,0 +1,49 @@
+% EKZNW palette shared with the existing data_dev HTML theme.
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{scrlayer-scrpage}
+\usepackage{needspace}
+\definecolor{ekznwOlive}{HTML}{495C3F}
+\definecolor{ekznwBrown}{HTML}{554838}
+\definecolor{ekznwAccent}{HTML}{8B4513}
+\definecolor{ekznwCream}{HTML}{E2DFD0}
+\setkomafont{title}{\sffamily\bfseries\color{ekznwOlive}\LARGE}
+\setkomafont{subtitle}{\sffamily\color{ekznwBrown}\large}
+\setkomafont{section}{\sffamily\bfseries\color{ekznwOlive}\large}
+\setkomafont{subsection}{\sffamily\bfseries\color{ekznwBrown}\normalsize}
+\setkomafont{pageheadfoot}{\sffamily\footnotesize\color{ekznwBrown}}
+\clearpairofpagestyles
+\ihead{Ezemvelo KZN Wildlife}
+\ohead{Scientific Services}
+\ifoot*{EKZNW | Dataset documentation}
+\ofoot*{\pagemark}
+\KOMAoptions{headsepline=0.3pt}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.18}
+\raggedbottom
+\makeatletter
+\renewcommand{\maketitle}{%
+  \thispagestyle{plain}%
+  \noindent\colorbox{ekznwCream}{%
+    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+      \vspace{4mm}\hspace{4mm}%
+      \begin{minipage}[c]{23mm}
+        \includegraphics[width=21mm]{ekznw-theme/style/img/corplogo120.png}
+      \end{minipage}\hspace{4mm}%
+      \begin{minipage}[c]{\dimexpr\linewidth-38mm\relax}
+        {\small\color{ekznwBrown} EZEMVELO KZN WILDLIFE\par}
+        \vspace{2mm}{\usekomafont{title}\@title\par}
+        \ifx\@subtitle\@empty\else\vspace{2mm}{\usekomafont{subtitle}\@subtitle\par}\fi
+      \end{minipage}\par\vspace{4mm}%
+    }}\par\vspace{5mm}%
+  \ifx\@author\@empty\else{\small\@author\par}\fi
+  \ifx\@date\@empty\else{\small\color{ekznwBrown}\@date\par}\fi
+  \vspace{4mm}%
+}
+\makeatother
+
+% Apply the same palette to instructional callouts after Quarto defines them.
+\AtBeginDocument{%
+  \definecolor{quarto-callout-tip-color}{HTML}{495C3F}%
+  \definecolor{quarto-callout-tip-color-frame}{HTML}{495C3F}%
+}

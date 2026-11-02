@@ -1,0 +1,35 @@
+gaps:
+- id: GAP-018
+  status: resolved-local-validation
+  priority: high
+  iso_target: ISO 19115-3 XML instance validation
+  issue: Local validation acceptance is defined in local-acceptance.yml. Composable
+    serializers, pinned XSD/Schematron, paired catalogue checks, canonical registry
+    references, code membership and bounded semantic rules, actionable app reports
+    and transactional packages are implemented with positive and negative fixtures.
+    The declared date-only policy remains distinct from the pinned ISO result.
+  recommendation: Maintain the acceptance suite as mappings evolve. No target catalogue
+    is selected; its import profile is explicitly outside this local closure and tracked
+    separately as GAP-020. Local success is not factual accuracy or ISO certification.
+- id: GAP-019
+  status: resolved-export
+  priority: high
+  iso_target: Supplementary resource constraints
+  issue: Resolved in crosswalk 3.2.5 and the shared distribution/licensing serializer.
+    Supplementary access/use notes are additive and whitespace-equivalent duplicates
+    are removed within the same property. MCO-017 independently handles legacy licence
+    identity. Existing pond records have not been rewritten or audited for semantic
+    contradictions.
+  recommendation: Regression fixtures cover structured licences with extra notes,
+    duplicates, distinct wording and embargo-only rows. Audit real pond notes before
+    any future destructive cleanup; retain potentially conflicting wording for review
+    rather than guessing equivalence.
+- id: GAP-020
+  status: deferred-no-target
+  priority: medium
+  iso_target: Receiving-catalogue profile compatibility
+  issue: The user selected local validation without a target catalogue. No receiving
+    system, version or import profile is specified or tested. Every package report
+    states not-assessed for receiving-catalogue compatibility.
+  recommendation: Once a target is selected, test representative packages against its
+    exact import/profile requirements. Do not alter dates or claim universal compatibility.

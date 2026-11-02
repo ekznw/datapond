@@ -1,0 +1,45 @@
+
+/*-- scss:defaults --*/
+/* Theme variables (set before the theme is built) */
+$primary: #8B4513;       // accent color used by components
+$link-color: #554838;    // general link color
+$body-color: #554838;    // base text color (optional)
+
+/*-- scss:rules --*/
+/* Your CSS rules go here */
+
+/* Base ToC link color */
+.sidebar .toc .nav-link,
+nav#TOC .nav-link {
+  color: #554838;
+}
+
+/* Hover state */
+.sidebar .toc .nav-link:hover,
+nav#TOC .nav-link:hover {
+  color: #3f392c;
+}
+
+/* Active/current section in ToC (while scrolling) */
+.sidebar .toc .nav-link.active,
+.sidebar .toc .nav-link.toc-active,
+nav#TOC .nav-link.active,
+nav#TOC .nav-link.toc-active,
+nav#TOC .active > a.nav-link {
+  color: #8B4513 !important;
+  font-weight: 600; /* optional */
+}
+
+/* If the theme uses an indicator line/marker for active items */
+.sidebar .toc .nav-link.active::before,
+.sidebar .toc .nav-link.toc-active::before,
+nav#TOC .nav-link.active::before,
+nav#TOC .nav-link.toc-active::before {
+  background-color: #8B4513;
+}
+
+/* Fallback if border is used instead of ::before */
+.sidebar .toc .nav-link.active,
+nav#TOC .nav-link.active {
+  border-left-color: #8B4513;
+}

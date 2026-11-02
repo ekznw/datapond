@@ -1,0 +1,11 @@
+/* Development-report additions to the shared EKZNW metadata theme. */
+div.quarto-title-banner { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+.quarto-title-banner .quarto-title { padding-left: 190px; }
+.callout.callout-style-simple { border-left-color: #8b4513; background: #f6f5ee; }
+.callout-tip .callout-title { color: #495c3f; }
+table { font-size: 0.95rem; }
+thead { background: #e2dfd0; }
+@media (max-width: 650px) {
+  .quarto-title-block .quarto-title-banner { background-size: 82px; }
+  .quarto-title-banner .quarto-title { padding-left: 88px; }
+}

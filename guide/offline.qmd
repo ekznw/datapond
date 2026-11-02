@@ -1,0 +1,65 @@
+---
+title: "DataPond user guide"
+subtitle: "Offline edition · {{< var version >}}"
+navbar: false
+sidebar: false
+search: false
+format:
+  html:
+    embed-resources: true
+    toc-location: left
+    toc-depth: 1
+---
+
+```{=html}
+<div class="guide-search-box">
+<label for="guide-search"><strong>Search this guide</strong></label>
+<input id="guide-search" type="search" placeholder="Try: restore, Word, installation…" aria-describedby="guide-search-status">
+<p id="guide-search-status" role="status">Search all chapters without an internet connection.</p>
+<ul id="guide-search-results"></ul>
+</div>
+```
+
+# Start here {#index}
+
+{{< include _content/start.qmd >}}
+
+# Install DataPond {#install}
+
+{{< include _content/install.qmd >}}
+
+# Set up document tools {#document-tools}
+
+{{< include _content/document-tools.qmd >}}
+
+# Your first pond {#first-pond}
+
+{{< include _content/first-pond.qmd >}}
+
+# Describe a dataset {#dataset}
+
+{{< include _content/dataset.qmd >}}
+
+# Lineage and development reports {#lineage}
+
+{{< include _content/lineage.qmd >}}
+
+# Transfer and metadata review {#review}
+
+{{< include _content/review.qmd >}}
+
+# Freeze, restore and use releases {#releases}
+
+{{< include _content/releases.qmd >}}
+
+# Manage accounts and deployment {#access-management}
+
+{{< include _content/access-management.qmd >}}
+
+# Troubleshooting {#troubleshooting}
+
+{{< include _content/troubleshooting.qmd >}}
+
+# Edit and maintain this guide {#maintaining}
+
+{{< include _content/maintaining.qmd >}}

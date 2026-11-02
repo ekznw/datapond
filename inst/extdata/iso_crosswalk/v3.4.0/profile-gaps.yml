@@ -1,0 +1,27 @@
+gaps:
+- id: GAP-018
+  priority: high
+  iso_target: ISO 19115-3 XML instance validation
+  issue: 'The mapping audit is resolved: all declared mappings have a serializer,
+    canonical migration or deliberate local disposition, with vector/raster value
+    regression fixtures. GAP-018 is still open. Nonspatial discovery and date-only
+    metadata creation rules remain unresolved; nil reasons, custom CRS meanings, arbitrary
+    unit URIs, code-list membership and broader conceptual conditions prevent a general
+    ISO conformance claim. No app export action or transactional publishing is implemented.'
+  recommendation: Resolve nonspatial geographic-description alternatives and the creation
+    Date/DateTime rule, extend end-to-end value and semantic checks, then add app-facing
+    assessment and validated transactional package publishing with supporting-file
+    checks. Consult mapping-coverage.yml for the completed mapping decisions.
+- id: GAP-019
+  status: resolved-export
+  priority: high
+  iso_target: Supplementary resource constraints
+  issue: Resolved in crosswalk 3.2.5 and the shared distribution/licensing serializer.
+    Supplementary access/use notes are additive and whitespace-equivalent duplicates
+    are removed within the same property. MCO-017 independently handles legacy licence
+    identity. Existing pond records have not been rewritten or audited for semantic
+    contradictions.
+  recommendation: Regression fixtures cover structured licences with extra notes,
+    duplicates, distinct wording and embargo-only rows. Audit real pond notes before
+    any future destructive cleanup; retain potentially conflicting wording for review
+    rather than guessing equivalence.

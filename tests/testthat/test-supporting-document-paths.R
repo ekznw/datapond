@@ -1,0 +1,15 @@
+test_that("document scans use literal roots containing W and regex characters", {
+  root <- tempfile("documents-W-[sample]+.")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  dir.create(file.path(root, "docs"))
+  dir.create(file.path(root, "data"))
+  dir.create(file.path(root, "data_dev_test_theme"))
+  writeLines("Methods", file.path(root, "docs", "methods.txt"))
+  writeLines("Data", file.path(root, "data", "observations.txt"))
+  writeLines("Style asset", file.path(root, "data_dev_test_theme", "reference.docx"))
+
+  docs <- datapond:::list_supporting_document_files(root)
+  expect_identical(docs$document_rel_path, "docs/methods.txt")
+  expect_identical(docs$document_dir, "docs")
+})

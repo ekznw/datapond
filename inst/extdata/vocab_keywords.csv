@@ -35,6 +35,43 @@ keyword_object,raster,Raster,33
 keyword_object,model_output,Model Output,34
 keyword_object,conservation_plan,Conservation Plan,35
 keyword_object,systematic_conservation_plan,Systematic Conservation Plan,36
+keyword_object,flooding,Flooding,37
+keyword_object,drought,Drought,38
+keyword_object,sedimentation,Sedimentation,39
+keyword_object,land_degradation,Land Degradation,40
+keyword_object,deforestation,Deforestation,41
+keyword_object,habitat_loss,Habitat Loss,42
+keyword_object,fragmentation,Fragmentation,43
+keyword_object,restoration,Restoration,44
+keyword_object,rehabilitation,Rehabilitation,45
+keyword_object,conservation_management,Conservation Management,46
+keyword_object,biodiversity_assessment,Biodiversity Assessment,47
+keyword_object,species_distribution,Species Distribution,48
+keyword_object,habitat_suitability,Habitat Suitability,49
+keyword_object,niche_modelling,Niche Modelling,50
+keyword_object,monitoring,Monitoring,51
+keyword_object,change_detection,Change Detection,52
+keyword_object,time_series,Time Series,53
+keyword_object,trend_analysis,Trend Analysis,54
+keyword_object,classification,Classification,55
+keyword_object,mapping,Mapping,56
+keyword_object,survey,Survey,57
+keyword_object,inventory,Inventory,58
+keyword_object,modelling,Modelling,59
+keyword_object,simulation,Simulation,60
+keyword_object,risk_assessment,Risk Assessment,61
+keyword_object,impact_assessment,Impact Assessment,62
+keyword_object,water_flow,Water Flow,63
+keyword_object,streamflow,Streamflow,64
+keyword_object,groundwater_flow,Groundwater Flow,65
+keyword_object,evapotranspiration,Evapotranspiration,66
+keyword_object,rainfall_analysis,Rainfall Analysis,67
+keyword_object,temperature_analysis,Temperature Analysis,68
+keyword_object,climate_change,Climate Change,69
+keyword_object,carbon_storage,Carbon Storage,70
+keyword_object,ecosystem_services,Ecosystem Services,71
+keyword_object,scenario_planning,Scenario Planning,72
+keyword_object,systematic_planning,Systematic Planning,73
 keyword_discipline,ecology,Ecology,1
 keyword_discipline,biodiversity,Biodiversity,2
 keyword_discipline,conservation,Conservation,3
@@ -64,45 +101,6 @@ keyword_discipline,environmental_monitoring,Environmental Monitoring,26
 keyword_discipline,statistics,Statistics,27
 keyword_discipline,modelling,Modelling,28
 keyword_discipline,data_science,Data Science,29
-keyword_topic,fire,Fire,1
-keyword_topic,flooding,Flooding,2
-keyword_topic,drought,Drought,3
-keyword_topic,erosion,Erosion,4
-keyword_topic,sedimentation,Sedimentation,5
-keyword_topic,land_degradation,Land Degradation,6
-keyword_topic,deforestation,Deforestation,7
-keyword_topic,habitat_loss,Habitat Loss,8
-keyword_topic,fragmentation,Fragmentation,9
-keyword_topic,restoration,Restoration,10
-keyword_topic,rehabilitation,Rehabilitation,11
-keyword_topic,conservation_management,Conservation Management,12
-keyword_topic,biodiversity_assessment,Biodiversity Assessment,13
-keyword_topic,species_distribution,Species Distribution,14
-keyword_topic,habitat_suitability,Habitat Suitability,15
-keyword_topic,niche_modelling,Niche Modelling,16
-keyword_topic,monitoring,Monitoring,17
-keyword_topic,change_detection,Change Detection,18
-keyword_topic,time_series,Time Series,19
-keyword_topic,trend_analysis,Trend Analysis,20
-keyword_topic,classification,Classification,21
-keyword_topic,mapping,Mapping,22
-keyword_topic,survey,Survey,23
-keyword_topic,inventory,Inventory,24
-keyword_topic,modelling,Modelling,25
-keyword_topic,simulation,Simulation,26
-keyword_topic,risk_assessment,Risk Assessment,27
-keyword_topic,impact_assessment,Impact Assessment,28
-keyword_topic,water_flow,Water Flow,29
-keyword_topic,streamflow,Streamflow,30
-keyword_topic,groundwater_flow,Groundwater Flow,31
-keyword_topic,evapotranspiration,Evapotranspiration,32
-keyword_topic,rainfall_analysis,Rainfall Analysis,33
-keyword_topic,temperature_analysis,Temperature Analysis,34
-keyword_topic,climate_change,Climate Change,35
-keyword_topic,carbon_storage,Carbon Storage,36
-keyword_topic,ecosystem_services,Ecosystem Services,37
-keyword_topic,scenario_planning,Scenario Planning,38
-keyword_topic,systematic_planning,Systematic Planning,39
 keyword_geo,south_africa,South Africa,1
 keyword_geo,southern_africa,Southern Africa,2
 keyword_geo,africa,Africa,3

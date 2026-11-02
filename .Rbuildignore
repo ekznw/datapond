@@ -7,3 +7,8 @@
 ^dist$
 ^metadatapop_.*\.tar\.gz$
 ^datapond_.*\.tar\.gz$
+^output$
+^migration_archive$
+^tmp$
+^guide$
+^.*\.Rcheck$

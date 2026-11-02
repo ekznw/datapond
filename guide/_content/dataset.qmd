@@ -1,0 +1,80 @@
+## Start with a saved draft
+
+1. Open the intended pond and sign in with editor or administrator access.
+2. Choose **Start a new dataset**. Select **Create new folders in** beside **Create folder & save** in the Dataset guide: `dev/` for development or `src/` for received/reference data. The same selection is available under **Configuration (gear) → Lifecycle folder status**; both controls share the active pond’s default. Existing datasets stay in their saved locations.
+3. Select the metadata entry profile in Configuration. **Essential — Prickly Porcupine** keeps the initial form smaller. **Full — Armoured Pangolin** exposes more detail. **Show additional metadata fields** lets you add detail as needed; switching profiles preserves entered values.
+4. Enter the title, publication date, version, abstract, theme keyword and a dataset organisation with a usable code. Version is required in both profiles and starts at `0.1.0` for a new working draft; use `1.0.0` for the first release. The Full profile also requires purpose and applicable topic information. Follow the save validation messages for your record.
+5. Choose **Save dataset** and check its saved folder and citation. Dataset naming uses the saved descriptive fields; the dataset UUID provides its stable identity.
+
+Do not invent an unknown publication date to satisfy a form. Resolve it with the dataset custodian before saving. A draft passing its save checks does not mean that all release or ISO metadata requirements are complete.
+
+Field labels use **\*** for an entry required for the stated action or completion, and **◇** for an entry required under the condition described below its label. Unmarked entries are optional, but supplied values must still be valid. For example, an embargo end date is required when embargo is Yes; a permission reference is needed to complete an assessment based on external permission. Requirements for a complete assessment or ISO export do not by themselves block a draft save.
+
+Existing versions are preserved when editing. Change the version deliberately when appropriate; changing it does not release or archive the dataset. Lifecycle status is managed separately.
+
+## Put data and supporting material in the right place
+
+Put the actual dataset payload in `data/`. Put supporting reports and scripts at the dataset root or in `docs/` and `scripts/`, as appropriate. Keep portable relative paths in your reports and scripts.
+
+Use the data-file scan to inspect the files. Review the results, then choose **Save live scan to database** to update the saved inventory. A preview alone does not update it. Scanning a custom folder is an inspection action; check that you are saving the managed dataset's scan.
+
+Spatial file inspection can derive useful information, but review the results before relying on them. A map preview does not establish accuracy, licensing or fitness for a particular use.
+
+To profile attributes, open **Configuration → Attribute profiling**, select **Enable attribute profiling**, and click **Save profiling setting**. This setting is saved for the active pond and requires editor or administrator access. Under **Data files**, select a saved file, check **Include in attribute profiling** in **File review**, and click **Save file review**. Then use **Profile selected file attributes / raster layers** under **Attribute profile / data dictionary**. Enabling the setting does not start profiling automatically; disabling it preserves existing profiles.
+
+## Describe what another user needs to know
+
+| Metadata | Practical question to answer |
+|---|---|
+| Title, abstract and purpose | What is this dataset, and what was it created for? |
+| Version and dates | Which revision is this, when was it published, and what period does it describe? |
+| Authors, organisation and contact | Who created it and whom should a recipient contact? |
+| Keywords and geographic/temporal coverage | How can someone find it and assess its coverage? |
+| Spatial reference, resolution and attributes | How should users interpret coordinates, units, fields and codes? |
+| Lineage and quality | How was it made, what was checked, and what limitations remain? |
+| Licensing, access and distribution | Who may obtain it, use it and redistribute it, and under which conditions? |
+| Citation and supporting documents | How should it be cited, and where are the methods and evidence? |
+
+Save edits before generating reports, validating exports or freezing a version. Use **Dataset status** to inspect outstanding metadata work. Add the detailed methods through [Lineage and development reports](lineage.qmd).
+
+Use **Dataset guide → Sync development report** to copy selected title, dataset version, abstract and purpose fields between saved dataset metadata and a `data_dev*.qmd` or `.docx` report in the dataset root. Choose the report and direction, select fields, then **Preview changes → Apply preview**. Empty source fields are skipped. Exports update the cover and a marked **Dataset metadata** section and keep a hidden `.bak` copy beside the report. Imports read that section into the dataset form; review the values and use **Save dataset** with an update reason. Export once to initialise the section in an existing report before importing from it. UUID identifies the dataset and is never imported; report version and methods stay independent. Sync requires an unlocked draft and an active user, and is unavailable during an active metadata review.
+
+## Use a shared organisation email as the contact
+
+A generic or shared mailbox, such as `data.requests@example.org`, belongs in the organisation's **Contact email** field. Do not create a fictitious person called "Data Requests" to hold the address.
+
+1. Under **Organisations → Add / edit organisation**, select the organisation, enter its **Contact email**, and choose **Update selected organisation**. For a new record, complete the required organisation fields and choose **Add as new organisation**.
+2. In **Dataset Intro → Owning Organisation(s)**, select the organisation, choose its appropriate role and click **Add organisation** if that organisation-role link is not already listed. Select a table row and choose **Remove selected** to remove that link from the dataset; the pond directory entry is retained. Add the organisation again with a different role when needed. The point-of-contact organisation choices come from this list.
+3. Under **Point of Contact**, leave **Select Contact Person** set to **No individual contact**, select the **Point of contact organisation**, choose the appropriate **Role** (for example, **Distributor** when the organisation provides access or copies), and click **Add POC**.
+4. Choose **Save dataset** before generating metadata or exporting it.
+
+The shared mailbox is then associated with the organisation and included in its contact details in ISO metadata exports. A named individual can be added as a separate contact when needed. If the mailbox serves a particular department, use that department's organisation record and its contact email.
+
+## Check the human-readable metadata
+
+In **Dataset status → Human-readable metadata**, choose **Save PDF to dataset folder**. This writes `metadata.pdf` and `citation.txt` at the dataset root. Select **Also download the PDF for preview** first when you want a browser copy, then open it and check the identity, version, description, contacts, rights, lineage and any missing information.
+
+Repeat PDF preparation after relevant metadata or document changes. Freezing verifies and preserves the prepared PDF; it does not silently refresh it. Software and package details belong in the development report, so the release README can point readers there.
+
+## Understand ISO metadata and validation
+
+DataPond can turn the saved dataset description into standardised, machine-readable metadata for exchange with catalogues and other information systems. The export draws on related geographic-information standards:
+
+- **ISO 19115-1** defines the metadata used to describe a resource, including its identity, citation, contacts, extent, constraints, distribution and lineage.
+- **ISO 19115-3** provides the XML implementation used by DataPond to encode that metadata in a form software can exchange and validate.
+- **ISO 19110** defines a feature catalogue. When applicable, DataPond generates a linked catalogue describing the fields or attributes in vector and tabular data.
+- **ISO 19157** defines data-quality information. Structured quality measures and results recorded in DataPond can therefore be carried into the metadata package.
+
+The purpose of generation is interoperability: a recipient should receive consistently structured metadata that software can inspect as well as people can read. Validation checks that the generated XML and any linked feature catalogue follow the bundled schemas and rules. It also checks registered codes, dates, extents, references, relevant semantic consistency, cited local files and package integrity. The validated package contains the metadata XML, any generated feature catalogue, its validation report and cited local supporting documents or scripts. It does not contain the dataset payload.
+
+The **Essential — Prickly Porcupine** and **Full — Armoured Pangolin** profiles control metadata entry and completion assessment; they are not different ISO standards or validation levels. A record prepared with either profile can produce locally validated ISO metadata. Essential can pass when the saved information is sufficient and consistent for that dataset, including any applicable detail added through **Show additional metadata fields**. Full prompts for richer metadata, but selecting or completing Full does not by itself guarantee ISO validity. In both profiles, the ISO validation result is the evidence that the saved export passed the selected local checks.
+
+To validate an export:
+
+1. Save the current dataset edits.
+2. Open **Dataset status → ISO metadata validation & export**.
+3. Choose the validation policy and select **Check saved metadata**.
+4. Use the reported issues to open and correct the relevant metadata sections, save, and check again.
+5. Download **Validate & download ISO package** when it becomes available. DataPond reassesses the saved record and supporting files during download.
+
+The download remains blocked until the selected policy, export semantics and local-file checks pass. Additional validation requires Python with `lxml`, and ZIP download requires the `zip` utility. A local pass confirms conformance with DataPond's declared validation scope; it does not verify that the entered facts are true, certify the dataset universally, or guarantee acceptance by a particular receiving catalogue.

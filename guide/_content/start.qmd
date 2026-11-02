@@ -1,0 +1,57 @@
+::: {.guide-intro}
+Keep the data, its description and its history together. This guide takes you from installing DataPond to handing someone a documented, frozen dataset.
+:::
+
+::: {.callout-note title="About this edition"}
+This guide describes the **{{< var version >}} release**. Your installed version appears in `packageVersion("datapond")`. The guide shipped with your package is the best starting point for that version.
+:::
+
+::: {.guide-cards}
+::: {.guide-card}
+### Set up your workstation
+
+[Install DataPond](install.qmd), [check document tools](document-tools.qmd), then [open your first pond](first-pond.qmd).
+:::
+::: {.guide-card}
+### Describe your work
+
+[Create and describe a dataset](dataset.qmd). Add a [development report and lineage](lineage.qmd) in Word or Quarto.
+:::
+::: {.guide-card}
+### Review and preserve
+
+[Exchange a metadata review](review.qmd), then [freeze, restore or roll back](releases.qmd) a version.
+:::
+::: {.guide-card}
+### Get help or edit the guide
+
+Learn to [manage accounts, SharePoint access and server deployment](access-management.qmd), find [troubleshooting steps](troubleshooting.qmd) or [edit this guide in Quarto](maintaining.qmd).
+:::
+:::
+
+## A practical route through the app
+
+**Install → Open a pond → Sign in → Save a dataset → Add files and lineage → Review metadata → Prepare PDF → Freeze a version.**
+
+```{mermaid}
+%%| fig-cap: "From a working draft to a verified release. Distribution is a separate decision."
+flowchart TD
+  accTitle: A practical route through DataPond
+  accDescr: Install DataPond, open a pond and sign in. Save a draft, add files and lineage, review metadata, then prepare and inspect the PDF. Freeze and verify a release before checking distribution approval and sharing the ZIP with its sidecars.
+  setup["Install DataPond, open a pond and sign in"] --> draft["Save a dataset draft"]
+  draft --> describe["Add files, metadata and lineage"]
+  describe --> review["Review metadata"]
+  review --> pdf["Prepare and inspect metadata PDF"]
+  pdf --> freeze["Freeze and verify a version"]
+  freeze --> share["Check distribution approval;<br/>share ZIP and sidecars"]
+```
+
+Use a small practice pond for your first run. A saved draft, a reviewed dataset and a frozen release are different milestones. Freezing records a fixed version; your organisation still decides whether it may be distributed.
+
+## Using this guide
+
+Use chapter navigation and search to find a task. Code blocks have copy buttons; commands are examples for you to run, never executed by the guide. Installation tabs separate operating systems. Checklists remember your ticks where browser storage permits; they do not inspect or change a dataset and are not an approval record.
+
+Process diagrams summarise the written instructions. On a narrow screen, scroll wider diagrams sideways; keyboard users can focus the diagram and use the arrow keys.
+
+The **Offline edition** combines every chapter into one HTML file with its own search. Save that file to read or share without R, Quarto or a running app. External reference links still need an internet connection.

@@ -67,13 +67,13 @@ mod_authors_ui <- function(id) {
 
     selectInput(
       ns("author_select"),
-      "Select author",
+      metadata_field_label("Select author", "Conditional", "Select a person when adding an individual author."),
       choices = NULL
     ),
 
     actionButton(
       ns("add_author"),
-      "Add author"
+      "Add author", disabled = TRUE
     ),
 
     tags$small(
@@ -83,17 +83,18 @@ mod_authors_ui <- function(id) {
 
     actionButton(
       ns("move_up"),
-      "Move selected up"
+      "Move selected up", disabled = TRUE
     ),
 
     actionButton(
       ns("move_down"),
-      "Move selected down"
+      "Move selected down", disabled = TRUE
     ),
 
     actionButton(
       ns("remove_author"),
-      "Remove selected"
+      "Remove selected", disabled = TRUE,
+      title = "Remove this dataset author; keep the person in the pond directory"
     ),
 
     DT::DTOutput(
@@ -118,7 +119,8 @@ mod_authors_server <- function(id, state) {
 
       author_table_proxy <- DT::dataTableProxy(
         "author_table",
-        session = session
+        session = session,
+        deferUntilFlush = FALSE
       )
 
       select_author_row <- function(row) {
@@ -197,6 +199,7 @@ mod_authors_server <- function(id, state) {
       })
 
       observe({
+        access_require("read")
         current_selection <- isolate(
           input$author_select
         )
@@ -210,20 +213,32 @@ mod_authors_server <- function(id, state) {
         ) {
           current_selection
         } else {
-          character()
+          ""
         }
 
         updateSelectInput(
           session,
           "author_select",
-          choices = choices,
+          choices = c("Choose a person" = "", choices),
           selected = selected_value
         )
+      })
+
+      observe({
+        access_require("read")
+        n <- nrow(author_list())
+        selected <- table_editor_selected_row(input$author_table_rows_selected, n)
+        shiny::updateActionButton(session, "add_author", disabled =
+          !isTRUE(input$author_select %in% unname(persons_choices())))
+        shiny::updateActionButton(session, "remove_author", disabled = !length(selected))
+        shiny::updateActionButton(session, "move_up", disabled = !length(selected) || selected == 1L)
+        shiny::updateActionButton(session, "move_down", disabled = !length(selected) || selected == n)
       })
 
       observeEvent(
         input$add_author,
         {
+          access_require("edit", touch = TRUE)
           req(
             input$author_select
           )
@@ -244,6 +259,8 @@ mod_authors_server <- function(id, state) {
             selected_id %in%
               current$id
           ) {
+            select_author_row(match(selected_id, current$id))
+            showNotification("This person is already an author of the dataset.", type = "message")
             return()
           }
 
@@ -276,15 +293,17 @@ mod_authors_server <- function(id, state) {
               )
             )
           )
+          select_author_row(nrow(current) + 1L)
         }
       )
 
       observeEvent(
         input$move_up,
         {
-          selected_row <- input$author_table_rows_selected
+          access_require("edit", touch = TRUE)
           df <- author_list()
-          if (length(selected_row) != 1L || selected_row <= 1L) return()
+          selected_row <- table_editor_selected_row(input$author_table_rows_selected, nrow(df))
+          if (!length(selected_row) || selected_row <= 1L) return()
           author_list(move_author_editor_row(df, selected_row, "up"))
           select_author_row(selected_row - 1L)
         }
@@ -293,9 +312,10 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$move_down,
         {
-          selected_row <- input$author_table_rows_selected
+          access_require("edit", touch = TRUE)
           df <- author_list()
-          if (length(selected_row) != 1L || selected_row >= nrow(df)) return()
+          selected_row <- table_editor_selected_row(input$author_table_rows_selected, nrow(df))
+          if (!length(selected_row) || selected_row >= nrow(df)) return()
           author_list(move_author_editor_row(df, selected_row, "down"))
           select_author_row(selected_row + 1L)
         }
@@ -304,24 +324,25 @@ mod_authors_server <- function(id, state) {
       observeEvent(
         input$remove_author,
         {
-          selected_row <- input$author_table_rows_selected
+          access_require("edit", touch = TRUE)
           df <- author_list()
-          if (length(selected_row) != 1L) return()
+          selected_row <- table_editor_selected_row(input$author_table_rows_selected, nrow(df))
+          if (!length(selected_row)) return()
           updated <- remove_author_editor_row(df, selected_row)
           author_list(updated)
-          next_row <- min(selected_row, nrow(updated))
-          select_author_row(if (next_row > 0L) next_row else NULL)
+          select_author_row(NULL)
         }
       )
 
       output$author_table <- DT::renderDT({
+        access_require("read")
         df <- author_list()
         display_df <- data.frame(
           Order = df$author_order,
           Author = df$name,
           stringsAsFactors = FALSE
         )
-        DT::datatable(
+        datapond_datatable(
           display_df,
           rownames = FALSE,
           selection = "single",
@@ -331,6 +352,7 @@ mod_authors_server <- function(id, state) {
             ordering = FALSE,
             searching = FALSE,
             info = FALSE,
+            language = list(emptyTable = "No individual authors added yet."),
             columnDefs = list(
               list(width = "70px", targets = 0L),
               list(width = "auto", targets = 1L)
@@ -344,6 +366,7 @@ mod_authors_server <- function(id, state) {
         author_list(
           empty_author_table()
         )
+        select_author_row(NULL)
 
         invisible(TRUE)
       }
@@ -384,6 +407,7 @@ mod_authors_server <- function(id, state) {
             df
           )
         )
+        select_author_row(NULL)
 
         invisible(TRUE)
       }

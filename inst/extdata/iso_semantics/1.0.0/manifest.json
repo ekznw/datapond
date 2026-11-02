@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "retrieved_at": "2026-10-20T17:53:56.279598+00:00",
+  "resources": [
+    {
+      "path": "iso-codelists.xml",
+      "url": "https://schemas.isotc211.org/resources/codelists/codelists.xml",
+      "sha256": "f83e29929d7cec1bbeb635d292ee6c8020bc008de5aec51446d12f5bbe983945"
+    },
+    {
+      "path": "character-sets.xml",
+      "url": "https://www.iana.org/assignments/character-sets/character-sets.xml",
+      "sha256": "a64184cd76a209d9873d54720165da09c3f910ec5ec68025377a95b5ff85662b"
+    },
+    {
+      "path": "iso-639-2.txt",
+      "url": "https://www.loc.gov/standards/iso639-2/ISO-639-2_utf-8.txt",
+      "sha256": "42b71885e4dc885559fda5ad059fd81838cf4782cedb5fd08cc3431f7d067371"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+## Installation or startup
+
+| Symptom | Next step |
+|---|---|
+| GitHub installation fails | Read the first failing dependency in the R output. Check internet/repository access and retry after fixing it. |
+| A compiled package fails to install | Check Rtools on Windows or the compiler/system libraries reported on Linux/macOS. See [installation](install.qmd). |
+| A function in this guide is missing | Check `packageVersion("datapond")` and `find.package("datapond")`. Restart R after updating. Your branch may predate the feature. |
+| App opens but save controls are unavailable | Sign in with editor or administrator access to the intended pond; inspect any review/lifecycle lock message. Connected-pond rows are read-only. |
+| Last pond cannot be opened | Reconnect its storage and choose **Retry opening pond**, or open another existing pond in the recovery dialog. |
+| Browser tab closes but R remains busy | Stop the app in R or use **Exit DataPond** where offered. |
+
+## Documents and templates
+
+Run `datapond::check_document_tools()` and read the failed checks. Quarto, XeLaTeX and Python are separate programs. After installation or PATH changes, restart R before testing again. A successful executable check alone does not prove a document renders.
+
+If PDF rendering reports missing TeX packages/fonts, run setup while online for a Quarto-managed TinyTeX installation. For system TeX, ask its administrator to install the reported dependencies. If a dataset-specific QMD fails but the checker passes, inspect that QMD's paths, execution settings and analysis dependencies.
+
+If template creation refuses a filename, choose a different project short name or review the existing document. The app deliberately does not replace it. Keep a QMD and its generated theme folder together when transferring the dataset.
+
+## Freeze, restore and review
+
+| Symptom | Next step |
+|---|---|
+| Prepared metadata is stale or changed | Save metadata, prepare the PDF again, open it and repeat the preview. |
+| Freeze preview includes unexpected files | Review the dataset root, including hidden files and old bundles. Remove unwanted files deliberately, then preview again. |
+| Release version already exists | Keep it intact and save a new version for the new release. |
+| Restore reports changed shared references | Ask the curator to resolve the listed people/organisation/licence/vocabulary differences. |
+| Lifecycle operation was interrupted | Use the recovery control. Keep journals, locks and staging evidence available for diagnosis. |
+| Metadata return is stale | Inspect the differences, resolve competing edits, cancel with a reason and issue a new request. |
+| A review return has unexpected inventory differences | Check whether the reviewer scanned the metadata-only workspace or edited out-of-scope records. |
+
+## Ask for help with useful evidence
+
+Record the action, exact error, package version, operating system and whether the problem affects a practice pond or an operational pond. For document problems, include the check output. Review logs before sharing them because paths and metadata can contain sensitive information.
+
+```r
+packageVersion("datapond")
+find.package("datapond")
+sessionInfo()
+```
+
+Do not send a full pond database or dataset just to report an installation error. A small reproducible practice example is usually more useful.

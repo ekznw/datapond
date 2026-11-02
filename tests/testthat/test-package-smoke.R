@@ -1,6 +1,5 @@
 test_that("bundled resources are available", {
   resources <- c(
-    "schema_grouped.rds",
     "vocab_keywords.csv",
     "vocab_organisations.csv",
     "vocab_persons.csv"
@@ -13,16 +12,6 @@ test_that("bundled resources are available", {
   )
 
   expect_true(all(file.exists(paths)))
-  expect_type(readRDS(paths[[1]]), "list")
-})
-
-test_that("the XLSX workbook dynamically produces the packaged schema", {
-  stored <- readRDS(datapond:::datapond_resource("schema_grouped.rds"))
-  generated <- datapond:::load_schema_grouped(
-    datapond:::datapond_resource("metadata_schema.xlsx")
-  )
-
-  expect_equal(generated, stored)
 })
 
 test_that("the packaged Shiny application can be constructed", {
@@ -187,6 +176,8 @@ test_that("pond organisation selectors use client-side choices", {
 })
 
 test_that("the dataset organisation selector refreshes after an addition", {
+  local_trusted_access_fixture()
+
   pond <- tempfile("organisation-refresh-pond-")
   dir.create(pond, recursive = TRUE, showWarnings = FALSE)
   datapond:::init_db(pond)
@@ -252,6 +243,7 @@ test_that("organisation choices expose departments while retaining IDs", {
       organisation_name_short = c("Test Org", "Other Org"),
       organisation_code = c("TEST", "TEST"),
       organisation_department = c("Spatial unit", "Data unit"),
+      organisation_address = c("1 Test Road", "2 Other Road"),
       stringsAsFactors = FALSE
     )
   )
@@ -259,10 +251,61 @@ test_that("organisation choices expose departments while retaining IDs", {
   expect_identical(
     choices,
     c(
-      "Test Org (TEST) — Spatial unit" = "7",
-      "Other Org (TEST) — Data unit" = "8"
+      "Other Org (TEST) — Data unit — Address: 2 Other Road" = "8",
+      "Test Org (TEST) — Spatial unit — Address: 1 Test Road" = "7"
     )
   )
+})
+
+test_that("organisation choices group organisations and sort departments", {
+  choices <- datapond:::organisation_select_choices(
+    data.frame(
+      id = c(5L, 2L, 4L, 1L, 3L),
+      organisation_name_full = c(
+        "Zulu Organisation",
+        "Alpha Organisation",
+        "Alpha Organisation",
+        "Alpha Organisation",
+        "Alpha Organisation"
+      ),
+      organisation_name_short = c(
+        "Zulu Org", "Alpha Org", "Alpha Org", "Alpha Org", "Alpha Org"
+      ),
+      organisation_code = c("ZULU", "ALPHA", "ALPHA", "ALPHA", "ALPHA"),
+      organisation_department = c(
+        "Research", "Spatial", "data Services", NA, "Biodiversity"
+      ),
+      organisation_address = c(
+        "5 Zulu Road", "2 Alpha Road", "4 Alpha Road",
+        "1 Alpha Road", "3 Alpha Road"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  expect_identical(unname(choices), c("1", "3", "4", "2", "5"))
+  expect_identical(
+    names(choices),
+    c(
+      "Alpha Org (ALPHA) — Address: 1 Alpha Road",
+      "Alpha Org (ALPHA) — Biodiversity — Address: 3 Alpha Road",
+      "Alpha Org (ALPHA) — data Services — Address: 4 Alpha Road",
+      "Alpha Org (ALPHA) — Spatial — Address: 2 Alpha Road",
+      "Zulu Org (ZULU) — Research — Address: 5 Zulu Road"
+    )
+  )
+})
+
+test_that("organisation form modules share the sorted choice builder", {
+  sources <- c(
+    paste(deparse(datapond:::mod_data_access_server), collapse = "\n"),
+    paste(deparse(datapond:::mod_licensing_server), collapse = "\n"),
+    paste(deparse(datapond:::mod_dataset_org_server), collapse = "\n"),
+    paste(deparse(datapond:::mod_parties_server), collapse = "\n"),
+    paste(deparse(datapond:::mod_poc_server), collapse = "\n")
+  )
+
+  expect_true(all(grepl("organisation_select_choices", sources, fixed = TRUE)))
 })
 
 test_that("form controls use their full layout-column width", {
@@ -318,14 +361,9 @@ test_that("the primary app header uses a warm off-white background", {
 })
 
 test_that("the app header displays the installed package version", {
-  html <- as.character(datapond:::ui)
-  expected <- paste0(
-    "Data pond \u2014 v",
-    as.character(utils::packageVersion("datapond"))
-  )
-
-  expect_match(html, expected, fixed = TRUE)
-  expect_false(grepl("Data pond \u2014 v0.5", html, fixed = TRUE))
+  html <- xml2::read_html(as.character(datapond:::ui))
+  version <- xml2::xml_find_first(html, "//span[@class='datapond-title-version']")
+  expect_identical(xml2::xml_text(version), paste0("v", utils::packageVersion("datapond")))
 })
 
 test_that("Dataset status legend uses the shared earth palette", {

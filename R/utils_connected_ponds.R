@@ -221,8 +221,9 @@ remove_connected_pond <- function(
 connected_pond_database_signature <- function(path) {
   database <- get_db_path(path)
   if (!file.exists(database)) return(NA_character_)
-  info <- file.info(database)
-  paste(as.numeric(info$mtime[1]), info$size[1], sep = ":")
+  # WAL commits can change the catalogue without touching the main db file.
+  info <- file.info(c(database, paste0(database, "-wal")))
+  paste(as.numeric(info$mtime), info$size, collapse = ":")
 }
 
 
@@ -238,6 +239,7 @@ connected_pond_stage <- function(dataset_path, pond_path) {
 
 
 read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
+  connected_pond_require_read(path)
   identity <- read_data_pond_identity_read_only(path)
   conn <- DBI::dbConnect(
     RSQLite::SQLite(),
@@ -273,6 +275,7 @@ read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
   if (!isTRUE(include_hidden)) {
     rows <- rows[(is.na(is_hidden) | as.integer(is_hidden) == 0L) & is.na(deleted_at)]
   }
+  rows <- pond_overview_discovery_metadata(conn, rows)
   rows[, stage := connected_pond_stage(dataset_path, identity$data_pond_path)]
   rows[, data_pond_id := identity$data_pond_id]
   rows[, data_pond_path := identity$data_pond_path]
@@ -286,6 +289,7 @@ read_connected_pond_inventory_cached <- function(
   force = FALSE,
   include_hidden = FALSE
 ) {
+  connected_pond_require_read(path)
   path <- normalizePath(path.expand(path[1]), mustWork = FALSE, winslash = "/")
   signature <- connected_pond_database_signature(path)
   key <- paste(path, isTRUE(include_hidden), sep = "|")
@@ -313,6 +317,7 @@ build_connected_pond_catalogue <- function(
   active_pond_path <- if (is.null(active_pond_path)) NA_character_ else
     normalizePath(active_pond_path[1], mustWork = FALSE, winslash = "/")
 
+  unavailable <- character()
   rows <- lapply(seq_len(nrow(registry)), function(i) {
     pond <- registry[i, , drop = FALSE]
     tryCatch(
@@ -328,10 +333,15 @@ build_connected_pond_catalogue <- function(
         inventory[, active_pond := identical(pond$data_pond_path, active_pond_path)]
         inventory
       },
-      error = function(e) NULL
+      error = function(e) {
+        unavailable <<- c(unavailable, paste0(pond$pond_name, ": ", conditionMessage(e)))
+        NULL
+      }
     )
   })
-  data.table::rbindlist(rows, fill = TRUE, use.names = TRUE)
+  result <- data.table::rbindlist(rows, fill = TRUE, use.names = TRUE)
+  attr(result, "unavailable") <- unavailable
+  result
 }
 
 
@@ -390,4 +400,81 @@ cross_pond_duplicate_datasets <- function(catalogue) {
     ),
     by = duplicate_key
   ][order(-needs_resolution, title)]
+}
+
+# Combine local connections and verified Flow caches for the overview. Reading
+# this inventory never contacts a remote or promotes a cache to an editable pond.
+build_connected_overview_inventory <- function(local_catalogue, remote_ponds, include_hidden = FALSE) {
+  rows <- list()
+  unavailable <- character()
+  local <- as.data.frame(local_catalogue)
+  if (nrow(local)) {
+    rows[[1L]] <- data.frame(
+      pond_name = local$pond_name, connection_type = "Local pond", title = local$title,
+      stage = local$stage, version = local$version, citation_key = local$citation_key, citation_date = local$citation_date,
+      uuid = local$uuid, source_record_id = local$id, dataset_path = local$dataset_path, availability = "Local catalogue",
+      refreshed = "Current local catalogue", open_path = local$data_pond_path,
+      stringsAsFactors = FALSE
+    )
+    extra <- setdiff(intersect(pond_overview_discovery_fields(), names(local)), names(rows[[1L]]))
+    rows[[1L]][extra] <- local[extra]
+  }
+  for (saved in remote_ponds) {
+    tryCatch({
+      current <- movement_cache_current(saved$cache)
+      if (is.null(current)) stop("No verified metadata cache; refresh this pond in Flow.")
+      inventory <- movement_cache_inventory(saved$cache, include_hidden = include_hidden)
+      if (!nrow(inventory)) next
+      paths <- vapply(inventory$relative_path, function(path) {
+        if (is.na(path)) "" else movement_join(current$state$remote, path)
+      }, character(1))
+      rows[[length(rows) + 1L]] <- data.frame(
+        pond_name = saved$name, connection_type = "Remote cache (read-only)", title = inventory$title,
+        stage = inventory$stage, version = inventory$version, citation_key = inventory$citation_key, citation_date = inventory$citation_date,
+        uuid = inventory$uuid, source_record_id = inventory$id, dataset_path = paths, availability = inventory$cached,
+        refreshed = current$state$refreshed, open_path = saved$cache,
+        stringsAsFactors = FALSE
+      )
+      extra <- setdiff(intersect(pond_overview_discovery_fields(), names(inventory)),
+        names(rows[[length(rows)]]))
+      rows[[length(rows)]][extra] <- inventory[extra]
+    }, error = function(e) {
+      unavailable <<- c(unavailable, paste0(saved$name, ": ", conditionMessage(e)))
+    })
+  }
+  list(data = data.table::rbindlist(rows, fill = TRUE, use.names = TRUE), unavailable = unavailable)
+}
+
+# Connected credentials authorize catalogue reads only, never active-pond writes.
+connected_pond_require_read <- function(path) {
+  if (is.null(shiny::getDefaultReactiveDomain())) return(invisible(TRUE))
+  access_require("read")
+  if (access_allowed("read", path)) return(invisible(TRUE))
+  auth <- access_context()
+  token <- auth$connected_tokens[[access_path(path)]]
+  if (is.null(access_session(path, token, "read"))) {
+    stop("Sign-in required. Select this pond in Pond connections and sign in to its catalogue.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+connected_pond_sign_in <- function(path, username, password) {
+  access_require("read", touch = TRUE)
+  auth <- access_context()
+  stopifnot(!is.null(auth))
+  path <- access_path(path)
+  token <- access_login(path, username, password)
+  old <- auth$connected_tokens[[path]]
+  if (!is.null(old)) access_logout(path, old)
+  tokens <- auth$connected_tokens
+  tokens[[path]] <- token
+  auth$connected_tokens <- tokens
+  invisible(TRUE)
+}
+
+connected_pond_sign_out <- function(auth) {
+  tokens <- shiny::isolate(auth$connected_tokens)
+  for (path in names(tokens)) try(access_logout(path, tokens[[path]]), silent = TRUE)
+  auth$connected_tokens <- list()
+  invisible(TRUE)
 }

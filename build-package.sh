@@ -6,11 +6,27 @@ project_dir="$(
   cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
   pwd
 )"
+# Usage: ./build-package.sh [--rapid] [artifact_dir]
+# Builds and installs the package; --rapid skips R CMD check.
+rapid=false
+if [[ "${1:-}" == "--rapid" ]]; then
+  rapid=true
+  shift
+fi
 artifact_dir="${1:-${project_dir}/dist}"
 r_command="${R_COMMAND:-R}"
 rscript_command="${RSCRIPT_COMMAND:-Rscript}"
 
 cd -- "${project_dir}"
+
+mkdir -p -- "${artifact_dir}" "${project_dir}/tmp"
+artifact_dir="$(cd -- "${artifact_dir}" && pwd)"
+work_dir="$(mktemp -d "${project_dir}/tmp/package-build.XXXXXXXX")"
+trap 'rm -rf -- "${work_dir}"' EXIT
+# R copies sources before applying .Rbuildignore. Stage only included files,
+# and keep R's temporary copies off the often size-limited /tmp filesystem.
+mkdir -p -- "${work_dir}/temp"
+export TMPDIR="${work_dir}/temp"
 
 if ! command -v "${r_command}" >/dev/null 2>&1; then
   echo "Error: ${r_command} is not available on PATH." >&2
@@ -33,17 +49,27 @@ archive_path="${artifact_dir}/${package_name}_${package_version}.tar.gz"
 check_path="${artifact_dir}/${package_name}.Rcheck"
 check_log="${check_path}/00check.log"
 
-mkdir -p "${artifact_dir}"
+"${rscript_command}" --vanilla "${project_dir}/scripts/stage_package.R" \
+  "${project_dir}" "${work_dir}/source" "${artifact_dir}"
 
 echo "Building ${package_name} ${package_version}..."
 (
   cd -- "${artifact_dir}"
-  "${r_command}" CMD build "${project_dir}"
+  "${r_command}" CMD build "${work_dir}/source"
 )
 
 if [[ ! -f "${archive_path}" ]]; then
   echo "Error: expected package archive was not created: ${archive_path}" >&2
   exit 1
+fi
+
+echo "Package: ${archive_path}"
+echo "Installing ${archive_path}..."
+"${r_command}" CMD INSTALL "${archive_path}"
+echo "Package installed. Restart R and relaunch DataPond to load the new code."
+
+if [[ "${rapid}" == true ]]; then
+  exit 0
 fi
 
 echo "Checking ${archive_path}..."

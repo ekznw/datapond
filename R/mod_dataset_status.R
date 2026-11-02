@@ -26,6 +26,42 @@ dataset_status_scalar_text <- function(
   )
 }
 
+dataset_status_requirement_level <- function(section, population_profile = c("full", "rough")) {
+  population_profile <- match.arg(population_profile)
+  section <- as.character(section)
+  optional_sections <- c(
+    "Alternate titles",
+    "Structured distribution",
+    "ISO data quality",
+    "Equivalent scale",
+    "Temporal extents",
+    "Vertical extent",
+    "Feature catalogue",
+    "Keyword thesauri",
+    "Structured contact details",
+    "Supporting documents",
+    "Attribute metadata",
+    "Spatial metadata"
+  )
+  workflow_sections <- c(
+    "Lifecycle",
+    "Data files",
+    "Metadata review"
+  )
+  if (population_profile == "rough") {
+    optional_sections <- unique(c(optional_sections,
+      "Authors", "Metadata profile",
+      "Metadata responsibilities", "ISO topic categories", "Geographic discovery",
+      "Rights and releasability"
+    ))
+  }
+  ifelse(
+    section %in% workflow_sections,
+    "workflow",
+    ifelse(section %in% optional_sections, "optional", "essential")
+  )
+}
+
 
 dataset_status_summary_card <- function(
   label,
@@ -98,9 +134,10 @@ mod_dataset_status_ui <- function(id) {
         style = "margin:0;",
 
         paste(
-          "This table summarises the metadata and supporting",
-          "records currently saved for the selected dataset.",
-          "Rows are colour-coded by completion status."
+          "Prickly Porcupine assesses essential inventory metadata; Armoured Pangolin provides the full metadata assessment.",
+          "The animal icons in Configuration also control entry, saving and folder creation.",
+          "Optional and conditional sections remain visible on request.",
+          "Neither assessment certifies ISO export conformance."
         )
       )
     ),
@@ -113,6 +150,17 @@ mod_dataset_status_ui <- function(id) {
       "Section status"
     ),
 
+    shiny::selectInput(
+      ns("status_view"),
+      "Show sections",
+      choices = c(
+        "Essential metadata only" = "essential",
+        "All metadata, including optional ISO" = "metadata",
+        "Everything, including workflow" = "all"
+      ),
+      selected = "essential"
+    ),
+
     DT::DTOutput(
       ns("status_table")
     ),
@@ -120,6 +168,7 @@ mod_dataset_status_ui <- function(id) {
     shiny::br(),
 
     shiny::tags$div(
+      class = "dataset-status-colour-key",
       style = paste(
         "padding:8px 10px;",
         paste0("background:", app_earth_palette()[["cream"]], ";"),
@@ -135,6 +184,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-complete",
         style = paste(
           paste0("background:", palette[["complete"]], ";"),
           paste0("border:1px solid ", borders[["complete"]], ";"),
@@ -145,6 +195,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-partial",
         style = paste(
           paste0("background:", palette[["partial"]], ";"),
           paste0("border:1px solid ", borders[["partial"]], ";"),
@@ -155,6 +206,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-needs-review",
         style = paste(
           paste0("background:", palette[["needs_review"]], ";"),
           paste0(
@@ -169,6 +221,7 @@ mod_dataset_status_ui <- function(id) {
       ),
 
       shiny::tags$span(
+        class = "dataset-status-key dataset-status-not-started",
         style = paste(
           paste0("background:", palette[["not_started"]], ";"),
           paste0(
@@ -188,7 +241,8 @@ mod_dataset_status_ui <- function(id) {
 mod_dataset_status_server <- function(
   id,
   state,
-  schema_grouped
+  schema_grouped,
+  population_profile = function() "rough"
 ) {
   shiny::moduleServer(
     id,
@@ -255,7 +309,8 @@ mod_dataset_status_server <- function(
                 base_path[1]
               ),
             schema_grouped =
-              schema_grouped
+              schema_grouped,
+            population_profile = population_profile()
           ),
 
           error = function(e) {
@@ -442,6 +497,14 @@ mod_dataset_status_server <- function(
             0L
         ]
 
+        data.table::set(
+          dt,
+          j = "requirement_level",
+          value = dataset_status_requirement_level(
+            dt$section, population_profile()
+          )
+        )
+
         dt[]
       })
 
@@ -457,6 +520,13 @@ mod_dataset_status_server <- function(
           return(dt)
         }
 
+        view <- input$status_view %||% "essential"
+        if (identical(view, "essential")) {
+          dt <- dt[get("requirement_level") == "essential"]
+        } else if (identical(view, "metadata")) {
+          dt <- dt[get("requirement_level") != "workflow"]
+        }
+
         dt[
           ,
           .(
@@ -465,6 +535,13 @@ mod_dataset_status_server <- function(
 
             Section =
               section,
+
+            Requirement =
+              data.table::fcase(
+                get("requirement_level") == "essential", "Essential",
+                get("requirement_level") == "optional", "Optional / conditional",
+                default = "Workflow"
+              ),
 
             Status =
               status_label,
@@ -511,6 +588,7 @@ mod_dataset_status_server <- function(
 
       output$status_summary <-
         shiny::renderUI({
+          access_require("read")
           dt <- normalised_status_data()
 
           if (
@@ -538,7 +616,7 @@ mod_dataset_status_server <- function(
           # Lifecycle is descriptive rather than a metadata
           # completion section, so exclude it from the counts.
           assessment <- dt[
-            section != "Lifecycle"
+            get("requirement_level") == "essential"
           ]
 
           complete_count <- sum(
@@ -666,6 +744,7 @@ mod_dataset_status_server <- function(
 
       output$status_table <-
         DT::renderDT({
+          access_require("read")
           display <- status_display()
 
           if (
@@ -673,7 +752,7 @@ mod_dataset_status_server <- function(
             nrow(as.data.frame(display)) == 0L
           ) {
             return(
-              DT::datatable(
+              datapond_datatable(
                 data.frame(
                   Message =
                     "No status records are available."
@@ -701,7 +780,7 @@ mod_dataset_status_server <- function(
             )
 
             return(
-              DT::datatable(
+              datapond_datatable(
                 message_table,
                 rownames = FALSE,
                 selection = "none",
@@ -722,7 +801,7 @@ mod_dataset_status_server <- function(
             stringsAsFactors = FALSE
           )
 
-          table_widget <- DT::datatable(
+          table_widget <- datapond_datatable(
             display,
             rownames = FALSE,
             selection = "none",
@@ -756,28 +835,33 @@ mod_dataset_status_server <- function(
                 ),
 
                 list(
-                  width = "145px",
+                  width = "135px",
                   targets = 2L
                 ),
 
                 list(
-                  width = "115px",
+                  width = "145px",
                   targets = 3L
                 ),
 
                 list(
-                  width = "300px",
+                  width = "115px",
                   targets = 4L
                 ),
 
                 list(
-                  width = "105px",
+                  width = "300px",
                   targets = 5L
                 ),
 
                 list(
-                  width = "340px",
+                  width = "105px",
                   targets = 6L
+                ),
+
+                list(
+                  width = "340px",
+                  targets = 7L
                 )
               )
             )

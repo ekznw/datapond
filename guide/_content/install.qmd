@@ -1,0 +1,72 @@
+## Before you begin
+
+Use a computer where you can install R packages and write to your chosen pond folder. Installation needs internet access to download software and dependencies; everyday metadata work and this guide can run offline.
+
+Install **R 4.1 or newer** from [CRAN](https://cran.r-project.org/). An editor such as [RStudio Desktop](https://posit.co/download/rstudio-desktop/) is optional but convenient. Paste the R examples below into the **R Console**, not a system terminal.
+
+::: {.panel-tabset}
+### Windows
+
+Install R first, then RStudio if desired. If an R dependency needs compilation from source, install the [Rtools version matching your R version](https://cran.r-project.org/bin/windows/Rtools/). A managed work computer may need IT assistance. Restart R after changing system tools.
+
+### macOS
+
+Choose the [CRAN R installer](https://cran.r-project.org/bin/macosx/) for Apple Silicon or Intel as appropriate. Binary packages avoid many compilation requirements. Source builds can require additional compiler and spatial libraries; follow the error for the failing dependency.
+
+### Linux
+
+Install R using your distribution's supported route. Spatial dependencies can require GDAL, GEOS, PROJ and udunits2 development libraries. Ask IT to install the appropriate distribution packages; see the [official sf installation notes](https://r-spatial.github.io/sf/). `pak` reports system dependencies where supported.
+:::
+
+## Install the package from GitHub
+
+For the stable colleague-facing build:
+
+```r
+install.packages("pak")
+pak::pak("ekznw/datapond")
+packageVersion("datapond")
+```
+
+This installs the R dependencies, including `ekznwr` from GitHub. It does **not** install Quarto, Python or a PDF engine simply because they are listed as system requirements. Follow [Document tools](document-tools.qmd) when you need document generation or releases.
+
+<details>
+<summary>Alternative installer and development builds</summary>
+
+If your team uses `remotes`:
+
+```r
+install.packages("remotes")
+remotes::install_github("ekznw/datapond", dependencies = TRUE, upgrade = "never")
+```
+
+For features that your maintainer has made available on the development branch:
+
+```r
+pak::pak("ekznw/datapond@develop")
+```
+
+Confirm the intended branch with the maintainer when following a development guide. Local changes are not available to colleagues until pushed and released. If GitHub access fails, check the repository address and your organisation's access arrangements.
+
+</details>
+
+## Launch and check
+
+```r
+datapond::run_data_pond()
+```
+
+The app opens in a browser and R stays busy serving it. Continue with [Your first pond](first-pond.qmd). Use **Exit DataPond** where offered, or stop the running app in R, when finished. Closing only the browser tab may leave R running the app.
+
+```{=html}
+<div class="guide-checklist" role="group" aria-label="Installation checklist">
+<strong>Ready for your first session</strong>
+<label><input type="checkbox" data-check="install-r">R is installed and opens.</label>
+<label><input type="checkbox" data-check="install-package">DataPond installed without an error.</label>
+<label><input type="checkbox" data-check="install-launch">The app opens in my browser.</label>
+</div>
+```
+
+## Updating an existing installation
+
+Back up the whole pond before a package upgrade. Stop the app, restart R, run the same installation command, then start DataPond again. Check the version and use its bundled guide. Keep an untouched backup when testing a development build; reinstalling an older package is not a pond rollback procedure.

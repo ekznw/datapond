@@ -1,0 +1,58 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - '*.qmd'
+  resources:
+    - assets/datapond-logo.png
+website:
+  title: DataPond guide
+  search:
+    location: navbar
+    type: overlay
+  navbar:
+    logo: assets/datapond-logo.png
+    left:
+      - href: index.qmd
+        text: Start here
+      - href: install.qmd
+        text: Install
+    right:
+      - href: offline.qmd
+        text: Offline edition
+  sidebar:
+    style: docked
+    contents:
+      - index.qmd
+      - section: Getting started
+        contents:
+          - install.qmd
+          - document-tools.qmd
+          - first-pond.qmd
+      - section: Working with datasets
+        contents:
+          - dataset.qmd
+          - lineage.qmd
+          - review.qmd
+          - releases.qmd
+      - section: Help and maintenance
+        contents:
+          - access-management.qmd
+          - troubleshooting.qmd
+          - maintaining.qmd
+  page-footer:
+    left: 'EKZNW · DataPond · Guide for {{< var version >}}'
+    right: Offline-first data stewardship
+format:
+  html:
+    theme: [cosmo, assets/theme.scss]
+    toc: true
+    toc-depth: 2
+    code-copy: true
+    code-overflow: wrap
+    css: assets/guide.css
+    include-after-body: assets/interaction.html
+    lang: en-GB
+execute:
+  enabled: false
+editor: visual

@@ -20,7 +20,7 @@ hydrate_one_input <- function(session, field, type, value,
   }
 
   if (grepl("^keyword_", field)) {
-    selected <- split_stored_multi_value(value)
+    selected <- split_keyword_values(value)
     vocab_field <- keyword_vocab_field_code(field)
 
     choices <- if (
@@ -55,16 +55,14 @@ hydrate_one_input <- function(session, field, type, value,
   }
 
   if (identical(type, "date")) {
-    updateDateInput(
-      session,
-      field,
-      value = if (non_empty_scalar(value)) {
-        as.Date(value)
-      } else {
-        NULL
-      }
-    )
-  } else if (identical(type, "textarea")) {
+    if (non_empty_scalar(value)) {
+      updateDateInput(session, field, value = as.Date(value))
+    } else {
+      # NULL in updateDateInput is ignored; explicitly clear the browser binding
+      # when loading a draft with no date after a dated record.
+      session$sendInputMessage(field, list(value = NULL))
+    }
+  } else if (dataset_field_uses_textarea(field, type)) {
     updateTextAreaInput(session, field, value = as.character(value %||% ""))
   } else if (identical(type, "select")) {
     updateSelectInput(session, field, selected = as.character(value %||% ""))
@@ -95,39 +93,15 @@ keyword_vocab_field_code <- function(field) {
     return(NULL)
   }
 
-  match[1]
+  canonical_keyword_field_code(match[1])
 }
 
 
 merge_keyword_choices <- function(choices, selected) {
-  selected <- unique(
-    trimws(as.character(selected))
-  )
-
-  selected <- selected[
-    !is.na(selected) & nzchar(selected)
-  ]
-
-  if (is.null(choices) || length(choices) == 0L) {
-    choices <- stats::setNames(character(), character())
-  }
-
-  choices <- choices[
-    !is.na(choices) & nzchar(as.character(choices))
-  ]
-
+  if (is.null(choices)) choices <- stats::setNames(character(), character())
+  choices <- choices[!is.na(choices) & nzchar(as.character(choices))]
+  selected <- normalise_keyword_values(selected, choices)
   approved_values <- as.character(unname(choices))
-
-  if (length(approved_values) > 0L && length(selected) > 0L) {
-    matched <- match(
-      tolower(selected),
-      tolower(approved_values)
-    )
-
-    selected[!is.na(matched)] <- approved_values[
-      matched[!is.na(matched)]
-    ]
-  }
 
   extra <- selected[
     !tolower(selected) %in% tolower(approved_values)
@@ -136,7 +110,7 @@ merge_keyword_choices <- function(choices, selected) {
   if (length(extra) > 0L) {
     choices <- c(
       choices,
-      stats::setNames(extra, extra)
+      stats::setNames(extra, paste0(extra, " (Custom)"))
     )
   }
 
@@ -331,10 +305,7 @@ clear_one_input <- function(
     )
   }
 
-  if (identical(
-    type,
-    "textarea"
-  )) {
+  if (dataset_field_uses_textarea(field, type)) {
     shiny::updateTextAreaInput(
       session,
       field,

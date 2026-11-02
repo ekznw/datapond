@@ -7,9 +7,8 @@
 run_data_pond(
   launch.browser = getOption("shiny.launch.browser", interactive()),
   host = getOption("shiny.host", "127.0.0.1"),
-  port = getOption("shiny.port"),
+  port = getOption("datapond.port", getOption("shiny.port", 5751L)),
   data_pond = NULL,
-  schema_path = NULL,
   ...
 )
 }
@@ -18,13 +17,11 @@ run_data_pond(
 
 \item{host}{Host interface on which to listen.}
 
-\item{port}{Optional TCP port. By default Shiny selects an available port.}
+\item{port}{TCP port. Defaults to option \code{datapond.port}, then \code{shiny.port},
+then 5751 for a stable browser address. Pass \code{NULL} for an available port.}
 
 \item{data_pond}{Optional path to the data pond to open. When \code{NULL}, Data
 Pond uses the last selected pond and then its normal fallback.}
-
-\item{schema_path}{Optional path to a metadata-schema XLSX workbook. When
-\code{NULL}, the workbook bundled with the package is used.}
 
 \item{...}{Additional arguments passed to \code{\link[shiny:runApp]{shiny::runApp()}}.}
 }
@@ -34,5 +31,6 @@ The value returned by \code{\link[shiny:runApp]{shiny::runApp()}}, invisibly.
 \description{
 Starts the offline-first Data Pond Shiny application. Dataset files,
 pond configuration, and the SQLite metadata database remain in the selected
-local data pond.
+local data pond. The startup dialogs offer Exit DataPond to stop this local
+application and return control to R; the browser tab can then be closed.
 }

@@ -14,6 +14,7 @@
 
 creation_scale_entry_fields <- function() {
   c(
+    "equivalent_scale_denominator",
     "max_scale",
     "min_scale",
     "creation_scale_note"
@@ -27,6 +28,7 @@ ensure_entry_creation_scale_columns_conn <- function(conn) {
     table = "entry_tbl",
     fields = creation_scale_entry_fields(),
     types = c(
+      equivalent_scale_denominator = "INTEGER",
       max_scale = "INTEGER",
       min_scale = "INTEGER",
       creation_scale_note = "TEXT"
@@ -214,7 +216,7 @@ validate_creation_scale_metadata <- function(
         valid = TRUE,
         status = "not_recorded",
         message = paste(
-          "Creation or compilation scale has not been recorded."
+          "No optional creation or recommended-use scale range has been recorded."
         ),
         values = list(
           max_scale = NA_integer_,
@@ -238,7 +240,7 @@ validate_creation_scale_metadata <- function(
         status = "note_only",
         message = paste(
           "A scale note will be saved without numeric",
-          "creation-scale denominators."
+          "scale range limits."
         ),
         values = list(
           max_scale = NA_integer_,
@@ -258,8 +260,8 @@ validate_creation_scale_metadata <- function(
         valid = FALSE,
         status = "incomplete_range",
         message = paste(
-          "Enter both creation-scale denominators.",
-          "For a single creation scale, enter the same",
+          "Enter both scale range limits.",
+          "For a single creation or recommended-use scale, enter the same",
           "denominator in both fields."
         ),
         values = NULL
@@ -320,7 +322,7 @@ validate_creation_scale_metadata <- function(
         valid = FALSE,
         status = "reversed_scale_range",
         message = paste(
-          "The largest creation scale must have the smaller",
+          "The largest scale in the range must have the smaller",
           "denominator. For example, enter 5,000 in the first",
           "field and 50,000 in the second field."
         ),
@@ -335,8 +337,8 @@ validate_creation_scale_metadata <- function(
         valid = FALSE,
         status = "missing_scale_note",
         message = paste(
-          "Add a creation-scale note explaining how the scale",
-          "or scale range was determined."
+          "Add a scale explanation stating whether these are creation or",
+          "recommended-use scales and how the limits were determined."
         ),
         values = NULL
       )
@@ -355,7 +357,7 @@ validate_creation_scale_metadata <- function(
     valid = TRUE,
     status = "valid",
     message = paste(
-      "Creation / compilation scale:",
+      "Creation or recommended-use scale range:",
       format_creation_scale_range(
         max_scale,
         min_scale

@@ -1,0 +1,1880 @@
+{
+  "audited_at_utc": "2026-10-21T08:21:55.205610+00:00",
+  "method": "SQLite mode=ro, query_only and read transactions; no app initialisation. Database and WAL hashes compared before and after. Rights read in a separate transaction. Migration artefacts inventoried by path and size, not executed or deleted.",
+  "ponds": [
+    {
+      "pond": "/home/paulg/dta_scp",
+      "database_sha256_before": {
+        "metadata.db": "df2688d42cda890c4aa2c084ca3a109509cf8615634011e93f16043ed8d0f882",
+        "metadata.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "database_sha256_after": {
+        "metadata.db": "df2688d42cda890c4aa2c084ca3a109509cf8615634011e93f16043ed8d0f882",
+        "metadata.db-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "database_files_unchanged": true,
+      "table_counts": {
+        "app_config_tbl": 0,
+        "authority_tbl": 42,
+        "data_file_scan_tbl": 20,
+        "data_file_spatial_metadata_tbl": 182,
+        "data_file_tbl": 199,
+        "data_pond_tbl": 1,
+        "data_profile_run_tbl": 17,
+        "dataset_alternate_title_tbl": 1,
+        "dataset_attribute_tbl": 269,
+        "dataset_citation_date_tbl": 16,
+        "dataset_distribution_format_tbl": 0,
+        "dataset_feature_catalogue_tbl": 0,
+        "dataset_import_tbl": 0,
+        "dataset_license_tbl": 16,
+        "dataset_lineage_process_step_tbl": 0,
+        "dataset_lineage_source_tbl": 1,
+        "dataset_lineage_step_source_tbl": 0,
+        "dataset_lineage_tbl": 4,
+        "dataset_manual_spatial_extent_tbl": 2,
+        "dataset_online_resource_tbl": 2,
+        "dataset_organisation_tbl": 20,
+        "dataset_quality_result_tbl": 0,
+        "dataset_spatial_summary_tbl": 11,
+        "dataset_temporal_extent_tbl": 14,
+        "dataset_topic_category_tbl": 1,
+        "dataset_vertical_extent_tbl": 0,
+        "entry_tbl": 16,
+        "keyword_thesaurus_tbl": 0,
+        "keyword_vocab_tbl": 139,
+        "license_template_tbl": 11,
+        "metadata_responsibility_tbl": 1,
+        "metadata_review_tbl": 92,
+        "organisation_tbl": 59,
+        "party_address_tbl": 58,
+        "persons_tbl": 38,
+        "poc_tbl": 16,
+        "sqlite_stat1": 20,
+        "sqlite_stat4": 129,
+        "supporting_document_tbl": 46,
+        "user_tbl": 5
+      },
+      "legacy_fields": {
+        "entry_tbl": {
+          "keyword_topic": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "bbox": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "epsg_code": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "software_desc": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "cell_size": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "scale_factor": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "license_type": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "access_constraints": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "use_limitations": {
+            "column_exists": true,
+            "dataset_ids": [
+              16
+            ],
+            "populated": 1
+          },
+          "data_distribution_url": {
+            "column_exists": true,
+            "dataset_ids": [
+              9,
+              16
+            ],
+            "populated": 2
+          },
+          "data_distributor": {
+            "column_exists": true,
+            "dataset_ids": [
+              4,
+              9,
+              12,
+              15,
+              16
+            ],
+            "populated": 5
+          },
+          "data_distributor_other": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "temporal_coverage_start_date": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "populated": 14
+          },
+          "temporal_coverage_end_date": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "populated": 14
+          }
+        },
+        "dataset_lineage_tbl": {
+          "source_description": {
+            "column_exists": true,
+            "dataset_ids": [
+              9
+            ],
+            "populated": 1
+          },
+          "source_datasets_text": {
+            "column_exists": true,
+            "dataset_ids": [
+              9
+            ],
+            "populated": 1
+          },
+          "process_description": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "processing_tools": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "processing_scripts": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "output_description": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "lineage_notes": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          }
+        }
+      },
+      "lineage_marker_column_exists": false,
+      "lineage_pending_dataset_ids": [
+        1,
+        2,
+        3,
+        9
+      ],
+      "lineage_origins": {
+        "dataset_lineage_source_tbl": [
+          {
+            "value_origin_code": "legacy_backfill",
+            "is_provisional": 1,
+            "count": 1
+          }
+        ],
+        "dataset_lineage_process_step_tbl": []
+      },
+      "foreign_key_violations": [],
+      "configuration_keys": [],
+      "rights_flag_counts": {
+        "attribution_text_missing": 1,
+        "provider_reference_missing": 5,
+        "redistribution_unknown": 2,
+        "rights_basis_missing": 2,
+        "rights_basis_needs_review": 3,
+        "structured_use_note": 3,
+        "use_note": 1
+      },
+      "rights_flags_by_dataset": {
+        "1": [
+          "rights_basis_needs_review",
+          "provider_reference_missing"
+        ],
+        "2": [
+          "structured_use_note"
+        ],
+        "3": [
+          "rights_basis_needs_review",
+          "attribution_text_missing"
+        ],
+        "4": [],
+        "5": [
+          "rights_basis_missing",
+          "redistribution_unknown"
+        ],
+        "7": [
+          "rights_basis_missing",
+          "redistribution_unknown"
+        ],
+        "8": [
+          "provider_reference_missing"
+        ],
+        "9": [
+          "provider_reference_missing"
+        ],
+        "10": [
+          "rights_basis_needs_review"
+        ],
+        "11": [
+          "structured_use_note"
+        ],
+        "12": [],
+        "13": [],
+        "14": [
+          "provider_reference_missing"
+        ],
+        "15": [],
+        "16": [
+          "use_note",
+          "structured_use_note",
+          "provider_reference_missing"
+        ],
+        "17": []
+      },
+      "migration_artefacts": [],
+      "migration_artefacts_bytes": 0
+    },
+    {
+      "pond": "/mnt/pjg_dta/bspi_data/bspi_xdrive",
+      "database_sha256_before": {
+        "metadata.db": "a1a3df26447f90be9c742e961059171c5f982bee272e9b749fbc298faa202750"
+      },
+      "database_sha256_after": {
+        "metadata.db": "a1a3df26447f90be9c742e961059171c5f982bee272e9b749fbc298faa202750"
+      },
+      "database_files_unchanged": true,
+      "table_counts": {
+        "app_config_tbl": 0,
+        "authority_tbl": 43,
+        "data_file_scan_tbl": 69,
+        "data_file_spatial_metadata_tbl": 141,
+        "data_file_tbl": 209,
+        "data_pond_tbl": 1,
+        "data_profile_run_tbl": 0,
+        "dataset_alternate_title_tbl": 2,
+        "dataset_attribute_tbl": 26,
+        "dataset_citation_date_tbl": 97,
+        "dataset_distribution_format_tbl": 86,
+        "dataset_feature_catalogue_tbl": 0,
+        "dataset_import_tbl": 2,
+        "dataset_license_tbl": 61,
+        "dataset_lineage_process_step_tbl": 68,
+        "dataset_lineage_source_tbl": 67,
+        "dataset_lineage_step_source_tbl": 1,
+        "dataset_lineage_tbl": 66,
+        "dataset_manual_spatial_extent_tbl": 0,
+        "dataset_online_resource_tbl": 0,
+        "dataset_organisation_tbl": 67,
+        "dataset_quality_result_tbl": 65,
+        "dataset_spatial_summary_tbl": 66,
+        "dataset_temporal_extent_tbl": 0,
+        "dataset_topic_category_tbl": 107,
+        "dataset_vertical_extent_tbl": 0,
+        "entry_tbl": 66,
+        "keyword_thesaurus_tbl": 0,
+        "keyword_vocab_tbl": 126,
+        "license_template_tbl": 11,
+        "metadata_responsibility_tbl": 66,
+        "metadata_review_tbl": 70,
+        "organisation_tbl": 57,
+        "party_address_tbl": 47,
+        "persons_tbl": 44,
+        "poc_tbl": 0,
+        "supporting_document_tbl": 504,
+        "user_tbl": 5
+      },
+      "legacy_fields": {
+        "entry_tbl": {
+          "keyword_topic": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "bbox": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "epsg_code": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              4,
+              9,
+              10,
+              11
+            ],
+            "populated": 6
+          },
+          "software_desc": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "cell_size": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "scale_factor": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "license_type": {
+            "column_exists": false,
+            "dataset_ids": null,
+            "populated": 0
+          },
+          "access_constraints": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "use_limitations": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "data_distribution_url": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "data_distributor": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "data_distributor_other": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "temporal_coverage_start_date": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "temporal_coverage_end_date": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          }
+        },
+        "dataset_lineage_tbl": {
+          "source_description": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66
+            ],
+            "populated": 66
+          },
+          "source_datasets_text": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "process_description": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66
+            ],
+            "populated": 66
+          },
+          "processing_tools": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "processing_scripts": {
+            "column_exists": true,
+            "dataset_ids": [],
+            "populated": 0
+          },
+          "output_description": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "populated": 64
+          },
+          "lineage_notes": {
+            "column_exists": true,
+            "dataset_ids": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39,
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50,
+              51,
+              52,
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60,
+              61,
+              62,
+              63,
+              64,
+              65,
+              66
+            ],
+            "populated": 66
+          }
+        }
+      },
+      "lineage_marker_column_exists": true,
+      "lineage_pending_dataset_ids": [],
+      "lineage_origins": {
+        "dataset_lineage_source_tbl": [
+          {
+            "value_origin_code": "legacy_backfill",
+            "is_provisional": 1,
+            "count": 66
+          },
+          {
+            "value_origin_code": "user",
+            "is_provisional": 1,
+            "count": 1
+          }
+        ],
+        "dataset_lineage_process_step_tbl": [
+          {
+            "value_origin_code": "legacy_backfill",
+            "is_provisional": 1,
+            "count": 66
+          },
+          {
+            "value_origin_code": "user",
+            "is_provisional": 0,
+            "count": 1
+          },
+          {
+            "value_origin_code": "user",
+            "is_provisional": 1,
+            "count": 1
+          }
+        ]
+      },
+      "foreign_key_violations": [],
+      "configuration_keys": [],
+      "rights_flag_counts": {
+        "access_contained_in_structured": 59,
+        "access_note": 64,
+        "missing_rights_row": 5,
+        "redistribution_unknown": 48,
+        "rights_basis_missing": 5,
+        "rights_basis_needs_review": 60,
+        "structured_contained_in_use": 1,
+        "structured_is_access_plus_use": 59,
+        "structured_use_note": 60,
+        "use_contained_in_structured": 59,
+        "use_note": 64
+      },
+      "rights_flags_by_dataset": {
+        "1": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "structured_contained_in_use",
+          "rights_basis_needs_review"
+        ],
+        "2": [
+          "access_note",
+          "use_note"
+        ],
+        "3": [
+          "missing_rights_row",
+          "access_note",
+          "use_note",
+          "rights_basis_missing"
+        ],
+        "4": [
+          "missing_rights_row",
+          "access_note",
+          "use_note",
+          "rights_basis_missing"
+        ],
+        "5": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "6": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "7": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "8": [
+          "missing_rights_row",
+          "access_note",
+          "use_note",
+          "rights_basis_missing"
+        ],
+        "9": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "10": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "11": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "12": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "13": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "14": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "15": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "16": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "17": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "18": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "19": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "20": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "21": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "22": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "23": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "24": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "25": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "26": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "27": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "28": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "29": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "30": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "31": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "32": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "33": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "34": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "35": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "36": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "37": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "38": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "39": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "40": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "41": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "42": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "43": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "44": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "45": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "46": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "47": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "48": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "49": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "50": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "51": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "52": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "53": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "54": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "55": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "56": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "57": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "58": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "59": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review"
+        ],
+        "60": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "61": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "62": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "63": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "64": [
+          "access_note",
+          "use_note",
+          "structured_use_note",
+          "use_contained_in_structured",
+          "access_contained_in_structured",
+          "structured_is_access_plus_use",
+          "rights_basis_needs_review",
+          "redistribution_unknown"
+        ],
+        "65": [
+          "missing_rights_row",
+          "rights_basis_missing"
+        ],
+        "66": [
+          "missing_rights_row",
+          "rights_basis_missing"
+        ]
+      },
+      "migration_artefacts": [
+        {
+          "path": ".metadata_pond/imports/arc-soils-update-20261016.json",
+          "bytes": 36067
+        },
+        {
+          "path": ".metadata_pond/imports/marine-cba-20261016.json",
+          "bytes": 9390
+        },
+        {
+          "path": ".metadata_pond/imports/remaining-datasets-20261016.json",
+          "bytes": 168054
+        },
+        {
+          "path": ".metadata_pond/imports/soils-earthworms-20261016.json",
+          "bytes": 10102
+        },
+        {
+          "path": ".metadata_pond/imports/storage-cleanup-20261016.json",
+          "bytes": 455270
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/apply.py",
+          "bytes": 5718
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/archive_io.py",
+          "bytes": 2400
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/asset-check.json",
+          "bytes": 1642
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/asset_dedup.py",
+          "bytes": 2745
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/catalog.py",
+          "bytes": 2343
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/dedup-decisions.json",
+          "bytes": 24042
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/extract.py",
+          "bytes": 728
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/extracted.json",
+          "bytes": 522164
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/finalize_plan.py",
+          "bytes": 4347
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/inventory.json",
+          "bytes": 150820
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/leaf-audit.json",
+          "bytes": 614933
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/manifest.json",
+          "bytes": 1011018
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/nested.json",
+          "bytes": 152139
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/nested.py",
+          "bytes": 956
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/partial-projection.json",
+          "bytes": 998
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/partial_projection.py",
+          "bytes": 2300
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/populate.R",
+          "bytes": 11249
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/prepare.py",
+          "bytes": 12933
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/rasters.json",
+          "bytes": 28911
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/rasters.py",
+          "bytes": 2474
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/restore_matching_crs.py",
+          "bytes": 1146
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/specs.py",
+          "bytes": 26253
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/texts.py",
+          "bytes": 1669
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/vector-checks.json",
+          "bytes": 2686
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/vector_checks.py",
+          "bytes": 3867
+        },
+        {
+          "path": ".metadata_pond/imports/temp2-20261016/water-equivalence.json",
+          "bytes": 401
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-arc-soils-update-20261016T122906.db",
+          "bytes": 413696
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-marine-cba-20261016T123846.db",
+          "bytes": 483328
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-remaining-datasets-20261016T125151.db",
+          "bytes": 512000
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-soils-earthworms-20261016T120925.db",
+          "bytes": 401408
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-storage-cleanup-20261016T131054.db",
+          "bytes": 716800
+        },
+        {
+          "path": ".metadata_pond/intake_backups/before-temp2-20261016T135851.db",
+          "bytes": 733184
+        },
+        {
+          "path": ".metadata_pond/marine-cba-intake-result.json",
+          "bytes": 317
+        },
+        {
+          "path": ".metadata_pond/remaining-intake-result.json",
+          "bytes": 2640
+        },
+        {
+          "path": ".metadata_pond/temp2-intake-result.json",
+          "bytes": 18589
+        }
+      ],
+      "migration_artefacts_bytes": 6551727
+    }
+  ]
+}

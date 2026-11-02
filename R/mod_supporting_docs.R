@@ -5,49 +5,51 @@ mod_supporting_documents_ui <- function(id) {
     h3("Supporting documents"),
     tags$small(
       style = "color:#666; display:block;",
-      "Scans the dataset folder outside data/. Documents in docs/, scripts/ and the dataset root can be listed and classified."
+      "Scans the dataset folder outside data/. Documents in docs/, scripts/ and the dataset root can be listed and classified.",
+      "Supporting documents are optional unless chosen as the authoritative lineage source; select those documents in Lineage."
     ),
     br(),
+    missing_file_cleanup_ui(ns("missing_files")),
     actionButton(
       ns("scan_docs"),
       "Scan supporting documents",
       class = "datapond-requires-active-user"
     ),
-    br(),
-    br(),
-    h4("Detected supporting documents"),
-    DT::DTOutput(ns("tbl_documents")),
-    actionButton(
-      ns("accept_default_types"),
-      "Accept all default document types",
-      class = "datapond-requires-active-user"
-    ),
-    tags$small(
-      style = "color:#666; display:block; margin-top:5px;",
-      "Marks all active, automatically classified documents as reviewed. Notes and individual overrides can still be saved below."
-    ),
-    br(),
-    h4("Edit document classification"),
-    selectInput(ns("doc_select"), "Select document", choices = NULL),
-    selectInput(
-      ns("document_type_code"),
-      "Document type",
-      choices = supporting_document_type_choices
-    ),
-    textInput(ns("document_type_user_text"), "Document type note / override reason"),
-    checkboxInput(ns("include_in_lineage"), "Include in lineage", value = FALSE),
-    checkboxInput(ns("include_in_metadata"), "Include in metadata record", value = TRUE),
-    textAreaInput(ns("notes"), "Notes"),
-    actionButton(
-      ns("save_doc_edit"),
-      "Save document classification & notes",
-      class = "datapond-requires-active-user"
+    tags$p(class = "help-block supporting-doc-scroll-help",
+      "The document list and review form scroll separately. Scroll the table sideways for more columns. Long text is previewed in the table; select a document to read or edit its full notes."),
+    tags$div(class = "supporting-doc-workspace",
+      tags$section(class = "supporting-doc-pane supporting-doc-table-pane",
+        tabindex = "0", `aria-label` = "Supporting document list",
+        h4("Detected supporting documents"),
+        DT::DTOutput(ns("tbl_documents")),
+        actionButton(ns("accept_default_types"), "Accept all default document types",
+          class = "datapond-requires-active-user"),
+        tags$small(class = "help-block",
+          "Marks all active, automatically classified documents as reviewed. Notes and individual overrides can still be saved in the review form.")
+      ),
+      tags$section(class = "supporting-doc-pane supporting-doc-editor-pane",
+        tabindex = "0", `aria-label` = "Supporting document review form",
+        h4("Edit document classification"),
+        selectInput(ns("doc_select"), metadata_field_label("Select document", "Conditional", "Select a document before saving its classification or notes."), choices = NULL),
+        selectInput(ns("document_type_code"),
+          metadata_field_label("Document type", "Conditional", "Choose or accept the document type when saving its classification."),
+          choices = supporting_document_type_choices),
+        textInput(ns("document_type_user_text"), metadata_field_label("Document type note / override reason", "Conditional", "Required when changing the automatically assigned document type.")),
+        checkboxInput(ns("include_in_lineage"), "Include in lineage", value = FALSE),
+        checkboxInput(ns("include_in_metadata"), "Include in metadata record", value = TRUE),
+        textAreaInput(ns("notes"), "Notes", width = "100%", rows = 8),
+        tags$div(class = "supporting-doc-editor-actions",
+          actionButton(ns("save_doc_edit"), "Save document classification & notes",
+            class = "datapond-requires-active-user"))
+      )
     )
   )
 }
 
 mod_supporting_documents_server <- function(id, state) {
   moduleServer(id, function(input, output, session) {
+
+    missing_file_cleanup_server("missing_files", state)
 
     scan_summary <- reactiveVal(NULL)
 
@@ -215,6 +217,7 @@ mod_supporting_documents_server <- function(id, state) {
     }
 
     observeEvent(input$scan_docs, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "scanning supporting documents"
@@ -318,6 +321,7 @@ mod_supporting_documents_server <- function(id, state) {
     })
 
     observeEvent(input$accept_default_types, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "reviewing supporting-document defaults"
@@ -366,6 +370,7 @@ mod_supporting_documents_server <- function(id, state) {
     })
 
     observe({
+      access_require("read")
       df <- docs()
       if (is.null(df) || nrow(df) == 0) {
         updateSelectInput(session, "doc_select", choices = character())
@@ -383,6 +388,7 @@ mod_supporting_documents_server <- function(id, state) {
       )
     })
     observeEvent(input$doc_select, {
+      access_require("edit", touch = TRUE)
       row <- selected_document()
 
       if (
@@ -454,6 +460,7 @@ mod_supporting_documents_server <- function(id, state) {
     }, ignoreInit = TRUE)
 
     observeEvent(input$save_doc_edit, {
+      access_require("edit", touch = TRUE)
       if (!require_active_user_for_write(
         state,
         "saving supporting-document metadata"
@@ -596,9 +603,10 @@ mod_supporting_documents_server <- function(id, state) {
       )
     })
 
-    output$scan_summary <- renderTable({
-      scan_summary()
-    }, striped = TRUE)
+    output$scan_summary <- DT::renderDT({
+      access_require("read")
+      datapond_summary_table(scan_summary())
+    })
 
     selected_document <- reactive({
       req(state$current_dataset_id)
@@ -642,26 +650,22 @@ mod_supporting_documents_server <- function(id, state) {
       }
       get_supporting_documents(
         state$current_dataset_id,
-        state$data_pond
+        state$data_pond,
+        active_only = FALSE
       )
     })
 
     # render the supporting documents table
     output$tbl_documents <- DT::renderDT({
+      access_require("read")
       req(state$current_dataset_id)
       req(state$data_pond)
 
-      state$refresh_supporting_docs
-
-      docs <- get_supporting_documents(
-        dataset_id = state$current_dataset_id,
-        base_path = state$data_pond,
-        active_only = FALSE
-      )
+      docs <- docs()
 
       if (is.null(docs) || nrow(docs) == 0) {
         return(
-          DT::datatable(
+          datapond_datatable(
             data.frame(
               message = paste(
                 "No supporting documents have been scanned",
@@ -682,7 +686,7 @@ mod_supporting_documents_server <- function(id, state) {
         docs
       )
 
-      tbl <- DT::datatable(
+      tbl <- datapond_datatable(
         display_docs,
         rownames = FALSE,
         selection = "single",
@@ -691,36 +695,26 @@ mod_supporting_documents_server <- function(id, state) {
         options = list(
           pageLength = 10,
           scrollX = TRUE,
-          autoWidth = TRUE,
+          autoWidth = FALSE,
           columnDefs = list(
-            list(
-              visible = FALSE,
-              targets = 0
-            ),
-            list(
-              width = "180px",
-              targets = 1
-            ),
-            list(
-              width = "260px",
-              targets = 2
-            ),
-            list(
-              width = "160px",
-              targets = 3
-            ),
-            list(
-              width = "120px",
-              targets = 4
-            ),
-            list(
-              width = "260px",
-              targets = 5
-            ),
-            list(
-              width = "260px",
-              targets = 6
-            )
+            list(visible = FALSE, targets = 0),
+            list(className = "supporting-doc-path", width = "200px", targets = c(1, 2)),
+            list(className = "supporting-doc-label", width = "150px", targets = c(3, 12)),
+            list(className = "supporting-doc-description", width = "240px", targets = c(4, 7)),
+            list(className = "supporting-doc-notes", width = "360px", targets = 8),
+            list(className = "supporting-doc-review", width = "110px", targets = c(5, 6)),
+            list(className = "supporting-doc-status", width = "80px", targets = c(9, 10, 11)),
+            list(targets = c(1, 2, 4, 7, 8), render = DT::JS(
+              "function(data, type) {",
+              "  if (type !== 'display') return data;",
+              "  var cell = document.createElement('div');",
+              "  cell.className = 'supporting-doc-cell';",
+              # DT escape=TRUE escapes text before this display renderer runs.
+              "  cell.innerHTML = data == null ? '' : data;",
+              "  cell.title = cell.textContent;",
+              "  return cell.outerHTML;",
+              "}"
+            ))
           )
         ),
         colnames = c(
@@ -791,6 +785,7 @@ mod_supporting_documents_server <- function(id, state) {
     observeEvent(
       input$tbl_documents_rows_selected,
       {
+        access_require("read", touch = TRUE)
         selected_row <-
           input$tbl_documents_rows_selected
 

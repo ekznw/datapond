@@ -1,0 +1,5 @@
+---
+title: "Your first pond"
+---
+
+{{< include _content/first-pond.qmd >}}

@@ -15,11 +15,11 @@ is_dataset_ready_for_archive <- function(dataset_id, base_path, schema_grouped =
   if (is.null(status_dt) || nrow(status_dt) == 0) {
     return(FALSE)
   }
-  optional_sections <- c("Spatial metadata")
   valid_status <- c("complete", "not_applicable")
+  requirement_level <- dataset_status_requirement_level(status_dt$section)
   incomplete <- status_dt[
-    !status %in% valid_status &
-    !section %in% optional_sections
+    requirement_level == "essential" &
+      !status %in% valid_status
   ]
   nrow(incomplete) == 0
 }

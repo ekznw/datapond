@@ -1,0 +1,63 @@
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  'use strict';
+  // The guide stores only tick-box state. It never reads a pond or runs R.
+  document.querySelectorAll('.guide-checklist').forEach(group => {
+    const boxes = [...group.querySelectorAll('input[data-check]')];
+    const status = document.createElement('small');
+    status.setAttribute('role', 'status');
+    group.append(status);
+    let persistent = true;
+    const key = box => 'datapond-guide-v1:' + box.dataset.check;
+    const update = () => {
+      status.textContent = `${boxes.filter(b => b.checked).length} of ${boxes.length} complete. ` +
+        (persistent ? 'Ticks are saved in this browser where available; they do not change DataPond.' : 'Browser storage unavailable; ticks last for this page visit only.');
+    };
+    boxes.forEach(box => {
+      try { box.checked = localStorage.getItem(key(box)) === 'true'; } catch (_) { persistent = false; }
+      box.addEventListener('change', () => {
+        try { localStorage.setItem(key(box), String(box.checked)); } catch (_) { persistent = false; }
+        update();
+      });
+    });
+    const reset = document.createElement('button');
+    reset.type = 'button'; reset.textContent = 'Reset this checklist';
+    reset.addEventListener('click', () => {
+      boxes.forEach(box => {
+        box.checked = false;
+        try { localStorage.removeItem(key(box)); } catch (_) { persistent = false; }
+      });
+      update();
+    });
+    group.append(reset); update();
+  });
+  const search = document.getElementById('guide-search');
+  if (!search) return;
+  // Single-file edition: turn chapter links into local anchors, even when copied.
+  const chapters = ['index', 'install', 'document-tools', 'first-pond', 'dataset', 'lineage', 'review', 'releases', 'access-management', 'troubleshooting', 'maintaining'];
+  document.querySelectorAll('main a[href]').forEach(link => {
+    const match = link.getAttribute('href').match(/^(?:\.\/)?([\w-]+)\.(?:qmd|html)(?:#(.*))?$/);
+    if (match && chapters.includes(match[1])) link.setAttribute('href', '#' + (match[2] || match[1]));
+  });
+  const results = document.getElementById('guide-search-results');
+  const status = document.getElementById('guide-search-status');
+  const sections = [...document.querySelectorAll('main section[id]')].map(section => ({
+    id: section.id,
+    title: section.querySelector('h1,h2,h3')?.textContent.trim() || section.id,
+    // Search direct section content, not all nested chapters a second time.
+    text: [...section.children].filter(el => el.tagName !== 'SECTION').map(el => el.textContent).join(' ').toLowerCase()
+  }));
+  search.addEventListener('input', () => {
+    const words = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    results.replaceChildren();
+    if (!words.length) { status.textContent = 'Search all chapters without an internet connection.'; return; }
+    const matches = sections.filter(section => words.every(word => section.text.includes(word)));
+    matches.slice(0, 20).forEach(section => {
+      const item = document.createElement('li'); const link = document.createElement('a');
+      link.href = '#' + section.id; link.textContent = section.title;
+      item.append(link); results.append(item);
+    });
+    status.textContent = matches.length ? `${matches.length} matching sections${matches.length > 20 ? ' (first 20 shown)' : ''}.` : 'No matching sections. Try a shorter phrase.';
+  });
+});
+</script>

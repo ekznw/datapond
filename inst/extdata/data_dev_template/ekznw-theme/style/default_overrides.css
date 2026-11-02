@@ -1,0 +1,15 @@
+.quarto-title-block .quarto-title-banner {
+  background-image: url(img/corplogo120.png);
+  background-size: 200px;
+  background-position: left;
+  background-repeat: no-repeat;
+  padding-left: 10px;
+  background-origin: content-box;
+  color: #554838;
+  background-color: #e2dfd0;
+}
+
+/* Shared olive title colour. */
+header#title-block-header .title {
+  color: #495c3f !important;
+}

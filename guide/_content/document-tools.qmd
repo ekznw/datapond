@@ -1,0 +1,67 @@
+## Which tools do I need?
+
+| Task | Additional software |
+|---|---|
+| Read this guide or edit dataset metadata | None beyond the installed app; the standalone guide only needs a browser |
+| Type methods into the supplied Word template | Word or a compatible document editor |
+| Render development QMD to HTML or Word | Quarto; the template's executable analysis may also need its own R/Python packages |
+| Generate the metadata PDF or development PDF | Quarto and XeLaTeX; document preparation also verifies files with Python 3.9+ |
+| Inventory documents or freeze/restore releases | Python 3.9+; freezing uses the prepared PDF |
+
+## Run setup once while online
+
+Stop the app and run in R:
+
+```r
+datapond::setup_document_tools()
+```
+
+The helper checks Quarto, XeLaTeX and Python, then tries the metadata PDF and the development template's PDF, Word and HTML outputs in a temporary folder. It does not modify a dataset or execute its analysis.
+
+If Quarto or Python is missing, setup prints installation instructions. Install [Quarto](https://quarto.org/docs/get-started/) and [Python](https://www.python.org/downloads/) as needed, restart R so it sees the new programs, and rerun setup. Installing the R package named `quarto` is not a substitute for installing the Quarto command-line program.
+
+When XeLaTeX is missing, setup can install [Quarto-managed TinyTeX](https://quarto.org/docs/output-formats/pdf-engine.html) and the required theme packages. It tests an existing system TeX installation without modifying it. If that installation reports missing fonts or packages, ask its administrator to resolve them. An incomplete existing TinyTeX directory is not forcibly replaced.
+
+## Verify before going offline
+
+```r
+result <- datapond::check_document_tools()
+result$checks
+result$ready
+```
+
+Proceed when `result$ready` is `TRUE`. This check renders test documents with software/package downloads disabled. The app offers the same action under **Configuration → Document tools → Check document tools**. A quick `check_document_tools(verify = FALSE)` only detects programs; it does not prove rendering works.
+
+::: {.guide-process role="region" aria-label="Check document tools before going offline" tabindex="0"}
+
+```{mermaid}
+%%| fig-cap: "Complete setup and a rendering check before relying on document generation offline."
+flowchart TD
+  accTitle: Check document tools before going offline
+  accDescr: Run setup while online and follow any installation instructions. Restart R after installing tools, then run check_document_tools. If ready is false, resolve the failed checks and check again. A true result means the document toolchain passed its test renders.
+  setup["Run setup_document_tools() online"] --> install["Follow any installation instructions;<br/>restart R after installing tools"]
+  install --> check["Run check_document_tools()"]
+  check --> ready{"result$ready is TRUE?"}
+  ready -->|No| fix["Resolve the reported failed checks"]
+  fix --> check
+  ready -->|Yes| offline["Document toolchain ready for offline use"]
+```
+
+:::
+
+The first online setup can take time and download a TeX distribution. It is an explicit user action, never an automatic part of starting the app. After setup, normal app PDF generation leaves automatic TeX package downloads disabled.
+
+<details>
+<summary>Custom software locations</summary>
+
+Set `DATAPOND_QUARTO` (or `QUARTO_PATH`) to the Quarto executable and `DATAPOND_RELEASE_PYTHON` to the Python executable. For example, using your actual paths:
+
+```r
+Sys.setenv(DATAPOND_QUARTO = "/path/to/quarto")
+Sys.setenv(DATAPOND_RELEASE_PYTHON = "/path/to/python3")
+datapond::check_document_tools()
+```
+
+Use `.Renviron` for persistent settings, then restart R. Use executable paths, not their parent folders.
+
+</details>
