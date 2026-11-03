@@ -2360,9 +2360,7 @@ mod_data_files_server <- function(id, state) {
     }
 
     # Custom scan roots can be anywhere accessible.
-    custom_scan_roots <- c(
-      home = "~"
-    )
+    custom_scan_roots <- data_pond_folder_roots()
 
     shinyDirChoose(
       access_directory_input(input, "edit"),
