@@ -2,6 +2,12 @@ flow_requirement_marker <- function(requirement) {
   metadata_requirement_marker(requirement)
 }
 
+movement_require_publication_pond <- function(pond) {
+  if (!access_allowed("admin", pond = pond, touch = TRUE))
+    stop("Switch to the pond you intend to publish and sign in there as an administrator.", call. = FALSE)
+  invisible(TRUE)
+}
+
 mod_data_movement_ui <- function(id) {
   ns <- shiny::NS(id)
   field_label <- function(label, help, requirement = "Optional", when = NULL) {
@@ -69,7 +75,7 @@ mod_data_movement_ui <- function(id) {
     shiny::p(class = "help-block", "Choose a tab for the task you need. The cards follow the tab order."),
     shiny::tags$ol(class = "flow-navigation", `aria-label` = "Flow tabs",
       shiny::tags$li(shiny::strong("1. Read remote pond"), shiny::p("Browse a published pond, refresh its cached metadata and download selected datasets. The remote pond stays read-only.")),
-      shiny::tags$li(shiny::strong("2. Run Flows"), shiny::p("Preview and run saved flows, or publish the active pond. Publication settings are saved for each pond for later retries.")),
+      shiny::tags$li(shiny::strong("2. Run Flows"), shiny::p("Preview and run saved flows, or publish the pond you are signed into. Publication settings are saved for each pond for later retries.")),
       shiny::tags$li(class = "flow-setup", shiny::strong("3. Define connections"), shiny::p("Set up remote connections, name local folders and choose transfer limits. Hide this tab once setup is complete.")),
       shiny::tags$li(class = "flow-setup", shiny::strong("4. Design flow"), shiny::p("Choose the source, destination and copy or mirror operation, then save a reusable flow."))
     ),
@@ -107,6 +113,7 @@ mod_data_movement_ui <- function(id) {
         shiny::h4("Select saved flows"),
         shiny::uiOutput(ns("routine_help")),
         DT::DTOutput(ns("routine_components")),
+        shiny::uiOutput(ns("direct_run_summary")),
         shiny::textOutput(ns("routine_selection")),
         shiny::actionButton(ns("select_all_routines"), "Select all"),
         shiny::actionButton(ns("clear_routine_selection"), "Clear selection"),
@@ -115,19 +122,23 @@ mod_data_movement_ui <- function(id) {
         shiny::actionButton(ns("delete_routines"), "Remove selected flows"),
         shiny::helpText("Flows run with their saved settings, in the order shown before table sorting. Preview first, review the plan and log, then run."),
         shiny::hr(),
-        shiny::h4("Publish pond"),
+        shiny::h4("Publish signed-in pond"),
         shiny::uiOutput(ns("publication_summary")),
+        shiny::checkboxInput(ns("confirm_publish_pond"),
+          "I confirm that the signed-in pond shown above is the pond I intend to publish", FALSE),
         shiny::tags$details(open = "open",
           shiny::tags$summary("Publication settings"),
           shiny::textInput(ns("publish_destination"), field_label("Publication destination",
-            "Use a dedicated remote folder, such as team_data:published_pond, or a local publication folder. The source is the active pond. These settings are separate from individual flows.", "Mandatory"), placeholder = "team_data:published_pond"),
+            "Use a dedicated remote folder, such as team_data:published_pond, or a local publication folder. The source is the pond you are signed into. These settings are separate from individual flows.", "Mandatory"), placeholder = "team_data:published_pond"),
           shiny::checkboxInput(ns("publish_data"), field_label("Also upload registered dataset folders (data, documents and scripts)",
             "Leave unchecked to publish the catalogue and metadata only. Registered folders retain their src/dev/arc paths."), FALSE),
+          shiny::checkboxInput(ns("publish_sharepoint_compat"), field_label("SharePoint file compatibility",
+            "When uploading dataset folders, copy .doc, .docx, .xls, .xlsx, .ppt, .pptx, .htm and .html files separately without rclone's post-upload size and checksum checks. SharePoint may alter these files. Use only when they fail normal publication; inspect a downloaded example. Other files keep full verification."), FALSE),
           shiny::actionButton(ns("save_publication"), "Save publication settings")
         ),
         shiny::actionButton(ns("preview_publish"), "Preview / retry pond publication", class = "btn-primary"),
-        shiny::helpText("Preview also saves these settings. After a failure or restart, return here, preview again, then choose Run flow. Completed files that still match are reused; incomplete files may need to restart. Checking existing files still contacts the remote."),
-        shiny::helpText("For overnight publishing, sign in shortly before starting and keep the app connected and the computer awake. Jobs stop when the session closes or reaches its 12-hour limit. The 15-minute preview expiry limits when a run can start; it does not limit a running transfer to 15 minutes."),
+        shiny::helpText("Switch to a connected local pond and sign in there before publishing it. Selecting a connected dataset or a saved flow does not change the publication source. Preview also saves these settings. After a failure or restart, return here, preview again, then choose Run flow. Completed files that still match are reused; incomplete files may need to restart. Checking existing files still contacts the remote."),
+        shiny::helpText("For overnight publishing, keep the app connected and the computer awake. The 12-hour login limit waits for an active Flow job to finish, then allows five minutes to review its result. Sign-out, pond switching and app exit are blocked during the job; closing the browser session or revoked access still stops it. The 15-minute preview expiry limits when a run can start, not its duration."),
         shiny::hr(),
         shiny::h4("Flow preview"),
         shiny::textOutput(ns("preview_status")),
@@ -247,7 +258,7 @@ mod_data_movement_ui <- function(id) {
     shiny::div(class = "flow-field-help", shiny::textOutput(ns("operation_speed"))),
     shiny::uiOutput(ns("operation_progress")),
     shiny::actionButton(ns("cancel"), "Cancel current operation"),
-    shiny::helpText("An active transfer or queued job keeps your session active. Keep the app connected and the computer awake. Signing out, closing the app, revoked access or the 12-hour session limit stops the job."),
+    shiny::helpText("An active Flow job keeps the login valid even beyond 12 hours. Keep the app connected and the computer awake. Sign-out, pond switching and app exit are blocked until the job finishes or you cancel it; closing the browser session or revoked access still stops it."),
     shiny::h4("Recent file actions and warnings"),
     shiny::p(class = "flow-field-help", "Messages from this operation's rclone process. Repeated progress snapshots are shown in the monitor above; this list keeps proposed changes, completed actions, warnings and errors."),
     shiny::tags$pre(id = ns("operation_events"), class = "shiny-text-output flow-terminal"),
@@ -285,7 +296,10 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       preview = NULL, publication_settings = NULL, publication_pond = NULL, listing = data.frame(), config = NULL, config_name = NULL,
       cache = NULL, cache_tick = 0L, download_path = "", routines = list(), ponds = list(),
       editing_id = "", selected_routine_ids = character(), deleting_routine_ids = character(),
-      locations = list(), editing_location_id = "", available_locations = character(), remote_locations = character(), speed_tick = 0L, job_tick = 0L)
+      locations = list(), editing_location_id = "", available_locations = character(), remote_locations = character(), speed_tick = 0L, job_tick = 0L, run_tick = 0L)
+    session$userData$datapond_flow_active <- function() {
+      !is.null(state$job) && identical(state$job$status, "running") && !isTRUE(state$private)
+    }
     routines_file <- file.path(state_directory, "movement-routines.rds")
     ponds_file <- file.path(state_directory, "remote-pond-caches.rds")
     locations_file <- file.path(state_directory, "movement-locations.rds")
@@ -337,19 +351,29 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       state$publication_settings <- NULL
       shiny::updateTextInput(session, "publish_destination", value = "")
       shiny::updateCheckboxInput(session, "publish_data", value = FALSE)
+      shiny::updateCheckboxInput(session, "publish_sharepoint_compat", value = FALSE)
+      shiny::updateCheckboxInput(session, "confirm_publish_pond", value = FALSE)
       protect({
         saved <- movement_publication_read(state_directory, key)
         state$publication_settings <- saved
         if (!is.null(saved)) {
           shiny::updateTextInput(session, "publish_destination", value = saved$destination)
           shiny::updateCheckboxInput(session, "publish_data", value = saved$include_data)
+          shiny::updateCheckboxInput(session, "publish_sharepoint_compat", value = saved$sharepoint_compat)
         }
       })
     })
+    require_publication_pond <- function(target = pond()) movement_require_publication_pond(target)
+    require_publication_confirmation <- function() {
+      if (!isTRUE(input$confirm_publish_pond))
+        stop("Confirm the signed-in pond shown above before previewing or running its publication.", call. = FALSE)
+      invisible(TRUE)
+    }
     save_publication <- function() {
+      require_publication_pond()
       require_fields("publishing a pond", list("Publication destination" = input$publish_destination))
       state$publication_settings <- movement_publication_save(state_directory, pond(),
-        input$publish_destination, isTRUE(input$publish_data))
+        input$publish_destination, isTRUE(input$publish_data), isTRUE(input$publish_sharepoint_compat))
     }
     shiny::observeEvent(input$save_publication, { access_require("admin", touch = TRUE); protect({
       save_publication()
@@ -357,12 +381,17 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     }) })
     output$publication_summary <- shiny::renderUI({
       access_require("admin")
+      state$run_tick
       saved <- state$publication_settings
+      last <- movement_run_status_read(state_directory, "publication", movement_endpoint(pond()))[[movement_endpoint(pond())]]
+      outcome <- movement_run_status_label(last)
       shiny::tagList(
-        shiny::p("Source: ", shiny::strong(pond())),
+        shiny::p("Signed-in pond to publish: ", shiny::strong(pond())),
+        shiny::p("Last publication run: ", shiny::strong(outcome[1]), " · ", outcome[2]),
         if (is.null(saved)) shiny::p(class = "help-block", "Choose a destination below once. Saving settings does not start a publication.") else
           shiny::p("Saved destination: ", shiny::strong(saved$destination), " \u00b7 ",
-            if (saved$include_data) "Catalogue and registered dataset folders" else "Catalogue and metadata only"))
+            if (saved$include_data) "Catalogue and registered dataset folders" else "Catalogue and metadata only",
+            if (saved$sharepoint_compat) " \u00b7 SharePoint file compatibility"))
     })
     preview_needs_mirror_ack <- function(previewed) {
       !is.null(previewed) && (identical(previewed$spec$mode, "sync") ||
@@ -375,14 +404,62 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       if (!is.null(state$job) && state$job$status == "running") stop("Wait for the current operation, or cancel it first.")
     }
     start <- function(steps, label, done = function() NULL, private = FALSE, failure = function() NULL, labels = NULL,
-                      profiles = movement_speed_read(state_directory), not_after = NULL) {
+                      profiles = movement_speed_read(state_directory), not_after = NULL, run_context = NULL) {
       idle()
       state$job <- tryCatch(movement_job_start(steps, control_directory = state_directory, profiles = profiles,
         not_after = not_after), error = function(e) { failure(); stop(e) })
       state$job$labels <- labels
+      if (!is.null(run_context)) {
+        run_context$run_id <- new_uuid(); run_context$recorded <- 0L
+        state$job$run_context <- run_context
+        first_key <- run_context$keys[1]
+        tryCatch(movement_run_status_write(state_directory, run_context$kind, first_key,
+          run_context$run_id, state$job$started, "running"), error = function(e) {
+          movement_job_cancel(state$job); failure(); stop(e)
+        })
+        state$run_tick <- shiny::isolate(state$run_tick) + 1L
+      }
       state$done <- done; state$failure <- failure; state$private <- private; state$status <- label
       state$log <- if (private && steps[[1]][1] == "config") "Complete Microsoft sign-in in your browser when prompted. Configuration responses are not recorded in the transfer log." else "Starting\u2026"
       state$report <- movement_job_report(state$job, private = private)
+    }
+    record_run_progress <- function(job) {
+      context <- job$run_context
+      if (is.null(context)) return(invisible(NULL))
+      previous <- context$recorded
+      if (context$kind == "publication") {
+        if (job$status != "running" && context$recorded == 0L) {
+          result <- movement_run_errors(job$logs,
+            if (job$status == "failed") job$error %||% "rclone exited with an error" else NULL)
+          movement_run_status_write(state_directory, context$kind, context$keys[1], context$run_id,
+            job$started, if (job$status == "failed" && result$ignored > 0L && result$count == 0L)
+              "failed_known" else job$status, result$summary)
+          context$recorded <- 1L
+        }
+      } else {
+        finished <- if (job$status == "complete") length(context$keys) else max(0L, job$index - 1L)
+        while (context$recorded < finished) {
+          i <- context$recorded + 1L
+          result <- movement_run_errors(job$logs[i])
+          movement_run_status_write(state_directory, context$kind, context$keys[i], context$run_id,
+            job$started, "complete", result$summary)
+          context$recorded <- i
+          if (i < length(context$keys)) movement_run_status_write(state_directory, context$kind,
+            context$keys[i + 1L], context$run_id, job$started, "running")
+        }
+        if (job$status %in% c("failed", "cancelled") && context$recorded < length(context$keys)) {
+          i <- context$recorded + 1L
+          result <- movement_run_errors(job$logs[i],
+            if (job$status == "failed") job$error %||% "rclone exited with an error" else NULL)
+          movement_run_status_write(state_directory, context$kind, context$keys[i], context$run_id,
+            job$started, if (job$status == "failed" && result$ignored > 0L && result$count == 0L)
+              "failed_known" else job$status, result$summary)
+          context$recorded <- i
+        }
+      }
+      job$run_context <- context
+      if (context$recorded != previous) state$run_tick <- shiny::isolate(state$run_tick) + 1L
+      invisible(NULL)
     }
     last_job_activity <- -Inf
     shiny::observe({
@@ -399,6 +476,9 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       }
       protect({
         status <- movement_job_poll(job)
+        if (status != "running" && !isTRUE(state$private))
+          session$userData$datapond_flow_grace_until <- access_now() + 300
+        record_run_progress(job)
         state$job_tick <- shiny::isolate(state$job_tick) + 1L
         if (!state$private) state$log <- movement_job_log(job)
         else if (status == "running") {
@@ -425,21 +505,31 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
             unlink(job$directory, recursive = TRUE)
           }
         }
+        if (status != "running" && !is.null(job$run_context))
+          unlink(job$directory, recursive = TRUE)
       })
     })
     session$onSessionEnded(function() shiny::isolate({
       movement_job_cancel(state$job)
+      if (!is.null(state$job)) record_run_progress(state$job)
+      if (!is.null(state$job$run_context)) unlink(state$job$directory, recursive = TRUE)
       if (!is.null(state$failure)) state$failure()
       if (state$private && !is.null(state$job)) unlink(state$job$directory, recursive = TRUE)
       if (!is.null(state$preview$plan$snapshot)) unlink(state$preview$plan$snapshot$directory, recursive = TRUE)
     }))
     session$userData$datapond_access_cleanup <- c(session$userData$datapond_access_cleanup, list(function() {
       movement_job_cancel(state$job)
+      if (!is.null(state$job)) record_run_progress(state$job)
+      if (!is.null(state$job$run_context)) unlink(state$job$directory, recursive = TRUE)
       if (!is.null(state$failure)) state$failure()
       state$failure <- NULL; state$done <- NULL
     }))
     shiny::observeEvent(input$cancel, { access_require("admin", touch = TRUE); protect({
+      was_active <- access_flow_active(session)
       movement_job_cancel(state$job)
+      if (was_active) session$userData$datapond_flow_grace_until <- access_now() + 300
+      if (!is.null(state$job)) record_run_progress(state$job)
+      if (!is.null(state$job$run_context)) unlink(state$job$directory, recursive = TRUE)
       if (!is.null(state$report) && identical(state$job$status, "cancelled")) {
         report <- state$report; report$status <- "cancelled"; report$queued <- FALSE; state$report <- report
       }
@@ -760,17 +850,31 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     })
     output$routine_components <- DT::renderDT({
       access_require("admin")
+      state$run_tick
       profiles <- state$routines
+      ids <- vapply(profiles, `[[`, character(1), "id")
+      history <- movement_run_status_read(state_directory, "flow", ids)
+      outcomes <- lapply(ids, function(id) movement_run_status_label(history[[id]]))
       rows <- data.frame(
         Flow = vapply(profiles, `[[`, character(1), "name"),
+        `Last run` = vapply(outcomes, `[[`, character(1), 1L),
+        `Result / errors` = vapply(outcomes, `[[`, character(1), 2L),
         Source = vapply(profiles, `[[`, character(1), "src"),
         Destination = vapply(profiles, `[[`, character(1), "dest"),
         Operation = vapply(profiles, function(x) if (x$mode == "sync") "Mirror sync (delete extra destination files)" else "Copy / update", character(1)),
-        Exclusions = vapply(profiles, function(x) paste(x$excludes, collapse = "; "), character(1))
+        Exclusions = vapply(profiles, function(x) paste(x$excludes, collapse = "; "), character(1)),
+        check.names = FALSE
       )
       names(rows)[names(rows) == "Source"] <- "Flow from \u2014 source"
       names(rows)[names(rows) == "Destination"] <- "Flow to \u2014 destination"
       datapond_datatable(rows, rownames = FALSE, selection = "multiple", options = list(pageLength = 8, scrollX = TRUE, order = list()))
+    })
+    output$direct_run_summary <- shiny::renderUI({
+      access_require("admin")
+      state$run_tick
+      last <- movement_run_status_read(state_directory, "transfer", "latest")[["latest"]]
+      outcome <- movement_run_status_label(last)
+      shiny::p(class = "help-block", "Last direct flow run: ", shiny::strong(outcome[1]), " · ", outcome[2])
     })
     shiny::observeEvent(input$routine_components_rows_selected, {
       access_require("admin", touch = TRUE)
@@ -847,6 +951,8 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       removed <- state$deleting_routine_ids
       if (!length(removed)) return()
       persist_routines(state$routines[!routine_ids() %in% removed])
+      movement_run_status_delete(state_directory, "flow", removed)
+      state$run_tick <- shiny::isolate(state$run_tick) + 1L
       if (state$editing_id %in% removed) show_profile()
       state$deleting_routine_ids <- character()
       shiny::removeModal()
@@ -864,7 +970,8 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       shiny::updateTextInput(session, "destination", value = source)
     })
     specification <- function(kind) {
-      spec <- if (kind == "publish") list(kind = kind, pond = pond(), destination = input$publish_destination, include_data = isTRUE(input$publish_data))
+      spec <- if (kind == "publish") list(kind = kind, pond = pond(), destination = input$publish_destination,
+        include_data = isTRUE(input$publish_data), sharepoint_compat = isTRUE(input$publish_sharepoint_compat))
       else if (kind == "routines") list(kind = kind, profiles = selected_routines())
       else list(kind = kind, source = input$source, destination = input$destination, mode = input$mode, excludes = strsplit(input$excludes %||% "", "\n")[[1]])
       spec$speeds <- movement_speed_read(state_directory)
@@ -895,7 +1002,11 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       idle()
       if (kind == "transfer") require_fields("previewing a flow", list("Flow from \u2014 source" = input$source,
         "Flow to \u2014 destination" = input$destination, "Operation" = input$mode))
-      if (kind == "publish") save_publication()
+      if (kind == "publish") {
+        require_fields("publishing a pond", list("Publication destination" = input$publish_destination))
+        require_publication_confirmation()
+        save_publication()
+      }
       spec <- specification(kind)
       saved <- state$preview
       if (!isTRUE(input$fresh_preview) && !is.null(saved) && !isTRUE(saved$stale) &&
@@ -911,7 +1022,8 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       shiny::updateCheckboxInput(session, "delete_ack", value = FALSE)
       shiny::updateCheckboxInput(session, "fresh_preview", value = FALSE)
       if (kind == "publish") {
-        plan <- movement_publish_plan(spec$pond, spec$destination, spec$include_data)
+        plan <- movement_publish_plan(spec$pond, spec$destination, spec$include_data,
+          sharepoint_compat = spec$sharepoint_compat)
         steps <- plan$steps
       } else if (kind == "routines") {
         plan <- movement_routine_plan(spec$profiles)
@@ -951,6 +1063,10 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     shiny::observeEvent(input$run, { access_require("admin", touch = TRUE); protect({
       idle(); previewed <- state$preview
       if (is.null(previewed)) stop("Complete a preview first.")
+      if (identical(previewed$spec$kind, "publish")) {
+        require_publication_pond(previewed$spec$pond)
+        require_publication_confirmation()
+      }
       if (isTRUE(previewed$stale) || !identical(specification(previewed$spec$kind), previewed$spec)) stop("Settings changed. Preview the flow again.")
       if (as.numeric(difftime(Sys.time(), previewed$completed, units = "mins")) >= 15)
         stop("The preview is more than 15 minutes old. Preview the flow again.")
@@ -964,7 +1080,12 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
         if (identical(previewed$spec$kind, "publish")) unlink(previewed$plan$snapshot$directory, recursive = TRUE)
       }, labels = previewed$plan$summary$Component, profiles = previewed$spec$speeds,
         failure = function() { if (!is.null(previewed$plan$snapshot)) unlink(previewed$plan$snapshot$directory, recursive = TRUE) },
-        not_after = previewed$completed + 15 * 60)
+        not_after = previewed$completed + 15 * 60,
+        run_context = if (identical(previewed$spec$kind, "publish"))
+          list(kind = "publication", keys = movement_endpoint(previewed$spec$pond))
+        else if (identical(previewed$spec$kind, "routines"))
+          list(kind = "flow", keys = vapply(previewed$spec$profiles, `[[`, character(1), "id"))
+        else list(kind = "transfer", keys = "latest"))
     }) })
     roots <- data_pond_folder_roots()
     shinyFiles::shinyDirChoose(access_directory_input(input), "local_folder", roots = roots, allowDirCreate = FALSE, session = session)

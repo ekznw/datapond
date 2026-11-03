@@ -123,11 +123,13 @@ access_request <- function(pond, username, first_name, last_name, email = "", or
   invisible(TRUE)
 }
 
-access_session <- function(pond, token, permission = "read", touch = FALSE, conn = NULL) {
-  tryCatch(access_session_impl(pond, token, permission, touch, conn), error = function(e) NULL)
+access_session <- function(pond, token, permission = "read", touch = FALSE, conn = NULL,
+                           allow_expired = FALSE) {
+  tryCatch(access_session_impl(pond, token, permission, touch, conn, allow_expired), error = function(e) NULL)
 }
 
-access_session_impl <- function(pond, token, permission = "read", touch = FALSE, conn = NULL) {
+access_session_impl <- function(pond, token, permission = "read", touch = FALSE, conn = NULL,
+                                allow_expired = FALSE) {
   if (length(token) != 1L || is.na(token) || !nzchar(token)) return(NULL)
   if (is.null(conn)) {
     conn <- tryCatch(access_connect(pond), error = function(e) NULL)
@@ -136,8 +138,9 @@ access_session_impl <- function(pond, token, permission = "read", touch = FALSE,
   }
   row <- DBI::dbGetQuery(conn, "SELECT a.id, a.username, a.user_id, a.role, a.first_name, a.last_name,
     s.created_at, s.last_seen FROM sessions s JOIN accounts a ON a.id=s.account_id
-    WHERE s.token_hash=? AND a.status='active' AND s.last_seen>? AND s.created_at>?",
-    params = list(access_digest(token), access_now() - 1800, access_now() - 43200))
+    WHERE s.token_hash=? AND a.status='active' AND s.last_seen>?
+      AND (?=1 OR s.created_at>?)",
+    params = list(access_digest(token), access_now() - 1800, as.integer(isTRUE(allow_expired)), access_now() - 43200))
   if (nrow(row) != 1L) return(NULL)
   roles <- switch(permission, read = c("viewer", "editor", "admin"), edit = c("editor", "admin"),
     admin = "admin", download = c("editor", "admin"), stop("Unknown access permission."))
@@ -167,8 +170,10 @@ access_login <- function(pond, username, password) {
   }
   token <- access_secret()
   access_transaction(conn, {
-    DBI::dbExecute(conn, "DELETE FROM sessions WHERE last_seen<? OR created_at<?",
-      params = list(access_now() - 1800, access_now() - 43200))
+    # A live Flow job may temporarily keep its older session. Once it stops,
+    # normal validation enforces the 12-hour limit; idle rows are pruned here.
+    DBI::dbExecute(conn, "DELETE FROM sessions WHERE last_seen<?",
+      params = list(access_now() - 1800))
     DBI::dbExecute(conn, "INSERT INTO sessions VALUES (?, ?, ?, ?)",
       params = list(access_digest(token), row$id[1], access_now(), access_now()))
     DBI::dbExecute(conn, "DELETE FROM attempts WHERE scope=?", params = list(scope))
@@ -388,6 +393,19 @@ access_assert_unlinked_person <- function(pond, person_id) {
   if (nrow(linked)) stop("This person is linked to a login account. Manage access through Manage accounts; account-linked people cannot be merged or deactivated in Parties.", call. = FALSE)
   invisible(TRUE)
 }
+access_flow_active <- function(session = shiny::getDefaultReactiveDomain()) {
+  if (is.null(session)) return(FALSE)
+  active <- session$userData$datapond_flow_active
+  is.function(active) && isTRUE(tryCatch(active(), error = function(e) FALSE))
+}
+
+access_flow_extended <- function(session = shiny::getDefaultReactiveDomain()) {
+  if (is.null(session)) return(FALSE)
+  grace <- session$userData$datapond_flow_grace_until
+  access_flow_active(session) ||
+    (is.numeric(grace) && length(grace) == 1L && is.finite(grace) && grace > access_now())
+}
+
 access_allowed <- function(permission = "read", pond = NULL, touch = FALSE) {
   session <- shiny::getDefaultReactiveDomain()
   if (is.null(session)) return(TRUE)
@@ -396,7 +414,8 @@ access_allowed <- function(permission = "read", pond = NULL, touch = FALSE) {
   if (!isTRUE(auth$authenticated) || !isTRUE(auth$ready)) return(FALSE)
   path <- shiny::isolate(auth$pond)
   if (!is.null(pond) && !identical(access_path(pond), access_path(path))) return(FALSE)
-  !is.null(access_session(path, auth$token, permission, touch = touch))
+  !is.null(access_session(path, auth$token, permission, touch = touch,
+    allow_expired = access_flow_extended(session)))
 }
 access_require <- function(permission = "read", pond = NULL, touch = FALSE) {
   shiny::req(access_allowed(permission, pond, touch))
@@ -419,14 +438,17 @@ access_directory_input <- function(input, permission = "admin") {
 # DT and Shiny serve cached tables/images through session HTTP routes, outside
 # reactive renderers. Revalidate those routes, and bind table caches to the
 # identity and pond which created them so old URLs cannot survive a login switch.
-access_http_filter <- function(handler, auth, permission = "read", bind_identity = FALSE) {
+access_http_filter <- function(handler, auth, permission = "read", bind_identity = FALSE,
+                               session = shiny::getDefaultReactiveDomain()) {
+  force(session)
   original <- shiny::isolate(list(pond = auth$pond, token = auth$token))
   function(...) {
     current <- shiny::isolate(list(pond = auth$pond, token = auth$token,
       ready = auth$ready, authenticated = auth$authenticated))
     valid <- isTRUE(current$ready) && isTRUE(current$authenticated) &&
       (!bind_identity || (identical(current$pond, original$pond) && identical(current$token, original$token))) &&
-      !is.null(access_session(current$pond, current$token, permission))
+      !is.null(access_session(current$pond, current$token, permission,
+        allow_expired = access_flow_extended(session)))
     if (!valid) return(shiny::httpResponse(403L, "text/plain", "Sign in with the required access.",
       headers = list(`Cache-Control` = "no-store", `X-DataPond-Access` = "denied")))
     handler(...)

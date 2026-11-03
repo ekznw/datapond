@@ -163,7 +163,7 @@ test_that("browser gates reject forged identities and viewer/admin mutations", {
   })
 })
 
-test_that("active Flow work prevents idle expiry without bypassing session revocation", {
+test_that("active Flow work defers idle and 12-hour expiry without bypassing revocation", {
   f <- access_fixture(); on.exit(unlink(f$root, recursive = TRUE))
   clock <- new.env(); clock$now <- as.numeric(Sys.time()); clock$polls <- 0L
   local_mocked_bindings(
@@ -222,11 +222,12 @@ test_that("active Flow work prevents idle expiry without bypassing session revoc
     polls <- clock$polls
     advance(60)
     expect_null(datapond:::access_session(f$pond, auth$token))
-    expect_equal(clock$polls, polls)
+    expect_false(is.null(datapond:::access_session(f$pond, auth$token,
+      allow_expired = TRUE)))
+    expect_true(datapond:::access_allowed("admin"))
+    expect_gt(clock$polls, polls)
     DBI::dbDisconnect(conn)
 
-    auth$token <- datapond:::access_login(f$pond, "owner", "a long owner passphrase")
-    session$flushReact()
     datapond:::access_logout(f$pond, auth$token)
     polls <- clock$polls
     advance(60)
@@ -235,6 +236,16 @@ test_that("active Flow work prevents idle expiry without bypassing session revoc
     # The sign-out/revocation hook still cancels the session's job.
     for (cleanup in session$userData$datapond_access_cleanup) cleanup()
     expect_identical(state$job$status, "cancelled")
+
+    auth$token <- datapond:::access_login(f$pond, "owner", "a long owner passphrase")
+    state$job <- new_job(); state$job$status <- "complete"
+    conn <- datapond:::access_connect(f$pond)
+    DBI::dbExecute(conn, "UPDATE sessions SET created_at=?", params = list(clock$now - 43201))
+    DBI::dbDisconnect(conn)
+    session$userData$datapond_flow_grace_until <- clock$now + 300
+    expect_true(datapond:::access_allowed("admin"))
+    clock$now <- clock$now + 301
+    expect_false(datapond:::access_allowed("admin"))
   })
 })
 
@@ -268,6 +279,11 @@ test_that("the full app starts locked and authenticates only through login", {
     expect_true(datapond:::access_allowed("admin"))
     expect_true(datapond:::is_user_admin(1L, f$pond))
     expect_error(datapond:::set_user_status(1L, FALSE, f$pond), "linked to a login account")
+    session$userData$datapond_flow_active <- function() TRUE
+    session$setInputs(access_logout = 1L)
+    expect_true(auth$authenticated)
+    expect_error(switch_data_pond(f$pond), "Flow job is running")
+    session$userData$datapond_flow_active <- function() FALSE
     # Legacy dropdown messages can no longer change identity.
     session$setInputs(active_user="999", required_active_user="999", confirm_active_user_selection=2L)
     expect_equal(state$active_user_id, 1L)

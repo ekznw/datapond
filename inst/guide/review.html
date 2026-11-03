@@ -314,17 +314,18 @@ ul.task-list li input[type="checkbox"] {
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
   accTitle: Metadata review request and return
-  accDescr: In the master pond, save metadata and create a review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the master. If the baseline is unchanged and checks pass, a pond administrator can accept it. Otherwise resolve competing work, cancel with a reason and issue a fresh request.
-  request["Master: save metadata;&lt;br/&gt;create review request"] --&gt;|Send request ZIP| import["Reviewer: import into a separate pond"]
+  accDescr: A Flow cache is read only and cannot issue a review request, even for its local administrator. In the original editable master pond, save metadata and create a registered review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the original master. If the baseline is unchanged and checks pass, an administrator of that master pond can accept it. A request from a local copy is not registered in the original master and cannot be accepted there.
+  cache["Flow cache: read only;&lt;br/&gt;local admin cannot issue request"] -.-&gt;|Ask original master| request["Original editable master:&lt;br/&gt;save and issue registered request"]
+  request --&gt;|Send request ZIP| import["Reviewer: import into a separate pond"]
   import --&gt; edit["Reviewer: edit and save metadata;&lt;br/&gt;create review return"]
   edit --&gt;|Send return ZIP| inspect["Master: Inspect return"]
   inspect --&gt; checks{"Baseline unchanged&lt;br/&gt;and checks pass?"}
-  checks --&gt;|Yes| accept["Pond administrator: record decision;&lt;br/&gt;accept reviewed metadata"]
+  checks --&gt;|Yes| accept["Original master administrator:&lt;br/&gt;record decision and accept"]
   checks --&gt;|No| resolve["Resolve competing work;&lt;br/&gt;cancel with a reason"]
   resolve --&gt;|Fresh request| request
 </pre>
 </div>
-<p></p><figcaption> Metadata review is a round trip between the master and a separate review pond. Send both ZIPs through your agreed channel.</figcaption> </figure><p></p>
+<p></p><figcaption> The original editable master issues the registered review request; a Flow cache cannot issue it, even for a local administrator. The reviewer works in a separate pond and returns metadata for master approval.</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
@@ -333,6 +334,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="request-a-metadata-review" class="level2">
 <h2 class="anchored" data-anchor-id="request-a-metadata-review">Request a metadata review</h2>
 <p>In the master pond, use <strong>Pond links / Dataset transfer → Metadata review exchange</strong>. Save the dataset and enter the responsible colleague. <strong>Include the dataset folder in the review request</strong> is selected by default: supporting documents, data, other subfolders and root files (including hidden files) travel with the metadata. Existing DataPond transfer ZIPs and temporary transfer metadata are excluded; files outside the dataset folder are not included. Clear the option for a smaller, metadata-only request. Choose <strong>Create metadata review request</strong>, download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.</p>
+<p>Issue this request from the <strong>original editable master pond</strong>. An editor signed in there may issue it; an administrator of a colleague’s local pond has no authority to issue it from the read-only Flow cache. If someone makes a separate editable copy of the catalogue and issues a request there, that request exists only in the copy. Its return will fail inspection in the original master because no matching request was registered there.</p>
 <p>One request can be active per dataset. Keep the master’s private <code>.metadata_pond/reviews/</code> records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.</p>
 </section>
 <section id="work-as-the-reviewer" class="level2">
@@ -817,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>EKZNW · DataPond · Guide for 1.4.0</p>
+<p>EKZNW · DataPond · Guide for 1.4.5</p>
 </div>   
     <div class="nav-footer-center">
       &nbsp;

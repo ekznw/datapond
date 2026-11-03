@@ -61,7 +61,7 @@ For subsequent accounts:
 3. The administrator chooses **Approve pending request** and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.
 4. The colleague selects **Activate / recover access**, enters their username and code, sets a passphrase of at least 15 characters, then signs in.
 
-Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall.
+Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.
 
 ::: {.guide-process role="region" aria-label="Onboard a colleague to a pond" tabindex="0"}
 
@@ -103,19 +103,23 @@ The two setup tabs use muted sand colours. Complete connection and flow setup be
 
 To publish and consume a pond:
 
-1. The master custodian opens **Flow → Run Flows → Publish pond** and enters **Publication destination**. The source is the active pond. Select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue. **Save publication settings** remembers the destination and upload choice for this pond; **Preview / retry pond publication** saves them too. Review the plan and log, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
+1. The master custodian switches to the pond being published and signs in there as an administrator. Open **Flow → Run Flows → Publish signed-in pond** and check the source shown on the page. Selecting a connected dataset or a saved flow does not change the publication source. Enter **Publication destination** and select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue. Confirm the signed-in pond before previewing or running the publication. **Save publication settings** remembers the destination and upload choice for this pond; **Preview / retry pond publication** saves them too. Review the plan and log, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
 2. On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in **Flow → Define connections**. Cloud credentials belong to the operating-system account running the app.
 3. In **Flow → Read remote pond**, enter the configured remote pond folder and an empty **Local pond cache** folder. Use **Connect / refresh metadata only**. A SharePoint web URL is not a configured remote path.
 4. Browse the cached catalogue offline. Select a dataset and choose **Download / update selected dataset** when its files are needed; fetching new content requires connectivity and remote permission.
 5. Use **Remove selected download from local pond cache** to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.
 
+If SharePoint rejects Office or HTML files because their size or checksum changes during upload, select **SharePoint file compatibility** before previewing the publication. DataPond copies `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`, `.htm` and `.html` files in a separate pass that skips rclone's post-upload size and checksum checks; other dataset files and the catalogue retain their normal checks. This option applies only when dataset folders are uploaded. SharePoint may change the affected files, so download and inspect an example before sharing the pond. Publication still uses copy, not mirror sync.
+
 The remote cache is read-only in DataPond and does not upload edits. It is authorised by the cloud connection and the local Flow role, not by logging in to the publisher's DataPond account store. For changes, use a separate working pond and the [dataset transfer or metadata review workflow](review.qmd), then have the custodian accept and republish the result. This differs from the [frozen-release cache helper](releases.qmd), which currently reads release packages from a local pond.
 
+Administrator access on a colleague's computer permits Flow use for that local pond; it does not grant authority over the original master. The downloaded Flow cache cannot be opened as an editable pond or used to issue a metadata review request. An editor in the original master pond must issue the registered request ZIP, which the colleague imports into a separate local working pond. A request issued from a manually copied catalogue is registered only in that copy, so its return cannot be accepted by the original master. Only an administrator of the original master pond can accept a matching return.
+
 ```{mermaid}
-%%| fig-cap: "Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. All Flow actions require a local pond administrator."
+%%| fig-cap: "Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. Review requests must come from the original editable master pond, even when a consumer is a local administrator."
 flowchart TD
   accTitle: Publish a catalogue and fetch local copies through Flow
-  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. Removing a local download retains the cached metadata and remote dataset; edits must go through a separate working pond and exchange workflow.
+  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. The cache cannot issue a review request, even for a local administrator. The original editable master issues the request ZIP for import into a separate review pond. Removing a local download retains the cached metadata and remote dataset.
   master["Master custodian: preview publication;<br/>choose whether to include dataset folders"] --> run["Run flow; wait for publication to finish"]
   run --> remote["SharePoint: published catalogue<br/>and any uploaded dataset folders"]
   remote -->|Authorised cloud connection| metadata["Consumer: Connect / refresh metadata only"]
@@ -123,17 +127,19 @@ flowchart TD
   browse -->|Files needed and published| download["While online: Download / update<br/>selected dataset"]
   download --> use["Use the local read-only copy"]
   use -->|Reclaim local space| remove["Remove selected download;<br/>retain metadata and remote dataset"]
+  browse -.->|Metadata review needed| review["Original editable master issues<br/>review request ZIP; cache cannot issue one"]
+  review -.-> working["Reviewer imports ZIP into<br/>separate local working pond"]
 ```
 
-For ordinary file transfers, **Design flow → Choose a destination location** lists both **Saved folders** and **Configured remotes**. Selecting a remote fills in its library root, such as `team_data:`; append the destination subfolder in **Flow to — destination**. Whole-pond publication instead uses **Run Flows → Publish pond → Publication destination**, for example `team_data:published/my_pond`. To bookmark a full path, use **Define connections → Saved locations → Save location**. If a connection was added outside the app, use **Browse locations and libraries → Detect configured libraries and drives** in **Define connections** to refresh the choices.
+For ordinary file transfers, **Design flow → Choose a destination location** lists both **Saved folders** and **Configured remotes**. Selecting a remote fills in its library root, such as `team_data:`; append the destination subfolder in **Flow to — destination**. Whole-pond publication instead uses **Run Flows → Publish signed-in pond → Publication destination**, for example `team_data:published/my_pond`. To bookmark a full path, use **Define connections → Saved locations → Save location**. If a connection was added outside the app, use **Browse locations and libraries → Detect configured libraries and drives** in **Define connections** to refresh the choices.
 
 ### Leave a publication running
 
 Running or queued Flow jobs count as activity and prevent the 30-minute idle timeout while the app remains connected. Keep the app open and the computer awake. Normal idle expiry resumes when the job finishes, fails or is cancelled; waiting at a private cloud sign-in prompt does not extend the session.
 
-Jobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.
+Jobs are still attached to the app session. Active Flow work defers the 12-hour login limit until the job finishes, then allows five minutes to review the result. Sign-out, pond switching and app exit are blocked while the job runs. Revoked access or closing the browser session cancels the job. Unattended jobs that survive disconnection require a separate background-job facility, which this release does not provide.
 
-If publication is interrupted, sign in again and open **Run Flows → Publish pond**. The destination and dataset-upload choice are restored for the active pond. Check them, choose **Preview / retry pond publication**, then **Run flow**. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.
+If publication is interrupted, sign in to the publishing pond again and open **Run Flows → Publish signed-in pond**. The destination and dataset-upload choice are restored for that pond. Check them, confirm the source, choose **Preview / retry pond publication**, then **Run flow**. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.
 
 ### OneDrive-synced SharePoint folders
 

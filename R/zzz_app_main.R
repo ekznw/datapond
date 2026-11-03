@@ -2582,6 +2582,11 @@ pond_startup_recovery_server <- function(input, output, session) {
 }
 
 exit_data_pond <- function(session) {
+  if (access_flow_active(session)) {
+    shiny::showNotification("A Flow job is running. Wait for it to finish or cancel it in Flow before exiting DataPond.",
+      type = "warning", duration = 10, session = session)
+    return(invisible(FALSE))
+  }
   # The desktop launcher owns its R runApp() call. Hosted apps must close only
   # this browser session, leaving other users connected.
   if (isTRUE(getOption("datapond.stop_on_exit", FALSE))) {
@@ -3260,6 +3265,8 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
   # 7. switch data pond helper
   switch_data_pond <- function(path, created = FALSE) {
+    if (access_flow_active(session))
+      stop("A Flow job is running. Wait for it to finish or cancel it in Flow before switching ponds.", call. = FALSE)
     # Opening must never silently initialise an unrelated or empty folder.
     path <- if (created) path else validate_existing_data_pond(path)
 
