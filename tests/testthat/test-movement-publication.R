@@ -17,10 +17,12 @@ test_that("publication settings persist separately for each pond without remote 
   a <- file.path(root, "a"); b <- file.path(root, "b"); dir.create(a); dir.create(b)
   settings <- file.path(root, "settings")
   expect_null(movement_publication_read(settings, a))
-  one <- movement_publication_save(settings, a, "team:published/a", TRUE)
+  one <- movement_publication_save(settings, a, "team:published/a", TRUE, TRUE)
   two <- movement_publication_save(settings, b, "team:published/b", FALSE)
   expect_identical(movement_publication_read(settings, file.path(a, ".")), one)
   expect_identical(movement_publication_read(settings, b), two)
+  expect_true(one$sharepoint_compat)
+  expect_false(two$sharepoint_compat)
   expect_error(movement_publication_save(settings, a, file.path(a, "nested"), TRUE), "separate")
   expect_error(movement_publication_save(settings, a, "https://sharepoint.example/a", TRUE), "configured")
   expect_error(movement_publication_save(settings, a, "team:a", NA), "Choose whether")
@@ -30,11 +32,66 @@ test_that("publication settings persist separately for each pond without remote 
 
 test_that("publication controls are directly available in Run flows", {
   html <- xml2::read_html(as.character(mod_data_movement_ui("flow")))
-  for (id in c("publish_destination", "publish_data", "save_publication", "preview_publish")) {
+  for (id in c("confirm_publish_pond", "publish_destination", "publish_data",
+               "publish_sharepoint_compat", "save_publication", "preview_publish")) {
     nodes <- xml2::xml_find_all(html, paste0("//*[@id='flow-", id, "']"))
     expect_length(nodes, 1L)
     expect_length(xml2::xml_find_all(nodes, "ancestor::div[@data-value='run']"), 1L)
   }
+})
+
+test_that("old publication settings default to verified copies", {
+  root <- tempfile(); dir.create(root); on.exit(unlink(root, recursive = TRUE))
+  pond <- file.path(root, "pond"); dir.create(pond)
+  movement_control(root, function(con) {
+    DBI::dbExecute(con, "CREATE TABLE publication_settings (
+      pond TEXT PRIMARY KEY, destination TEXT NOT NULL, include_data INTEGER NOT NULL, saved_at REAL NOT NULL)")
+    DBI::dbExecute(con, "INSERT INTO publication_settings VALUES (?, ?, ?, ?)",
+      params = list(pond, "team:old", 1L, 1))
+  })
+  expect_false(movement_publication_read(root, pond)$sharepoint_compat)
+  movement_publication_save(root, pond, "team:new", TRUE, TRUE)
+  expect_true(movement_publication_read(root, pond)$sharepoint_compat)
+})
+
+test_that("SharePoint compatibility limits relaxed checks to selected file types", {
+  skip_if(!nzchar(Sys.which("rclone")))
+  root <- tempfile(); dir.create(root); on.exit(unlink(root, recursive = TRUE))
+  pond <- publication_fixture(root); dest <- file.path(root, "published")
+  folder <- file.path(pond, "src", "soil__abc")
+  dir.create(file.path(folder, "docs"))
+  writeLines("office", file.path(folder, "docs", "DATA REQUEST FORM.doc"))
+  writeLines("upper", file.path(folder, "docs", "EXAMPLE.DOC"))
+  writeLines("legacy spreadsheet", file.path(folder, "docs", "Soil_Template.xls"))
+  writeLines("slides", file.path(folder, "docs", "briefing.pptx"))
+  writeLines("web", file.path(folder, "docs", "overview.htm"))
+  writeLines("web", file.path(folder, "docs", "index.html"))
+  writeLines("verified", file.path(folder, "docs", "notes.txt"))
+  compatible <- c("DATA REQUEST FORM.doc", "EXAMPLE.DOC", "Soil_Template.xls",
+    "briefing.pptx", "overview.htm", "index.html")
+  plan <- movement_publish_plan(pond, dest, include_data = TRUE, dry_run = FALSE,
+    sharepoint_compat = TRUE)
+  on.exit(unlink(plan$snapshot$directory, recursive = TRUE), add = TRUE)
+  expect_length(plan$steps, 4L)
+  expect_true(all(c("--exclude", "--ignore-case") %in% plan$steps[[1]]))
+  expect_false(any(c("--ignore-size", "--ignore-checksum") %in% plan$steps[[1]]))
+  expect_true(all(c("--include", "--ignore-case", "--ignore-size", "--ignore-checksum") %in% plan$steps[[2]]))
+  for (extension in c("*.xls", "*.pptx", "*.htm", "*.html"))
+    expect_true(extension %in% plan$steps[[2]])
+  expect_false(any(c("--ignore-size", "--ignore-checksum") %in% unlist(plan$steps[3:4])))
+  for (i in seq_along(plan$steps)) {
+    step <- plan$steps[[i]]
+    result <- processx::run(unname(Sys.which("rclone")), step, error_on_status = FALSE)
+    expect_identical(result$status, 0L, info = result$stderr)
+    if (i == 1L) {
+      expect_true(file.exists(file.path(dest, "src", "soil__abc", "docs", "notes.txt")))
+      for (file in compatible)
+        expect_false(file.exists(file.path(dest, "src", "soil__abc", "docs", file)))
+    }
+  }
+  for (file in file.path("docs", c(compatible, "notes.txt")))
+    expect_true(file.exists(file.path(dest, "src", "soil__abc", file)))
+  expect_true(file.exists(file.path(dest, ".datapond-catalogue", "catalogue.json")))
 })
 
 test_that("failed publication launch retains settings and restores them in a new session", {
@@ -46,7 +103,8 @@ test_that("failed publication launch retains settings and restores them in a new
   shiny::testServer(mod_data_movement_server, args = list(pond = function() fixture_pond,
     dataset_path = function() NULL, state_directory = settings), {
     session$flushReact()
-    session$setInputs(publish_destination = dest, publish_data = TRUE, preview_publish = 1L)
+    session$setInputs(publish_destination = dest, publish_data = TRUE,
+      confirm_publish_pond = TRUE, preview_publish = 1L)
     expect_null(state$preview)
     expect_false(dir.exists(dest))
     expect_identical(movement_publication_read(settings, fixture_pond)$destination, dest)
@@ -73,7 +131,7 @@ test_that("failed publication launch retains settings and restores them in a new
       }
       expect_identical(state$job$status, "complete", info = state$status)
     }
-    session$setInputs(preview_publish = 1L)
+    session$setInputs(confirm_publish_pond = TRUE, preview_publish = 1L)
     finish()
     expect_false(dir.exists(dest))
     expect_equal(state$preview$spec$kind, "publish")
@@ -83,6 +141,11 @@ test_that("failed publication launch retains settings and restores them in a new
     expect_false(state$preview$stale)
     session$setInputs(run = 2L)
     finish()
+    outcome <- movement_run_status_read(settings, "publication", movement_endpoint(fixture_pond))[[movement_endpoint(fixture_pond)]]
+    expect_identical(outcome$status, "complete")
+    expect_identical(outcome$errors, "")
+    expect_true(is.finite(outcome$started))
+    expect_false(dir.exists(state$job$directory))
     expect_true(file.exists(file.path(dest, "src", "soil__abc", "data", "soil.txt")))
     expect_true(file.exists(file.path(dest, ".datapond-catalogue", "catalogue.json")))
     expect_true(movement_publication_read(settings, fixture_pond)$include_data)
@@ -98,7 +161,7 @@ test_that("switching ponds clears or restores the matching publication choices",
   root <- tempfile(); dir.create(root); on.exit(unlink(root, recursive = TRUE))
   a <- file.path(root, "a"); b <- file.path(root, "b"); dir.create(a); dir.create(b)
   settings <- file.path(root, "settings")
-  movement_publication_save(settings, a, "team:a", TRUE)
+  movement_publication_save(settings, a, "team:a", TRUE, TRUE)
   active <- shiny::reactiveVal(a)
   shiny::testServer(mod_data_movement_server, args = list(pond = active,
     dataset_path = function() NULL, state_directory = settings), {
@@ -107,13 +170,48 @@ test_that("switching ponds clears or restores the matching publication choices",
     root_session$sendInputMessage <- function(inputId, message) messages[[inputId]] <<- message
     session$flushReact()
     expect_identical(messages$publish_destination$value, "team:a")
+    expect_true(messages$publish_sharepoint_compat$value)
     active(b); session$flushReact()
     expect_null(state$publication_settings)
     expect_identical(messages$publish_destination$value, "")
     expect_false(messages$publish_data$value)
+    expect_false(messages$publish_sharepoint_compat$value)
+    expect_false(messages$confirm_publish_pond$value)
     active(a); session$flushReact()
     expect_identical(messages$publish_destination$value, "team:a")
     expect_true(messages$publish_data$value)
+    expect_true(messages$publish_sharepoint_compat$value)
+  })
+})
+
+test_that("publishing requires confirmation and an admin session for that exact pond", {
+  root <- tempfile(); dir.create(root); on.exit(unlink(root, recursive = TRUE))
+  current <- publication_fixture(root)
+  linked <- file.path(root, "linked"); dir.create(linked)
+  settings <- file.path(root, "settings")
+  signed_in <- current
+  local_mocked_bindings(access_allowed = function(permission = "read", pond = NULL, touch = FALSE) {
+    is.null(pond) || identical(pond, signed_in)
+  }, .package = "datapond")
+  active <- shiny::reactiveVal(current)
+  shiny::testServer(mod_data_movement_server, args = list(pond = active,
+    dataset_path = function() NULL, state_directory = settings), {
+    session$flushReact()
+    session$setInputs(publish_destination = file.path(root, "published"), preview_publish = 1L)
+    expect_match(state$status, "Confirm the signed-in pond")
+    expect_null(state$preview)
+    expect_null(movement_publication_read(settings, current))
+    active(linked); session$flushReact()
+    session$setInputs(confirm_publish_pond = TRUE, preview_publish = 2L)
+    expect_match(state$status, "Switch to the pond you intend to publish")
+    expect_null(movement_publication_read(settings, linked))
+    expect_null(state$preview)
+    active(current); session$flushReact()
+    signed_in <<- linked
+    state$preview <- list(spec = list(kind = "publish", pond = current))
+    session$setInputs(run = 1L)
+    expect_match(state$status, "Switch to the pond you intend to publish")
+    expect_null(state$job)
   })
 })
 

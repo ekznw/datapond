@@ -129,13 +129,14 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     original_request <- session$handleRequest
     access_replace_session_method(session, "handleRequest", function(req) {
       permission <- if (grepl("^/(download|upload)/", req$PATH_INFO)) "edit" else "read"
-      access_http_filter(original_request, auth, permission)(req)
+      access_http_filter(original_request, auth, permission, session = session)(req)
     })
   }
   if (is.function(session$registerDataObj)) {
     original_register <- session$registerDataObj
     access_replace_session_method(session, "registerDataObj", function(name, data, filterFunc) {
-      original_register(name, data, access_http_filter(filterFunc, auth, bind_identity = TRUE))
+      original_register(name, data, access_http_filter(filterFunc, auth, bind_identity = TRUE,
+        session = session))
     })
   }
   notify_error <- function(code) tryCatch(force(code), error = function(e) {
@@ -178,7 +179,8 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     shiny::invalidateLater(5000, session)
     if (!shiny::isolate(auth$authenticated)) return()
     auth$tick <- shiny::isolate(auth$tick) + 1L
-    current <- access_session(shiny::isolate(auth$pond), shiny::isolate(auth$token))
+    current <- access_session(shiny::isolate(auth$pond), shiny::isolate(auth$token),
+      allow_expired = access_flow_extended(session))
     if (is.null(current)) {
       invalidate()
       shiny::showNotification("Your session ended. Sign in again.", type = "warning", session = session)
@@ -212,6 +214,11 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
     shiny::showNotification("Passphrase set. You can now sign in.", session = session)
   }), ignoreInit = TRUE)
   shiny::observeEvent(input$access_logout, {
+    if (access_flow_active(session)) {
+      shiny::showNotification("A Flow job is running. Wait for it to finish or cancel it in Flow before signing out.",
+        type = "warning", duration = 10, session = session)
+      return()
+    }
     invalidate()
     session$reload()
   }, ignoreInit = TRUE)
@@ -221,6 +228,8 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
   }, ignoreInit = TRUE)
   shiny::observeEvent(input$access_open_pond, notify_error({
     shiny::req(input$access_open_pond > 0)
+    if (access_flow_active(session))
+      stop("A Flow job is running. Wait for it to finish or cancel it in Flow before switching ponds.", call. = FALSE)
     path <- validate_existing_data_pond(input$access_pond_path)
     invalidate()
     switch_pond(path)

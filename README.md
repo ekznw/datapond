@@ -1015,9 +1015,11 @@ this is file-level retry, not a guarantee of resuming a partially uploaded file.
 The catalogue manifest is published last. A new attempt still needs a successful
 preview and can generate cloud requests while checking previously uploaded files.
 
-Publications currently run inside the app session. For overnight work, sign in
-shortly before starting and keep the app connected and the computer awake.
-Closing the session, revoked access or the 12-hour session limit stops the job.
+Publications currently run inside the app session. For overnight work, keep
+the app connected and the computer awake. Active Flow jobs defer the 12-hour
+login limit until they finish, with five minutes afterward to review the result.
+Sign-out, pond switching and app exit are blocked while the job runs. Closing
+the browser session or revoked access still stops the job.
 The 15-minute preview expiry only limits when a run can start, not its duration
 after starting. Saved publication settings do not provide unattended background
 execution or scheduled starts.

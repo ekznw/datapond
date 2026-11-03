@@ -341,20 +341,41 @@ movement_publication_destination <- function(pond, destination) {
   destination
 }
 
-movement_publish_plan <- function(pond, destination, include_data = FALSE, dry_run = TRUE) {
+movement_sharepoint_compat_extensions <- function() {
+  c("doc", "docx", "xls", "xlsx", "ppt", "pptx", "htm", "html")
+}
+
+movement_publish_plan <- function(pond, destination, include_data = FALSE, dry_run = TRUE,
+                                  sharepoint_compat = FALSE) {
   pond <- movement_endpoint(pond)
   destination <- movement_publication_destination(pond, destination)
+  if (!is.logical(sharepoint_compat) || length(sharepoint_compat) != 1L || is.na(sharepoint_compat))
+    stop("Choose whether to use SharePoint file compatibility.", call. = FALSE)
   snapshot <- movement_snapshot(pond)
   remote <- movement_catalogue_dir(destination)
   flags <- c("--stats", "1s", "--log-level", "INFO", if (dry_run) "--dry-run")
   steps <- list(); labels <- character()
+  # SharePoint can rewrite these file types during upload. Keep verification
+  # enabled for every other file, and never use a mirror sync for publication.
+  office_patterns <- paste0("*.", movement_sharepoint_compat_extensions())
   if (isTRUE(include_data)) {
     # Only registered datasets: no DB/WAL, local settings, intake archives or backups.
     for (dataset in snapshot$manifest$datasets) if (!is.null(dataset$path)) {
       source <- file.path(pond, dataset$path)
       if (dir.exists(source)) {
-        steps[[length(steps) + 1L]] <- c("copy", source, movement_join(destination, dataset$path), flags)
-        labels <- c(labels, paste("Dataset:", dataset$path))
+        target <- movement_join(destination, dataset$path)
+        if (sharepoint_compat) {
+          exclude <- unlist(lapply(office_patterns, function(x) c("--exclude", x)), use.names = FALSE)
+          include <- unlist(lapply(office_patterns, function(x) c("--include", x)), use.names = FALSE)
+          steps[[length(steps) + 1L]] <- c("copy", source, target, exclude, "--ignore-case", flags)
+          labels <- c(labels, paste("Dataset (verified files):", dataset$path))
+          steps[[length(steps) + 1L]] <- c("copy", source, target, include, "--ignore-case",
+            "--ignore-size", "--ignore-checksum", flags)
+          labels <- c(labels, paste("Dataset (SharePoint-compatible files):", dataset$path))
+        } else {
+          steps[[length(steps) + 1L]] <- c("copy", source, target, flags)
+          labels <- c(labels, paste("Dataset:", dataset$path))
+        }
       }
     }
   }
@@ -365,7 +386,8 @@ movement_publish_plan <- function(pond, destination, include_data = FALSE, dry_r
   summary <- data.frame(Component = labels, Operation = "copy",
     Source = vapply(steps, `[`, character(1), 2L),
     Destination = vapply(steps, `[`, character(1), 3L), stringsAsFactors = FALSE)
-  list(steps = steps, snapshot = snapshot, destination = destination, include_data = include_data, summary = summary)
+  list(steps = steps, snapshot = snapshot, destination = destination, include_data = include_data,
+       sharepoint_compat = sharepoint_compat, summary = summary)
 }
 
 movement_validate_manifest <- function(manifest) {

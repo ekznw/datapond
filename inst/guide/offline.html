@@ -7197,7 +7197,7 @@ summary { font-weight: 600; cursor: pointer; }
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">DataPond user guide</h1>
-<p class="subtitle lead">Offline edition · 1.4.0</p>
+<p class="subtitle lead">Offline edition · 1.4.5</p>
 </div>
 
 
@@ -7235,7 +7235,7 @@ summary { font-weight: 600; cursor: pointer; }
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This guide describes the <strong>1.4.0 release</strong>. Your installed version appears in <code>packageVersion(&quot;datapond&quot;)</code>. The guide shipped with your package is the best starting point for that version.</p>
+<p>This guide describes the <strong>1.4.5 release</strong>. Your installed version appears in <code>packageVersion(&quot;datapond&quot;)</code>. The guide shipped with your package is the best starting point for that version.</p>
 </div>
 </div>
 <div class="guide-cards">
@@ -7721,17 +7721,18 @@ Custom software locations
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
   accTitle: Metadata review request and return
-  accDescr: In the master pond, save metadata and create a review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the master. If the baseline is unchanged and checks pass, a pond administrator can accept it. Otherwise resolve competing work, cancel with a reason and issue a fresh request.
-  request[&quot;Master: save metadata;&lt;br/&gt;create review request&quot;] --&gt;|Send request ZIP| import[&quot;Reviewer: import into a separate pond&quot;]
+  accDescr: A Flow cache is read only and cannot issue a review request, even for its local administrator. In the original editable master pond, save metadata and create a registered review request. Send the request ZIP to a reviewer, who imports it into a separate pond, edits and saves metadata, and sends a return ZIP. Inspect the return in the original master. If the baseline is unchanged and checks pass, an administrator of that master pond can accept it. A request from a local copy is not registered in the original master and cannot be accepted there.
+  cache[&quot;Flow cache: read only;&lt;br/&gt;local admin cannot issue request&quot;] -.-&gt;|Ask original master| request[&quot;Original editable master:&lt;br/&gt;save and issue registered request&quot;]
+  request --&gt;|Send request ZIP| import[&quot;Reviewer: import into a separate pond&quot;]
   import --&gt; edit[&quot;Reviewer: edit and save metadata;&lt;br/&gt;create review return&quot;]
   edit --&gt;|Send return ZIP| inspect[&quot;Master: Inspect return&quot;]
   inspect --&gt; checks{&quot;Baseline unchanged&lt;br/&gt;and checks pass?&quot;}
-  checks --&gt;|Yes| accept[&quot;Pond administrator: record decision;&lt;br/&gt;accept reviewed metadata&quot;]
+  checks --&gt;|Yes| accept[&quot;Original master administrator:&lt;br/&gt;record decision and accept&quot;]
   checks --&gt;|No| resolve[&quot;Resolve competing work;&lt;br/&gt;cancel with a reason&quot;]
   resolve --&gt;|Fresh request| request
 </pre>
 </div>
-<p></p><figcaption> Metadata review is a round trip between the master and a separate review pond. Send both ZIPs through your agreed channel.</figcaption> </figure><p></p>
+<p></p><figcaption> The original editable master issues the registered review request; a Flow cache cannot issue it, even for a local administrator. The reviewer works in a separate pond and returns metadata for master approval.</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
@@ -7740,6 +7741,7 @@ Custom software locations
 <section id="request-a-metadata-review" class="level2">
 <h2 class="anchored" data-anchor-id="request-a-metadata-review">Request a metadata review</h2>
 <p>In the master pond, use <strong>Pond links / Dataset transfer → Metadata review exchange</strong>. Save the dataset and enter the responsible colleague. <strong>Include the dataset folder in the review request</strong> is selected by default: supporting documents, data, other subfolders and root files (including hidden files) travel with the metadata. Existing DataPond transfer ZIPs and temporary transfer metadata are excluded; files outside the dataset folder are not included. Clear the option for a smaller, metadata-only request. Choose <strong>Create metadata review request</strong>, download the ZIP and send it through your agreed review channel. The app does not automatically notify the reviewer or upload it.</p>
+<p>Issue this request from the <strong>original editable master pond</strong>. An editor signed in there may issue it; an administrator of a colleague’s local pond has no authority to issue it from the read-only Flow cache. If someone makes a separate editable copy of the catalogue and issues a request there, that request exists only in the copy. Its return will fail inspection in the original master because no matching request was registered there.</p>
 <p>One request can be active per dataset. Keep the master’s private <code>.metadata_pond/reviews/</code> records: they contain the baseline needed to accept the return. Try to avoid changing the master or its files while a review is outstanding.</p>
 </section>
 <section id="work-as-the-reviewer" class="level2">
@@ -8061,7 +8063,7 @@ Custom software locations
 <li>The administrator chooses <strong>Approve pending request</strong> and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.</li>
 <li>The colleague selects <strong>Activate / recover access</strong>, enters their username and code, sets a passphrase of at least 15 characters, then signs in.</li>
 </ol>
-<p>Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use <code>datapond::recover_pond_access(&quot;/path/to/your/pond&quot;, &quot;your.username&quot;)</code> in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall.</p>
+<p>Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use <code>datapond::recover_pond_access(&quot;/path/to/your/pond&quot;, &quot;your.username&quot;)</code> in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.</p>
 <div class="guide-process" role="region" aria-label="Onboard a colleague to a pond" tabindex="0">
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
@@ -8127,13 +8129,15 @@ Custom software locations
 <p>The two setup tabs use muted sand colours. Complete connection and flow setup before running a new routine. <strong>Show Define connections tab</strong> hides or restores the connection tab without clearing its settings; it starts hidden when saved flows exist. Pond publication has its own settings in <strong>Run Flows</strong> and does not require a saved routine.</p>
 <p>To publish and consume a pond:</p>
 <ol type="1">
-<li>The master custodian opens <strong>Flow → Run Flows → Publish pond</strong> and enters <strong>Publication destination</strong>. The source is the active pond. Select <strong>Also upload registered dataset folders (data, documents and scripts)</strong> if the files should accompany the catalogue. <strong>Save publication settings</strong> remembers the destination and upload choice for this pond; <strong>Preview / retry pond publication</strong> saves them too. Review the plan and log, then choose <strong>Run flow</strong>. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.</li>
+<li>The master custodian switches to the pond being published and signs in there as an administrator. Open <strong>Flow → Run Flows → Publish signed-in pond</strong> and check the source shown on the page. Selecting a connected dataset or a saved flow does not change the publication source. Enter <strong>Publication destination</strong> and select <strong>Also upload registered dataset folders (data, documents and scripts)</strong> if the files should accompany the catalogue. Confirm the signed-in pond before previewing or running the publication. <strong>Save publication settings</strong> remembers the destination and upload choice for this pond; <strong>Preview / retry pond publication</strong> saves them too. Review the plan and log, then choose <strong>Run flow</strong>. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.</li>
 <li>On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in <strong>Flow → Define connections</strong>. Cloud credentials belong to the operating-system account running the app.</li>
 <li>In <strong>Flow → Read remote pond</strong>, enter the configured remote pond folder and an empty <strong>Local pond cache</strong> folder. Use <strong>Connect / refresh metadata only</strong>. A SharePoint web URL is not a configured remote path.</li>
 <li>Browse the cached catalogue offline. Select a dataset and choose <strong>Download / update selected dataset</strong> when its files are needed; fetching new content requires connectivity and remote permission.</li>
 <li>Use <strong>Remove selected download from local pond cache</strong> to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.</li>
 </ol>
+<p>If SharePoint rejects Office or HTML files because their size or checksum changes during upload, select <strong>SharePoint file compatibility</strong> before previewing the publication. DataPond copies <code>.doc</code>, <code>.docx</code>, <code>.xls</code>, <code>.xlsx</code>, <code>.ppt</code>, <code>.pptx</code>, <code>.htm</code> and <code>.html</code> files in a separate pass that skips rclone’s post-upload size and checksum checks; other dataset files and the catalogue retain their normal checks. This option applies only when dataset folders are uploaded. SharePoint may change the affected files, so download and inspect an example before sharing the pond. Publication still uses copy, not mirror sync.</p>
 <p>The remote cache is read-only in DataPond and does not upload edits. It is authorised by the cloud connection and the local Flow role, not by logging in to the publisher’s DataPond account store. For changes, use a separate working pond and the <a href="./review.html">dataset transfer or metadata review workflow</a>, then have the custodian accept and republish the result. This differs from the <a href="./releases.html">frozen-release cache helper</a>, which currently reads release packages from a local pond.</p>
+<p>Administrator access on a colleague’s computer permits Flow use for that local pond; it does not grant authority over the original master. The downloaded Flow cache cannot be opened as an editable pond or used to issue a metadata review request. An editor in the original master pond must issue the registered request ZIP, which the colleague imports into a separate local working pond. A request issued from a manually copied catalogue is registered only in that copy, so its return cannot be accepted by the original master. Only an administrator of the original master pond can accept a matching return.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -8141,7 +8145,7 @@ Custom software locations
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
   accTitle: Publish a catalogue and fetch local copies through Flow
-  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. Removing a local download retains the cached metadata and remote dataset; edits must go through a separate working pond and exchange workflow.
+  accDescr: The master custodian previews and runs publication to an authorised SharePoint folder, optionally including registered dataset folders. Once publication completes, a consumer with a configured cloud connection and local pond administrator access refreshes metadata into a local read-only cache. If published dataset files are needed, download the selected dataset. The cache cannot issue a review request, even for a local administrator. The original editable master issues the request ZIP for import into a separate review pond. Removing a local download retains the cached metadata and remote dataset.
   master[&quot;Master custodian: preview publication;&lt;br/&gt;choose whether to include dataset folders&quot;] --&gt; run[&quot;Run flow; wait for publication to finish&quot;]
   run --&gt; remote[&quot;SharePoint: published catalogue&lt;br/&gt;and any uploaded dataset folders&quot;]
   remote --&gt;|Authorised cloud connection| metadata[&quot;Consumer: Connect / refresh metadata only&quot;]
@@ -8149,19 +8153,21 @@ Custom software locations
   browse --&gt;|Files needed and published| download[&quot;While online: Download / update&lt;br/&gt;selected dataset&quot;]
   download --&gt; use[&quot;Use the local read-only copy&quot;]
   use --&gt;|Reclaim local space| remove[&quot;Remove selected download;&lt;br/&gt;retain metadata and remote dataset&quot;]
+  browse -.-&gt;|Metadata review needed| review[&quot;Original editable master issues&lt;br/&gt;review request ZIP; cache cannot issue one&quot;]
+  review -.-&gt; working[&quot;Reviewer imports ZIP into&lt;br/&gt;separate local working pond&quot;]
 </pre>
 </div>
-<p></p><figcaption> Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. All Flow actions require a local pond administrator.</figcaption> </figure><p></p>
+<p></p><figcaption> Flow publishes from the master to SharePoint; consumers refresh metadata and download files into a read-only local cache. Review requests must come from the original editable master pond, even when a consumer is a local administrator.</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
-<p>For ordinary file transfers, <strong>Design flow → Choose a destination location</strong> lists both <strong>Saved folders</strong> and <strong>Configured remotes</strong>. Selecting a remote fills in its library root, such as <code>team_data:</code>; append the destination subfolder in <strong>Flow to — destination</strong>. Whole-pond publication instead uses <strong>Run Flows → Publish pond → Publication destination</strong>, for example <code>team_data:published/my_pond</code>. To bookmark a full path, use <strong>Define connections → Saved locations → Save location</strong>. If a connection was added outside the app, use <strong>Browse locations and libraries → Detect configured libraries and drives</strong> in <strong>Define connections</strong> to refresh the choices.</p>
+<p>For ordinary file transfers, <strong>Design flow → Choose a destination location</strong> lists both <strong>Saved folders</strong> and <strong>Configured remotes</strong>. Selecting a remote fills in its library root, such as <code>team_data:</code>; append the destination subfolder in <strong>Flow to — destination</strong>. Whole-pond publication instead uses <strong>Run Flows → Publish signed-in pond → Publication destination</strong>, for example <code>team_data:published/my_pond</code>. To bookmark a full path, use <strong>Define connections → Saved locations → Save location</strong>. If a connection was added outside the app, use <strong>Browse locations and libraries → Detect configured libraries and drives</strong> in <strong>Define connections</strong> to refresh the choices.</p>
 </section>
 <section id="leave-a-publication-running" class="level3">
 <h3 class="anchored" data-anchor-id="leave-a-publication-running">Leave a publication running</h3>
 <p>Running or queued Flow jobs count as activity and prevent the 30-minute idle timeout while the app remains connected. Keep the app open and the computer awake. Normal idle expiry resumes when the job finishes, fails or is cancelled; waiting at a private cloud sign-in prompt does not extend the session.</p>
-<p>Jobs are still attached to the app session. Explicit sign-out, revoked access, closing the app or reaching the absolute 12-hour session limit cancels them. Unattended jobs that survive disconnection or run beyond that limit require a separate background-job facility, which this release does not provide.</p>
-<p>If publication is interrupted, sign in again and open <strong>Run Flows → Publish pond</strong>. The destination and dataset-upload choice are restored for the active pond. Check them, choose <strong>Preview / retry pond publication</strong>, then <strong>Run flow</strong>. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.</p>
+<p>Jobs are still attached to the app session. Active Flow work defers the 12-hour login limit until the job finishes, then allows five minutes to review the result. Sign-out, pond switching and app exit are blocked while the job runs. Revoked access or closing the browser session cancels the job. Unattended jobs that survive disconnection require a separate background-job facility, which this release does not provide.</p>
+<p>If publication is interrupted, sign in to the publishing pond again and open <strong>Run Flows → Publish signed-in pond</strong>. The destination and dataset-upload choice are restored for that pond. Check them, confirm the source, choose <strong>Preview / retry pond publication</strong>, then <strong>Run flow</strong>. Completed unchanged files can be reused; interrupted files may need transferring again. A partial upload is not a completed publication: wait for the final catalogue and manifest steps to finish before telling colleagues it is ready.</p>
 </section>
 <section id="onedrive-synced-sharepoint-folders" class="level3">
 <h3 class="anchored" data-anchor-id="onedrive-synced-sharepoint-folders">OneDrive-synced SharePoint folders</h3>
@@ -8830,7 +8836,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>EKZNW · DataPond · Guide for 1.4.0</p>
+<p>EKZNW · DataPond · Guide for 1.4.5</p>
 </div>   
     <div class="nav-footer-center">
        
