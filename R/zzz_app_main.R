@@ -129,6 +129,7 @@ config_panel_ui <- function() {
 
     shiny::tags$div(
       class = "pond-config-intro-card",
+      shiny::tags$h3("Configuration"),
       shiny::tags$p(
         class = "config-intro",
         paste(
@@ -143,6 +144,11 @@ config_panel_ui <- function() {
       background = "#D1DDC7",
       border = "#87966C",
       class_name = "config-session-context",
+
+      shiny::tags$div(
+        class = "config-current-value",
+        shiny::textOutput("current_pond_name")
+      ),
 
       shiny::tags$div(
         class = "config-current-value",
@@ -3469,11 +3475,20 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
   shiny::observe({
     access_require("read")
     auth$tick
+    active_pond <- auth$pond
+    active_token <- auth$token
+    connected_tokens <- auth$connected_tokens
     paths <- unique(c(state$data_pond, connected_pond_registry()$data_pond_path))
     snapshot <- lapply(paths, function(path) {
-      list(path = path, exists = dir.exists(path),
-        signature = connected_pond_database_signature(path),
-        readable = tryCatch({ connected_pond_require_read(path); TRUE }, error = function(e) FALSE))
+      exists <- dir.exists(path)
+      readable <- if (!exists) FALSE else tryCatch({
+        key <- access_path(path)
+        active_key <- access_path(active_pond)
+        token <- if (identical(key, active_key)) active_token else connected_tokens[[key]]
+        !is.null(access_session(path, token, "read"))
+      }, error = function(e) FALSE)
+      list(path = path, exists = exists,
+        signature = connected_pond_database_signature(path), readable = readable)
     })
     connected_pond_poll_state(snapshot)
   })
@@ -7272,7 +7287,7 @@ metadata_review_context_data <-
   federated_pond_catalogue <- shiny::reactive({
     access_require("read")
     req(length(state$data_pond_id) == 1L, !is.na(state$data_pond_id), nzchar(state$data_pond_id))
-    connected_pond_poll_state()
+    access_snapshot <- connected_pond_poll_state() %||% list()
     auth$connected_tokens
     connected_inventory_refresh_tick()
     state$refresh_datasets
@@ -7290,12 +7305,25 @@ metadata_review_context_data <-
         )
       )
     }
-    build_connected_pond_catalogue(
-      registry = registry,
+    path_key <- function(path) normalizePath(path.expand(path), winslash = "/", mustWork = FALSE)
+    snapshot_paths <- vapply(access_snapshot, function(item) path_key(item$path), character(1))
+    registry_paths <- vapply(registry$data_pond_path, path_key, character(1))
+    current_path <- path_key(state$data_pond)
+    unreadable <- vapply(seq_len(nrow(registry)), function(i) {
+      at <- match(registry_paths[i], snapshot_paths)
+      !identical(registry_paths[i], current_path) && !is.na(at) &&
+        isTRUE(access_snapshot[[at]]$exists) && !isTRUE(access_snapshot[[at]]$readable)
+    }, logical(1))
+    unavailable <- if (any(unreadable)) paste0(registry$pond_name[unreadable],
+      ": Sign-in required. Select this pond in Pond connections and sign in to its catalogue.") else character()
+    catalogue <- build_connected_pond_catalogue(
+      registry = registry[!unreadable, , drop = FALSE],
       cache = connected_inventory_cache,
       active_pond_path = state$data_pond,
       include_hidden = isTRUE(input$show_hidden_datasets)
     )
+    attr(catalogue, "unavailable") <- c(attr(catalogue, "unavailable"), unavailable)
+    catalogue
   })
 
   connected_pond_dataset_data <- shiny::reactive({
@@ -7314,6 +7342,9 @@ metadata_review_context_data <-
     )
   })
   overview_connected_inventory <- shiny::reactive({
+    # Access changes are independent of metadata file signatures. Keep this
+    # dependency so revoking a connected login drops cached overview rows.
+    connected_pond_poll_state()
     local <- build_connected_overview_inventory(connected_pond_dataset_data(), list())
     remote <- overview_remote_inventory()
     list(data = data.table::rbindlist(list(local$data, remote$data), fill = TRUE, use.names = TRUE),

@@ -8,6 +8,6 @@
 #' @import data.table
 #' @import shiny
 #' @import shinyFiles
-#' @importFrom stats ave setNames
+#' @importFrom stats ave na.omit setNames
 #' @importFrom utils head
 "_PACKAGE"

@@ -15,6 +15,7 @@ dataset_folder_selection_server <- function(input, session, state, on_change) {
   # initial binding must not overwrite the pond's saved default (or a new pond
   # selected during a later sign-in in the same session).
   shiny::observeEvent(input$access_workspace_ready, {
+    access_require("read")
     initialized[] <<- FALSE
     for (id in ids) {
       shiny::updateSelectInput(session, id, selected = state$dataset_parent_dir)
@@ -22,6 +23,7 @@ dataset_folder_selection_server <- function(input, session, state, on_change) {
   }, priority = 100)
   lapply(ids, function(id) {
     shiny::observeEvent(input[[id]], {
+      access_require("edit", touch = TRUE)
       if (!initialized[[id]]) {
         initialized[[id]] <<- TRUE
         shiny::updateSelectInput(session, id, selected = state$dataset_parent_dir)
@@ -32,6 +34,7 @@ dataset_folder_selection_server <- function(input, session, state, on_change) {
     }, priority = 10)
   })
   shiny::observe({
+    access_require("read")
     parent <- normalise_dataset_parent_dir(state$dataset_parent_dir)
     for (id in ids) {
       if (!identical(shiny::isolate(input[[id]]), parent)) {

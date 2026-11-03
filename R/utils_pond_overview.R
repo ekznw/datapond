@@ -597,9 +597,11 @@ pond_overview_search_server <- function(input, session) {
     shiny::updateTextInput(session, other_id, value = value)
   }
   shiny::observeEvent(input$pond_dataset_search, {
+    access_require("read")
     sync(input$pond_dataset_search, "pond_inventory_search")
   })
   shiny::observeEvent(input$pond_inventory_search, {
+    access_require("read")
     sync(input$pond_inventory_search, "pond_dataset_search")
   })
   shiny::debounce(shiny::reactive(query()), 250)

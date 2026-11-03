@@ -15,6 +15,7 @@ mod_attribute_profile_config_ui <- function(id) {
 mod_attribute_profile_config_server <- function(id, state) {
   shiny::moduleServer(id, function(input, output, session) {
     output$setting <- shiny::renderUI({
+      access_require("edit")
       shiny::req(state$data_pond)
       shiny::tagList(
         shiny::checkboxInput(session$ns("enabled"), "Enable attribute profiling",

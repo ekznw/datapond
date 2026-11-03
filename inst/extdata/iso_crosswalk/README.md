@@ -19,6 +19,11 @@ correcting a mapping creates a patch version, adding backward-compatible
 mappings creates a minor version, and changing established export semantics
 creates a major version.
 
+v5.0.1 corrects the capture-policy inventory for the five dataset-edition and
+publication tables added to the effective database model. These workflow and
+contact relationship tables now have explicit source policies; export mappings
+and semantics are unchanged.
+
 The crosswalk separates four cases:
 
 - `direct`: one stored value maps to one ISO property;

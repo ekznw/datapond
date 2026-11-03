@@ -74,8 +74,8 @@ mod_dataset_releases_server <- function(id, state, on_changed = function() NULL,
     }, ignoreInit = TRUE)
     shiny::observeEvent(state$refresh_datasets, { access_require("read", touch = TRUE); preview(NULL) }, ignoreInit = TRUE)
     shiny::observeEvent(list(input$history_rows_selected, state$active_user_id, state$refresh_datasets),
-      { clear_removal() }, ignoreInit = TRUE)
-    shiny::observeEvent(population_profile(), { preview(NULL); reviewed(FALSE) }, ignoreInit = TRUE)
+      { access_require("read"); clear_removal() }, ignoreInit = TRUE)
+    shiny::observeEvent(population_profile(), { access_require("read"); preview(NULL); reviewed(FALSE) }, ignoreInit = TRUE)
     shiny::observe({
       access_require("read")
       tick(); state$refresh_datasets
