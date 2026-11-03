@@ -1,8 +1,17 @@
 # Document tools are provisioned only by an explicit setup call. No startup,
 # package-load or ordinary rendering path invokes an installer.
-document_tool_run <- function(command, args, wd = NULL, timeout = 180000) {
+document_tool_env <- function(os_type = .Platform$OS.type, inherited = Sys.getenv()) {
+  if (!identical(os_type, "windows")) return(NULL)
+  # Rtools' MSYS xz can hang when piped into TeX Live's native Windows tar.
+  # Use TeX Live's supported setting to prefer its matching bundled tools.
+  # Pass a child-only environment so the R session and other tools are unchanged.
+  inherited["TEXLIVE_PREFER_OWN"] <- "1"
+  inherited
+}
+
+document_tool_run <- function(command, args, wd = NULL, timeout = 180000, echo = FALSE) {
   tryCatch(processx::run(command, args, wd = wd, timeout = timeout,
-    error_on_status = FALSE), error = function(e)
+    error_on_status = FALSE, echo = echo, env = document_tool_env()), error = function(e)
       list(status = 1L, stdout = "", stderr = conditionMessage(e)))
 }
 
@@ -77,12 +86,16 @@ document_tools_render_failure <- function(result, expected, stage) {
     paste(detail, "Quarto produced no diagnostic output.")
 }
 
-document_tools_render_check <- function(quarto, install_packages = FALSE) {
+document_tools_render_check <- function(quarto, install_packages = FALSE,
+                                        kinds = c("metadata", "development"), quiet = TRUE) {
   directory <- tempfile("datapond-document-check-")
   dir.create(directory)
   on.exit(unlink(directory, recursive = TRUE), add = TRUE)
   results <- list()
-  for (kind in c("metadata", "development")) {
+  for (kind in kinds) {
+    if (!quiet) message("Rendering ", if (kind == "metadata") "metadata PDF" else
+      "development PDF, Word and HTML", if (install_packages) " (package downloads enabled)." else
+      " (downloads disabled).")
     stage <- file.path(directory, kind); dir.create(stage)
     if (kind == "metadata") {
       if (!file.copy(datapond_resource("ekznw_document_theme"), stage, recursive = TRUE))
@@ -102,7 +115,7 @@ document_tools_render_check <- function(quarto, install_packages = FALSE) {
     # Overrides are confined to this temporary setup test. Production documents
     # keep automatic downloads disabled, including after setup succeeds.
     result <- document_tool_run(quarto, c("render", source, "--to", format,
-      "--no-execute", "--quiet", "-M",
+      "--no-execute", "-M",
       paste0("latex-auto-install:", if (install_packages) "true" else "false")),
       wd = stage, timeout = if (install_packages) 900000 else 180000)
     ok <- result$status == 0L && all(file.exists(file.path(stage, expected)))
@@ -110,6 +123,24 @@ document_tools_render_check <- function(quarto, install_packages = FALSE) {
       document_tools_render_failure(result, expected, stage))
   }
   results
+}
+
+document_tools_verify_report <- function(report, install_packages = FALSE, quiet = TRUE,
+                                         kinds = c("metadata", "development")) {
+  if (!report$quarto$ok || !report$xelatex$ok) return(report)
+  rows <- c(metadata = 4L, development = 5L)
+  kinds <- intersect(kinds, names(rows)[!report$checks$ready[rows]])
+  if (length(kinds)) {
+    render <- document_tools_render_check(report$quarto$path, install_packages,
+      kinds = kinds, quiet = quiet)
+    for (kind in kinds) {
+      report$checks$ready[rows[[kind]]] <- isTRUE(render[[kind]]$ok)
+      report$checks$detail[rows[[kind]]] <- render[[kind]]$detail
+    }
+  }
+  report$ready <- all(report$checks$ready)
+  report$verified <- TRUE
+  report
 }
 
 document_tools_report <- function(verify = TRUE, install_packages = FALSE) {
@@ -168,6 +199,12 @@ document_tools_show <- function(report) {
 #'   Renders use temporary files and disabled code execution. Installations need
 #'   internet access; after successful setup, ordinary rendering does not install
 #'   packages. A failed render includes diagnostic output in the result.
+#'   Setup retains successful template checks and retries only failed templates.
+#'   TinyTeX package installation shows live output unless `quiet = TRUE` and
+#'   times out after five minutes. Download-enabled renders are used only when
+#'   verification still fails after explicit package installation.
+#'   On Windows, document subprocesses prefer TeX Live's bundled utilities to
+#'   avoid extraction hangs caused by mixing Rtools and TeX Live utilities.
 #' @export
 check_document_tools <- function(verify = TRUE, quiet = FALSE) {
   report <- document_tools_report(verify = verify)
@@ -178,23 +215,44 @@ check_document_tools <- function(verify = TRUE, quiet = FALSE) {
 #' @rdname check_document_tools
 #' @export
 setup_document_tools <- function(install = TRUE, quiet = FALSE) {
+  if (!quiet) message("Checking document tools and rendering both templates (downloads disabled).")
   report <- check_document_tools(quiet = TRUE)
   if (install && report$quarto$ok && !report$ready) {
     if (!report$xelatex$ok && !nzchar(report$tex$path) && !report$tex$existing_root) {
       if (!quiet) message("Installing TinyTeX using Quarto. This needs an internet connection and may take several minutes.")
-      result <- document_tool_run(report$quarto$path, c("install", "tinytex", "--no-prompt"), timeout = 900000)
+      result <- document_tool_run(report$quarto$path, c("install", "tinytex", "--no-prompt"),
+        timeout = 900000, echo = !quiet)
       if (result$status != 0L) stop("TinyTeX installation failed: ", result$stderr, result$stdout, call. = FALSE)
-      report <- check_document_tools(quiet = TRUE)
+      report <- check_document_tools(verify = FALSE, quiet = TRUE)
     }
     render_failed <- any(!report$checks$ready[4:5])
     if (report$tex$tinytex && render_failed) {
-      if (!quiet) message("Preparing TinyTeX fonts and packages for the EKZNW themes.")
+      if (!quiet) message("Preparing TinyTeX fonts and packages for the EKZNW themes (maximum 5 minutes).")
       result <- document_tool_run(report$tex$tlmgr,
-        c("install", "tex-gyre", "koma-script", "needspace", "fontawesome5", "tcolorbox"), timeout = 900000)
+        c("install", "tex-gyre", "koma-script", "needspace", "fontawesome5", "tcolorbox",
+          "xurl", "fvextra"), timeout = 300000, echo = !quiet)
       if (result$status != 0L) stop("TinyTeX package setup failed: ", result$stderr, result$stdout, call. = FALSE)
-      document_tools_report(install_packages = TRUE)
-      # Verify again with downloads disabled, as in ordinary app rendering.
-      report <- check_document_tools(quiet = TRUE)
+      if (grepl("tlmgr itself needs to be updated", paste(result$stderr, result$stdout), fixed = TRUE))
+        stop("TinyTeX package setup did not install packages: tlmgr needs updating. Run '",
+          report$tex$tlmgr, " update --self', then rerun setup_document_tools().", call. = FALSE)
+      # Keep successful checks and avoid network-enabled renders when the
+      # explicit package installation already fixed the failed templates.
+      report <- document_tools_verify_report(report, quiet = quiet)
+      if (any(!report$checks$ready[4:5])) {
+        provisioned <- document_tools_verify_report(report, install_packages = TRUE, quiet = quiet)
+        # Successful provisioning still needs an offline render. Keep errors
+        # from failed provisioning rather than repeating the same failure.
+        repaired <- !report$checks$ready[4:5] & provisioned$checks$ready[4:5]
+        report$checks$detail[4:5] <- provisioned$checks$detail[4:5]
+        if (any(repaired)) {
+          offline <- provisioned
+          offline$checks$ready[which(repaired) + 3L] <- FALSE
+          offline <- document_tools_verify_report(offline, quiet = quiet,
+            kinds = names(c(metadata = 4L, development = 5L))[repaired])
+          report$checks[which(repaired) + 3L, ] <- offline$checks[which(repaired) + 3L, ]
+          report$ready <- all(report$checks$ready)
+        }
+      }
     }
     if (!report$ready && !report$tex$tinytex && render_failed && !quiet)
       message("Your existing TeX installation was left unchanged. Use its package manager or ask IT to resolve the render errors, then rerun setup.")

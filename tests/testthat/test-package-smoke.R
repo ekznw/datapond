@@ -98,6 +98,22 @@ test_that("new ponds default dataset creation to the dev folder", {
   )
 })
 
+test_that("Windows volume discovery retains accessible drive paths", {
+  expect_identical(
+    datapond:::data_pond_windows_volumes(
+      drive_paths = c("C:/", "D:/", "Z:/"),
+      directory_exists = function(paths) c(TRUE, FALSE, TRUE)
+    ),
+    c(`C:` = "C:/", `Z:` = "Z:/")
+  )
+  expect_length(
+    datapond:::data_pond_windows_volumes(
+      directory_exists = function(paths) rep(FALSE, length(paths))
+    ),
+    0L
+  )
+})
+
 test_that("data pond folder roots are concrete and OS appropriate", {
   provider_called <- FALSE
   volume_provider <- function() {
@@ -144,7 +160,21 @@ test_that("data pond folder roots are concrete and OS appropriate", {
   expect_true(provider_called)
   expect_identical(
     unname(windows_roots),
-    c("~", "C:/", "E:/")
+    c(normalizePath(path.expand("~"), winslash = "/", mustWork = FALSE), "C:/", "E:/")
+  )
+})
+
+test_that("Windows folder roots agree across base R and the shinyFiles filesystem", {
+  roots <- datapond:::data_pond_folder_roots(os_type = "windows", volume_provider = character())
+  expect_false(grepl("~", roots[["home"]], fixed = TRUE))
+  expect_identical(
+    normalizePath(roots[["home"]], winslash = "/", mustWork = FALSE),
+    normalizePath(path.expand("~"), winslash = "/", mustWork = FALSE)
+  )
+  selected <- shinyFiles::parseDirPath(roots, list(root = "home", path = list("")))
+  expect_identical(
+    normalizePath(as.character(selected), winslash = "/", mustWork = FALSE),
+    normalizePath(path.expand("~"), winslash = "/", mustWork = FALSE)
   )
 })
 

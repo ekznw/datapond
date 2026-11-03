@@ -34,10 +34,21 @@ config_section_box <- function(
 }
 
 
+data_pond_windows_volumes <- function(
+  drive_paths = paste0(LETTERS, ":/"),
+  directory_exists = dir.exists
+) {
+  # Avoid shinyFiles' PowerShell output parser, which drops empty volume
+  # labels and can recycle paths into incorrect drive names on Windows.
+  drives <- drive_paths[directory_exists(drive_paths)]
+  stats::setNames(drives, sub("/$", "", drives))
+}
+
+
 data_pond_folder_roots <- function(
   os_type = .Platform$OS.type,
   sysname = Sys.info()[["sysname"]],
-  volume_provider = shinyFiles::getVolumes(),
+  volume_provider = data_pond_windows_volumes,
   linux_mount_candidates = c(
     `/run/mnt` = "/run/mnt",
     `/run/media` = "/run/media",
@@ -45,7 +56,12 @@ data_pond_folder_roots <- function(
     `/mnt` = "/mnt"
   )
 ) {
-  home_root <- c(home = "~")
+  # On Windows, base R may resolve ~ to Documents while fs resolves it to
+  # USERPROFILE. shinyFiles mixes both APIs for its tree and content panes,
+  # so use one absolute path to keep browsing and selection in agreement.
+  home_root <- c(home = if (identical(os_type, "windows")) {
+    normalizePath(path.expand("~"), winslash = "/", mustWork = FALSE)
+  } else "~")
 
   if (identical(os_type, "windows")) {
     volumes <- tryCatch(
