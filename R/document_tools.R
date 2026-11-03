@@ -68,6 +68,15 @@ document_tool_probe <- function(path, args = "--version", pattern = NULL) {
     if (ok) "Available" else "Could not run")
 }
 
+document_tools_render_failure <- function(result, expected, stage) {
+  missing <- expected[!file.exists(file.path(stage, expected))]
+  output <- trimws(paste(result$stderr, result$stdout))
+  detail <- paste0("Render failed (Quarto exit status ", result$status,
+    if (length(missing)) paste0("; missing output: ", paste(missing, collapse = ", ")) else "", ").")
+  if (nzchar(output)) paste(detail, substr(output, 1L, 4000L)) else
+    paste(detail, "Quarto produced no diagnostic output.")
+}
+
 document_tools_render_check <- function(quarto, install_packages = FALSE) {
   directory <- tempfile("datapond-document-check-")
   dir.create(directory)
@@ -98,7 +107,7 @@ document_tools_render_check <- function(quarto, install_packages = FALSE) {
       wd = stage, timeout = if (install_packages) 900000 else 180000)
     ok <- result$status == 0L && all(file.exists(file.path(stage, expected)))
     results[[kind]] <- list(ok = ok, detail = if (ok) paste("Rendered", paste(expected, collapse = ", ")) else
-      paste("Render failed:", substr(trimws(paste(result$stderr, result$stdout)), 1L, 4000L)))
+      document_tools_render_failure(result, expected, stage))
   }
   results
 }
