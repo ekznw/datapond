@@ -9,6 +9,16 @@ document_report_fixture <- function(quarto = TRUE, tex = TRUE, python = TRUE,
       ready = c(quarto, tex, python, rendered, rendered), detail = "Test result"))
 }
 
+test_that("Windows document commands prefer TeX Live tools without changing the R environment", {
+  before <- Sys.getenv("TEXLIVE_PREFER_OWN", unset = NA_character_)
+  inherited <- c(PATH = "rtools-path", OTHER = "keep", TEXLIVE_PREFER_OWN = "0")
+  env <- datapond:::document_tool_env("windows", inherited)
+  expect_identical(env[["TEXLIVE_PREFER_OWN"]], "1")
+  expect_identical(env[c("PATH", "OTHER")], inherited[c("PATH", "OTHER")])
+  expect_identical(Sys.getenv("TEXLIVE_PREFER_OWN", unset = NA_character_), before)
+  expect_null(datapond:::document_tool_env("unix", inherited))
+})
+
 test_that("local tool discovery honours explicit paths and Quarto-managed TinyTeX", {
   keys <- c("DATAPOND_QUARTO", "DATAPOND_RELEASE_PYTHON")
   previous <- Sys.getenv(keys, unset = NA_character_)
@@ -65,27 +75,81 @@ test_that("offline setup and ready installations never invoke installers", {
 })
 
 test_that("explicit setup installs missing TinyTeX and verifies without downloads", {
-  checks <- 0L; calls <- list(); provisioning <- logical()
+  checks <- 0L; calls <- list(); verification <- list()
   testthat::local_mocked_bindings(
-    check_document_tools = function(...) {
+    check_document_tools = function(verify = TRUE, ...) {
       checks <<- checks + 1L
       if (checks == 1L) document_report_fixture(tex = FALSE, rendered = FALSE) else
-        document_report_fixture(rendered = checks >= 3L, tinytex = TRUE)
+        document_report_fixture(rendered = FALSE, tinytex = TRUE)
     },
     document_tool_run = function(command, args, ...) {
       calls[[length(calls) + 1L]] <<- list(command = command, args = args)
       list(status = 0L, stdout = "", stderr = "")
     },
-    document_tools_report = function(install_packages, ...) {
-      provisioning <<- c(provisioning, install_packages)
-      document_report_fixture(tinytex = TRUE)
+    document_tools_render_check = function(quarto, install_packages, kinds, ...) {
+      verification[[length(verification) + 1L]] <<- list(install = install_packages, kinds = kinds)
+      list(metadata = list(ok = TRUE, detail = "Rendered"),
+        development = list(ok = TRUE, detail = "Rendered"))
     }, .package = "datapond")
   expect_true(datapond::setup_document_tools(quiet = TRUE)$ready)
   expect_identical(calls[[1]]$args, c("install", "tinytex", "--no-prompt"))
   expect_identical(calls[[2]]$command, "/test/tlmgr")
   expect_true("tex-gyre" %in% calls[[2]]$args)
-  expect_identical(provisioning, TRUE)
-  expect_identical(checks, 3L)
+  expect_true(all(c("xurl", "fvextra") %in% calls[[2]]$args))
+  expect_identical(calls[[2]]$args[1], "install")
+  expect_length(verification, 1L)
+  expect_false(verification[[1]]$install)
+  expect_identical(checks, 2L)
+})
+
+test_that("setup retains passing templates and only provisions after an offline failure", {
+  fixture <- document_report_fixture(rendered = FALSE, tinytex = TRUE)
+  fixture$checks$ready[5] <- TRUE
+  fixture$checks$detail[5] <- "Already rendered"
+  calls <- list(); installs <- 0L
+  testthat::local_mocked_bindings(
+    check_document_tools = function(...) fixture,
+    document_tool_run = function(command, args, timeout, echo, ...) {
+      installs <<- installs + 1L
+      expect_identical(timeout, 300000)
+      expect_false(echo)
+      list(status = 0L, stdout = "", stderr = "")
+    },
+    document_tools_render_check = function(quarto, install_packages, kinds, ...) {
+      calls[[length(calls) + 1L]] <<- list(install = install_packages, kinds = kinds)
+      list(metadata = list(ok = length(calls) > 1L, detail = "Metadata result"))
+    }, .package = "datapond")
+  report <- datapond::setup_document_tools(quiet = TRUE)
+  expect_true(report$ready)
+  expect_identical(installs, 1L)
+  expect_identical(vapply(calls, `[[`, logical(1), "install"), c(FALSE, TRUE, FALSE))
+  expect_true(all(vapply(calls, function(x) identical(x$kinds, "metadata"), logical(1))))
+  expect_identical(report$checks$detail[5], "Already rendered")
+})
+
+test_that("offline repair avoids provisioning and failed provisioning is not repeated", {
+  fixture <- document_report_fixture(rendered = FALSE, tinytex = TRUE)
+  attempts <- logical(); succeeds <- TRUE
+  testthat::local_mocked_bindings(
+    check_document_tools = function(...) fixture,
+    document_tool_run = function(...) list(status = 0L, stdout = "", stderr = ""),
+    document_tools_render_check = function(quarto, install_packages, kinds, ...) {
+      attempts <<- c(attempts, install_packages)
+      setNames(lapply(kinds, function(kind) list(ok = succeeds, detail = "Render result")), kinds)
+    }, .package = "datapond")
+  expect_true(datapond::setup_document_tools(quiet = TRUE)$ready)
+  expect_identical(attempts, FALSE)
+  succeeds <- FALSE; attempts <- logical()
+  expect_false(datapond::setup_document_tools(quiet = TRUE)$ready)
+  expect_identical(attempts, c(FALSE, TRUE))
+})
+
+test_that("TinyTeX manager update requests are reported even with a zero exit status", {
+  testthat::local_mocked_bindings(
+    check_document_tools = function(...) document_report_fixture(rendered = FALSE, tinytex = TRUE),
+    document_tool_run = function(...) list(status = 0L, stdout = "",
+      stderr = "tlmgr itself needs to be updated."), .package = "datapond")
+  expect_error(datapond::setup_document_tools(quiet = TRUE), "tlmgr needs updating", fixed = TRUE)
 })
 
 test_that("system TeX, failed installations and incomplete TinyTeX are protected", {

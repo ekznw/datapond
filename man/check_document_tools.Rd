@@ -33,4 +33,10 @@ Setup is not run at package installation, package load or application startup.
 be on PATH. Renders use temporary files and disabled code execution.
 Installations need internet access; after successful setup ordinary rendering
 does not install packages. Failed renders include diagnostics in the result.
+Setup retains successful template checks and retries only failed templates.
+TinyTeX package installation shows live output unless \code{quiet = TRUE} and
+times out after five minutes. Download-enabled renders are used only when
+verification still fails after explicit package installation.
+On Windows, document subprocesses prefer TeX Live's bundled utilities to
+avoid extraction hangs caused by mixing Rtools and TeX Live utilities.
 }
