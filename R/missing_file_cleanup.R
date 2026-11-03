@@ -123,6 +123,7 @@ missing_file_cleanup_server <- function(id, state) {
       shiny::showNotification(conditionMessage(e), type = "error")
     })
     shiny::observeEvent(list(state$data_pond, state$current_dataset_id, state$active_user_id, state$refresh_datasets), {
+      access_require("read")
       preview(NULL)
     }, ignoreInit = TRUE)
     shiny::observeEvent(input$preview, {

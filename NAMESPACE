@@ -33,6 +33,7 @@ import(shiny)
 import(shinyFiles)
 importFrom(stats,
   ave,
+  na.omit,
   setNames
 )
 importFrom(utils,head)

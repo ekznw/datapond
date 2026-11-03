@@ -1,0 +1,40 @@
+name: DataPond export semantics
+version: 1.0.0
+implementation: inst/iso/validate_semantics.py
+resources: ../../iso_semantics/1.0.0/manifest.json
+applies_to: DataPond metadata exports and their generated feature catalogues.
+relationship_to_iso: Additional local export-profile checks; the pinned ISO rule outcome remains unchanged.
+gate: A semantic pass is required alongside either selected XML policy and package dependency checks.
+code_lists:
+  iso: Pinned ISO/TC 211 catalogue; check value membership and the canonical list URI for each emitted code type.
+  languages: Pinned LOC ISO 639-2 bibliographic and terminological codes, including catalogue language.
+  encodings: Pinned IANA character set names and aliases.
+  compatibility: Translate stored utf8 and utf16 to UTF-8 and UTF-16 only when serializing.
+  extensions: Unregistered/custom codes are not accepted by this profile. ISO code-list extensibility is not denied.
+rules:
+  SEM-CODE: Registered code membership for supported XML code types.
+  SEM-CODE-URI: Canonical reference to the matching registry/list, not a value or another list.
+  SEM-TOPIC: Registered ISO topic category.
+  SEM-LANGUAGE: ISO 639-2 feature catalogue language.
+  SEM-TEXT: No whitespace-only CharacterString; omit or use an appropriate nil reason.
+  SEM-ID: Unique local XML IDs, including GML IDs.
+  SEM-LINK: Each local fragment link resolves to exactly one identifier.
+  SEM-DATE: Valid calendar date/time at the recorded precision.
+  SEM-ORDER: Reject a temporal start definitely later than its end.
+  SEM-METADATA-DATES: Apply the same interval comparison to metadata creation and last update.
+  SEM-BOUNDS: Finite, ordered latitude, vertical and sample bounds; longitude and latitude ranges.
+  SEM-POSITIVE: Positive finite spatial resolutions, scale denominators and grid dimensions.
+  SEM-ENCODING: This UTF-8 metadata XML exporter requires UTF-8 metadata locale; dataset encoding is independent.
+uncertainty:
+  - Year and month values describe intervals, never invented exact days.
+  - Overlapping intervals and mixed zoned/unzoned timestamps produce explicit comparison warnings.
+  - Temporal before/after/now/unknown qualifiers remain indeterminate.
+  - A west longitude greater than east is allowed for antimeridian-crossing extents.
+failure:
+  resources: Missing or altered pinned resources return unavailable.
+  tooling: Missing Python/lxml or an incomplete run returns unavailable.
+  publication: Recheck the staged XML and catalogue pair; failure removes only this attempt's staging directory.
+limits:
+  - This is a bounded profile, not all conceptual ISO rules or all possible combinations.
+  - No verification of factual accuracy, remote URLs, custom CRS registries or signed document authenticity.
+  - No receiving-catalogue target is selected; compatibility is explicitly not-assessed.

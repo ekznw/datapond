@@ -68,7 +68,7 @@ preview_data_dev_sync <- function(dataset_id, base_path, user_id, document,
     stop("Dataset version must use major.minor.patch, for example 1.2.0.")
   if (direction == "import" && "version" %in% fields &&
       any(as.numeric(strsplit(values$version, ".", fixed = TRUE)[[1]]) > c(20, 99, 99)))
-    stop("Dataset version exceeds the form limits: major 0–20, minor and patch 0–99.")
+    stop("Dataset version exceeds the form limits: major 0\u201320, minor and patch 0\u201399.")
   # UUID identifies the export even when it is not one of the selected fields.
   if (direction == "export") values$uuid <- saved$uuid
   warnings <- vapply(Filter(function(w) w$field %in% fields, inspected$warnings),
@@ -152,7 +152,7 @@ mod_data_dev_sync_server <- function(id, state, get_form, import_values) {
             c("title", "version", "abstract", "purpose"), c("Title", "Dataset version", "Abstract", "Purpose")),
             selected = c("title", "version", "abstract", "purpose"), inline = TRUE),
           shiny::p(class = "help-block", "Empty source fields are skipped. Exports update the report title, cover details and marked Dataset metadata section, and retain a .bak copy. Edit that section for imports. UUID identifies the dataset and is never imported. Report version and methods are kept."),
-          shiny::p(class = "help-block", "Word superscripts and subscripts convert to Unicode where supported (e.g. 10⁻⁶, m², CO₂). Other characters use explicit ^{...} or _{...} notation with a warning. Quarto math and markup stay literal in metadata. Unsupported Word equations and objects receive visible placeholders and warnings."),
+          shiny::p(class = "help-block", "Word superscripts and subscripts convert to Unicode where supported (e.g. 10\u207b\u2076, m\u00b2, CO\u2082). Other characters use explicit ^{...} or _{...} notation with a warning. Quarto math and markup stay literal in metadata. Unsupported Word equations and objects receive visible placeholders and warnings."),
           shiny::actionButton(ns("preview_sync"), "Preview changes"),
           shiny::uiOutput(ns("format_warnings")),
           shiny::div(style = "overflow:auto; max-height:40vh; white-space:pre-wrap; overflow-wrap:anywhere;",
@@ -162,6 +162,7 @@ mod_data_dev_sync_server <- function(id, state, get_form, import_values) {
       }, error = function(e) shiny::showNotification(conditionMessage(e), type = "error", duration = NULL))
     })
     shiny::observeEvent(list(input$document, input$direction, input$fields), {
+      access_require("read")
       pending(NULL); result("")
     }, ignoreInit = TRUE)
     check_context <- function() {

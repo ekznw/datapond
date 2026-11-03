@@ -75,6 +75,7 @@ mod_public_edition_workflow_server <- function(id, state, source_release, on_cha
       out
     })
     output$fields <- shiny::renderUI({
+      access_require("read")
       ch <- choices()
       shiny::tagList(lapply(seq_along(controls()), function(i) {
         a <- controls()[[i]]; selected <- ch$selected_fields[[a$path]][[a$layer]]
@@ -117,7 +118,7 @@ mod_public_edition_workflow_server <- function(id, state, source_release, on_cha
               if (conflict$kind == "metadata") shiny::tags$pre(style = "white-space:pre-wrap", paste(
                 "Previous source:", public_display_value(conflict$previous, p$source_payload), "\nCurrent public:", public_display_value(conflict$current, p$previous %||% p$source_payload),
                 "\nNew source:", public_display_value(conflict$source, p$source_payload))),
-              shiny::selectInput(ns(paste0("decision_", i)), "Use", choices = c("Choose…" = "", "Current public" = "current", "New source" = "source"),
+              shiny::selectInput(ns(paste0("decision_", i)), "Use", choices = c("Choose\u2026" = "", "Current public" = "current", "New source" = "source"),
                 selected = prior$decisions[[key]] %||% ""))
           })),
           shiny::helpText("For title, abstract, purpose, keywords and geographic description, a conflict choice first fills the field above; you can then edit the public wording. Check inherited restrictions in Licensing before distribution.")))
@@ -128,20 +129,22 @@ mod_public_edition_workflow_server <- function(id, state, source_release, on_cha
       shiny::tagList(shiny::p(paste(length(p$files), "source files selected;", nrow(ch$files) - length(p$files), "source files excluded;", retained, "attributes retained;", all_fields - retained, "attributes excluded.")),
         shiny::p(paste(length(p$metadata), "metadata values and groups prefilled.")),
         shiny::p(paste(length(p$kept), "public metadata edits carried forward;", length(p$retained_files), "public files preserved;", length(p$conflicts), "conflicts reviewed.")),
-        shiny::p(paste("Public dataset:", par$title, "— version", par$version)),
+        shiny::p(paste("Public dataset:", par$title, "\u2014 version", par$version)),
         shiny::tags$ul(lapply(p$review_items, shiny::tags$li)),
         if (any(vapply(p$conflicts, function(x) x$kind == "file", logical(1)))) shiny::p("Keeping a public file retains all its existing columns and rows instead of the selected source replacement. Inspect retained files before freezing."),
         shiny::p("The draft opens with files scanned and metadata populated. Complete review, prepare the public PDF and freeze when ready. Updating saves the previous public draft as a recovery checkpoint."))
     })
     output$metadata <- DT::renderDT({
+      access_require("read")
       p <- plan(); shiny::req(p)
       rows <- data.frame(Field = vapply(names(p$metadata), public_label, character(1)),
         Value = vapply(p$metadata, public_display_value, character(1), payload = p$source_payload))
       datapond_datatable(rows, rownames = FALSE, options = list(pageLength = 8))
     })
     last_decisions <- shiny::reactiveVal(list())
-    shiny::observeEvent(plan(), { last_decisions(list()) }, ignoreNULL = FALSE)
+    shiny::observeEvent(plan(), { access_require("read"); last_decisions(list()) }, ignoreNULL = FALSE)
     shiny::observe({
+      access_require("read")
       p <- plan(); if (is.null(p) || step() != 2L) return()
       previous_choices <- shiny::isolate(last_decisions()); updated_choices <- previous_choices
       editable <- c("entry:title" = "title", "entry:abstract" = "abstract", "entry:purpose" = "purpose", "entry:keyword_object" = "keywords", "entry:geographic_extent_name" = "extent")
@@ -211,6 +214,7 @@ mod_public_edition_workflow_server <- function(id, state, source_release, on_cha
         footer = shiny::tagList(shiny::modalButton("Cancel"), shiny::actionButton(session$ns("save_defaults"), "Save defaults"))))
     }) })
     output$contact <- shiny::renderUI({
+      access_require("read")
       shiny::req(input$contact_org)
       c <- context(); conn <- get_conn(c$pond); on.exit(DBI::dbDisconnect(conn))
       people <- DBI::dbGetQuery(conn, "SELECT id,name_first,name_last FROM persons_tbl WHERE organisation_id=?", params = list(as.integer(input$contact_org)))
