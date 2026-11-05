@@ -21,7 +21,8 @@ run_data_pond(
 then 5751 for a stable browser address. Pass \code{NULL} for an available port.}
 
 \item{data_pond}{Optional path to the data pond to open. When \code{NULL}, Data
-Pond uses the last selected pond and then its normal fallback.}
+Pond uses the last selected pond, or offers to create or open one on a
+fresh installation.}
 
 \item{...}{Additional arguments passed to \code{\link[shiny:runApp]{shiny::runApp()}}.}
 }

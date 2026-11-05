@@ -46,7 +46,8 @@ datapond_asset_url <- function(file) {
 #' @param port TCP port. Defaults to option `datapond.port`, then `shiny.port`,
 #'   then 5751 for a stable browser address. Pass `NULL` for an available port.
 #' @param data_pond Optional path to the data pond to open. When `NULL`, Data
-#'   Pond uses the last selected pond and then its normal fallback.
+#'   Pond uses the last selected pond, or offers to create or open one on a
+#'   fresh installation.
 #' @param ... Additional arguments passed to [shiny::runApp()].
 #'
 #' @return The value returned by [shiny::runApp()], invisibly.

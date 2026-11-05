@@ -68,6 +68,47 @@ test_that("configuration exposes both pond actions and creation explains its des
   expect_match(dialog, "Next, set up a pond administrator and sign in.", fixed = TRUE)
 })
 
+test_that("a clean installation offers pond creation before writing a default pond", {
+  local_trusted_access_fixture()
+  parent <- tempfile("first-pond-")
+  dir.create(parent)
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  old_options <- options(datapond.data_pond = NULL)
+  on.exit(options(old_options), add = TRUE)
+  testthat::local_mocked_bindings(
+    app_state_dir = function() file.path(parent, "app-config"), .package = "datapond"
+  )
+  expect_true(datapond:::first_pond_setup_needed())
+  ui <- xml2::read_html(as.character(datapond:::first_pond_setup_ui()))
+  expect_match(xml2::xml_text(ui), "Create a new pond", fixed = TRUE)
+  expect_match(xml2::xml_text(ui), "Open an existing pond", fixed = TRUE)
+  expect_match(xml2::xml_text(ui), "set up the first administrator", fixed = TRUE)
+  for (id in c("first_pond_create", "first_pond_open", "first_pond_parent_input")) {
+    expect_false(is.na(xml2::xml_name(xml2::xml_find_first(ui, paste0("//*[@id='", id, "']")))))
+  }
+
+  shiny::testServer(datapond:::server, {
+    expect_null(datapond:::read_last_data_pond_path())
+    expect_false(dir.exists(file.path(parent, "app-config")))
+    expect_null(first_pond_setup$opened_state())
+    html <- xml2::read_html(as.character(datapond:::ui))
+    selects <- xml2::xml_find_all(html, "//select")
+    defaults <- stats::setNames(lapply(selects, function(node) {
+      selected <- xml2::xml_find_all(node, "./option[@selected]")
+      if (!length(selected)) selected <- xml2::xml_find_all(node, "./option[1]")
+      if (!length(selected)) return("")
+      xml2::xml_attr(selected, "value")
+    }), xml2::xml_attr(selects, "id"))
+    do.call(session$setInputs, defaults)
+    session$setInputs(first_pond_create = 0L)
+    session$setInputs(first_pond_parent = parent, first_pond_name = "Survey pond", first_pond_create = 1L)
+    created <- file.path(parent, "Survey pond")
+    expect_true(file.exists(file.path(created, "metadata.db")))
+    expect_identical(first_pond_setup$opened_state()$data_pond, created)
+    expect_identical(datapond:::read_last_data_pond_path(), created)
+  })
+})
+
 test_that("create and open actions switch ponds without copying or losing records", {
   local_trusted_access_fixture()
 
