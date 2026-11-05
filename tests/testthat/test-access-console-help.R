@@ -24,20 +24,23 @@ test_that("console commands preserve quoted paths and only call the public conso
   }
 })
 
-test_that("administrator help offers copyable commands appropriate to pond setup", {
+test_that("administrator help asks for a username before offering commands", {
   pond <- "/pond/<script>not executable</script>"
   for (configured in c(FALSE, TRUE)) {
     html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, configured)))
     expect_length(xml2::xml_find_all(html, if (configured) "//details[not(@open)]" else "//details[@open]"), 1L)
     expect_length(xml2::xml_find_all(html, "//script"), 0L)
-    keys <- if (configured) "recover" else "setup_new"
-    buttons <- xml2::xml_find_all(html, "//button[@data-copy-command]")
-    expect_identical(xml2::xml_attr(buttons, "data-copy-command"), paste0("access_", keys, "_command"))
-    expect_true(all(xml2::xml_attr(buttons, "type") == "button"))
-    for (key in keys) {
-      command <- xml2::xml_text(xml2::xml_find_first(html, paste0("//pre[@id='access_", key, "_command']")))
-      expect_identical(command, datapond:::access_console_commands(pond)[[key]])
-    }
+    expect_length(xml2::xml_find_all(html, "//input[@id='access_console_username']"), 1L)
+    expect_length(xml2::xml_find_all(html, "//*[@id='access_console_command']"), 1L)
+    expect_length(xml2::xml_find_all(html, "//button[@data-copy-command]"), 0L)
+    expect_length(xml2::xml_find_all(xml2::read_html(as.character(
+      datapond:::access_console_command_ui(pond, configured, ""))), "//button[@data-copy-command]"), 0L)
+    command_ui <- xml2::read_html(as.character(datapond:::access_console_command_ui(pond, configured, "paul")))
+    key <- if (configured) "recover" else "setup_new"
+    button <- xml2::xml_find_first(command_ui, "//button[@data-copy-command]")
+    expect_identical(xml2::xml_attr(button, "data-copy-command"), paste0("access_", key, "_command"))
+    command <- xml2::xml_text(xml2::xml_find_first(command_ui, paste0("//pre[@id='access_", key, "_command']")))
+    expect_identical(command, datapond:::access_console_commands(pond, username = "paul")[[key]])
   }
 })
 
@@ -52,18 +55,19 @@ test_that("first administrator selector shows pond people and fills their person
   person <- people[people$id %in% users$person_id, , drop = FALSE][1, ]
   user <- users[users$person_id == person$id, , drop = FALSE]
 
-  html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, FALSE, person$id)))
+  html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, FALSE)))
   options <- xml2::xml_find_all(html, "//select[@id='access_setup_person']/option")
   expect_identical(xml2::xml_attr(options[1], "value"), "")
   selected <- options[xml2::xml_attr(options, "value") == as.character(person$id)]
   expect_length(selected, 1L)
   expect_match(xml2::xml_text(selected), paste("person ID", person$id), fixed = TRUE)
   expect_match(xml2::xml_text(selected), paste("user ID", user$id), fixed = TRUE)
-  expect_match(xml2::xml_attr(selected, "selected"), "selected", fixed = TRUE)
-  command <- xml2::xml_text(xml2::xml_find_first(html, "//pre[@id='access_setup_existing_command']"))
+  command_ui <- xml2::read_html(as.character(datapond:::access_console_command_ui(pond, FALSE, "paul", person$id)))
+  command <- xml2::xml_text(xml2::xml_find_first(command_ui, "//pre[@id='access_setup_existing_command']"))
   expect_match(command, paste0("person_id = ", person$id, "L"), fixed = TRUE)
+  expect_match(command, 'username = "paul"', fixed = TRUE)
   expect_false(grepl("YOUR_PERSON_ID", command, fixed = TRUE))
-  expect_length(xml2::xml_find_all(html, "//pre[@id='access_setup_new_command']"), 0L)
+  expect_length(xml2::xml_find_all(command_ui, "//pre[@id='access_setup_new_command']"), 0L)
 })
 
 test_that("selecting a pond person updates the command on the sign-in screen", {
@@ -77,12 +81,13 @@ test_that("selecting a pond person updates the command on the sign-in screen", {
     datapond:::access_server(input, output, session, state,
       switch_pond = function(path) NULL)
   }, {
-    before <- xml2::read_html(output$access_screen$html)
-    expect_length(xml2::xml_find_all(before, "//pre[@id='access_setup_new_command']"), 1L)
-    session$setInputs(access_setup_person = as.character(person_id))
-    after <- xml2::read_html(output$access_screen$html)
+    before <- xml2::read_html(output$access_console_command$html)
+    expect_length(xml2::xml_find_all(before, "//button[@data-copy-command]"), 0L)
+    session$setInputs(access_console_username = "paul", access_setup_person = as.character(person_id))
+    after <- xml2::read_html(output$access_console_command$html)
     command <- xml2::xml_text(xml2::xml_find_first(after, "//pre[@id='access_setup_existing_command']"))
     expect_match(command, paste0("person_id = ", person_id, "L"), fixed = TRUE)
+    expect_match(command, 'username = "paul"', fixed = TRUE)
   })
 })
 

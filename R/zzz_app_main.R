@@ -2565,16 +2565,19 @@ first_pond_setup_server <- function(input, output, session) {
     allowDirCreate = FALSE, session = session)
   output$access_screen <- shiny::renderUI(first_pond_setup_ui())
   shiny::observeEvent(input$first_pond_parent_input, {
+    shiny::req(active())
     path <- shinyFiles::parseDirPath(roots, input$first_pond_parent_input)
     if (length(path) == 1L && nzchar(path))
       shiny::updateTextInput(session, "first_pond_parent", value = path)
   }, ignoreInit = TRUE)
   shiny::observeEvent(input$first_pond_existing_input, {
+    shiny::req(active())
     path <- shinyFiles::parseDirPath(roots, input$first_pond_existing_input)
     if (length(path) == 1L && nzchar(path))
       shiny::updateTextInput(session, "first_pond_existing", value = path)
   }, ignoreInit = TRUE)
   output$first_pond_destination <- shiny::renderText({
+    shiny::req(active())
     tryCatch(paste("New pond folder:", new_data_pond_path(input$first_pond_parent, input$first_pond_name)),
       error = function(e) conditionMessage(e))
   })
@@ -2588,12 +2591,14 @@ first_pond_setup_server <- function(input, output, session) {
   }
   observers <- list(
     shiny::observeEvent(input$first_pond_create, {
+      shiny::req(active())
       tryCatch({
         path <- create_data_pond_folder(input$first_pond_parent, input$first_pond_name)
         open_pond(path)
       }, error = function(e) shiny::showNotification(conditionMessage(e), type = "error", duration = NULL, session = session))
     }, ignoreInit = TRUE),
     shiny::observeEvent(input$first_pond_open, {
+      shiny::req(active())
       tryCatch(open_pond(validate_existing_data_pond(input$first_pond_existing)),
         error = function(e) shiny::showNotification(conditionMessage(e), type = "error", duration = NULL, session = session))
     }, ignoreInit = TRUE)

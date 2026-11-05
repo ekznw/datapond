@@ -33,16 +33,17 @@ access_ui <- function() {
   )
 }
 
-access_console_commands <- function(pond, person_id = NULL) {
+access_console_commands <- function(pond, person_id = NULL, username = "your.username") {
   path <- encodeString(pond, quote = '"')
+  username <- encodeString(access_username(username), quote = '"')
   person_id_text <- if (is.null(person_id)) "YOUR_PERSON_ID" else paste0(as.integer(person_id), "L")
   list(
     setup_existing = paste0("code <- datapond::setup_pond_access(\n  data_pond = ", path,
-      ",\n  username = \"your.username\",\n  person_id = ", person_id_text, "\n)\ncode"),
+      ",\n  username = ", username, ",\n  person_id = ", person_id_text, "\n)\ncode"),
     setup_new = paste0("code <- datapond::setup_pond_access(\n  data_pond = ", path,
-      ",\n  username = \"your.username\",\n  first_name = \"Your first name\",\n  last_name = \"Your last name\"\n)\ncode"),
+      ",\n  username = ", username, ",\n  first_name = \"Your first name\",\n  last_name = \"Your last name\"\n)\ncode"),
     recover = paste0("code <- datapond::recover_pond_access(\n  data_pond = ", path,
-      ",\n  username = \"your.username\"\n)\ncode")
+      ",\n  username = ", username, "\n)\ncode")
   )
 }
 
@@ -59,49 +60,61 @@ access_setup_people <- function(pond) {
   }, error = function(e) data.frame())
 }
 
-access_console_help_ui <- function(pond, configured, selected_person_id = NULL) {
+access_console_help_ui <- function(pond, configured) {
   people <- if (configured) data.frame() else access_setup_people(pond)
-  selected <- if (!is.null(selected_person_id) &&
-      as.character(selected_person_id)[1] %in% as.character(people$id)) {
-    as.integer(selected_person_id[1])
-  } else NULL
-  commands <- access_console_commands(pond, selected)
   people_choices <- if (nrow(people)) {
     labels <- paste0(people$name_first, " ", people$name_last,
       " — person ID ", people$id,
       ifelse(is.na(people$user_id), " (no user ID yet)", paste0("; user ID ", people$user_id)))
     stats::setNames(as.character(people$id), labels)
   } else character()
-  command_box <- function(key, title) {
-    id <- paste0("access_", key, "_command")
-    shiny::div(class = "datapond-console-command",
-      shiny::h5(title),
-      shiny::tags$pre(id = id, shiny::tags$code(commands[[key]]), .noWS = "inside"),
-      shiny::tags$button(type = "button", class = "btn btn-default",
-        `data-copy-command` = id, "Copy R command"),
-      shiny::tags$span(class = "datapond-copy-status", role = "status", `aria-live` = "polite"))
-  }
   shiny::tags$details(class = "datapond-optional-details", open = if (!configured) "open" else NULL,
     shiny::tags$summary(if (configured) "Administrator: R console commands" else "Set up the first administrator: R console command"),
     shiny::tags$div(style = "padding-top:12px;",
-      shiny::p("Run these commands in a separate local R terminal on the computer and OS account running DataPond. Replace the example username and person details before running. The pond path is already filled in."),
+      shiny::p("Run the generated command in a separate local R terminal on the computer and OS account running DataPond. The pond path is already filled in."),
+      shiny::textInput("access_console_username", "Account username", placeholder = "For example: paul"),
       if (!configured) shiny::tagList(
         shiny::p("Choose your name if it is already in this pond. New ponds include seeded people; being listed does not grant a login. The setup command uses the person ID, not the user ID."),
         shiny::selectInput("access_setup_person", "Person already in this pond",
           choices = c("I am not listed — create a new person" = "", people_choices),
-          selected = if (is.null(selected)) "" else as.character(selected), selectize = FALSE),
-        if (is.null(selected)) command_box("setup_new", "First administrator: create a new person")
-        else command_box("setup_existing", "First administrator: use selected person")
+          selected = "", selectize = FALSE)
       ) else shiny::tagList(
-        command_box("recover", "Issue a new activation or recovery code"),
-        shiny::p("This works for an existing active account or an account awaiting activation. For a pending access request, sign in as an administrator and use Manage accounts > Approve pending request.")
+        shiny::p("Use recovery only if an existing account's code expired or its passphrase was lost. If setup_pond_access() just printed a code, enter that code in Activate / recover access; no recovery call is needed. A new account must be approved by a pond administrator.")
       ),
+      shiny::uiOutput("access_console_command"),
       shiny::p("The terminal prints a single-use code valid for 24 hours. Give it privately to the account holder, who enters it in Activate / recover access and chooses a passphrase. After first-time setup, refresh this page to show that tab.")
     )
   )
 }
 
-access_login_ui <- function(pond, configured, registry = read_connected_pond_registry(), selected_person_id = NULL) {
+access_console_command_ui <- function(pond, configured, username, selected_person_id = NULL) {
+  if (is.null(username) || !nzchar(trimws(username)))
+    return(shiny::p("Enter the exact username you want to use to generate the command."))
+  valid_username <- tryCatch(access_username(username), error = function(e) e)
+  if (inherits(valid_username, "error"))
+    return(shiny::p(conditionMessage(valid_username)))
+  people <- if (configured) data.frame() else access_setup_people(pond)
+  selected <- if (!is.null(selected_person_id) && length(selected_person_id) &&
+      as.character(selected_person_id[1]) %in% as.character(people$id)) {
+    as.integer(selected_person_id[1])
+  } else NULL
+  if (!configured && !is.null(selected_person_id) && length(selected_person_id) &&
+      nzchar(as.character(selected_person_id[1])) && is.null(selected))
+    return(shiny::p("Select a person from this pond before copying the command."))
+  commands <- access_console_commands(pond, selected, valid_username)
+  key <- if (configured) "recover" else if (is.null(selected)) "setup_new" else "setup_existing"
+  title <- if (configured) "Issue a new activation or recovery code" else if (is.null(selected))
+    "First administrator: create a new person" else "First administrator: use selected person"
+  id <- paste0("access_", key, "_command")
+  shiny::div(class = "datapond-console-command",
+    shiny::h5(title),
+    shiny::tags$pre(id = id, shiny::tags$code(commands[[key]]), .noWS = "inside"),
+    shiny::tags$button(type = "button", class = "btn btn-default",
+      `data-copy-command` = id, "Copy R command"),
+    shiny::tags$span(class = "datapond-copy-status", role = "status", `aria-live` = "polite"))
+}
+
+access_login_ui <- function(pond, configured, registry = read_connected_pond_registry()) {
   registry <- registry[order(registry$last_seen_at, decreasing = TRUE, na.last = TRUE), , drop = FALSE]
   saved_ponds <- if (nrow(registry)) stats::setNames(registry$data_pond_path, paste0(
     registry$pond_name, " - ", registry$data_pond_path,
@@ -112,7 +125,8 @@ access_login_ui <- function(pond, configured, registry = read_connected_pond_reg
   shiny::div(class = "datapond-login",
     shiny::h2("Sign in to DataPond"),
     metadata_requirement_legend(),
-    shiny::p("Pond: ", shiny::strong(basename(pond))),
+    shiny::p("Pond: ", shiny::strong(basename(pond)), shiny::tags$br(),
+      "Full folder path: ", shiny::tags$code(style = "overflow-wrap:anywhere;", pond)),
     if (!configured) shiny::div(class = "alert alert-info",
       shiny::p("This pond needs its first administrator. Use the R command below in a separate local R terminal, then refresh this page, activate the account with the printed code, and sign in."),
       shiny::p("If someone else manages this installation, ask them to run the command and give you the code privately.")),
@@ -130,7 +144,7 @@ access_login_ui <- function(pond, configured, registry = read_connected_pond_reg
         shiny::textInput("access_org", "Organisation (optional)"),
         shiny::actionButton("access_request", "Submit request")),
       shiny::tabPanel("Activate / recover access",
-        shiny::p("Ask your administrator for a single-use code after they verify your identity. Codes expire after 24 hours."),
+        shiny::p("If setup_pond_access() printed a code for you, enter it here with the same username. You do not need to run recover_pond_access(). Codes expire after 24 hours; otherwise ask an administrator for a new code."),
         shiny::textInput("access_activate_username", metadata_field_label("Username", "Mandatory", "Required to activate or recover access.")),
         shiny::passwordInput("access_code", metadata_field_label("Activation or recovery code", "Mandatory", "Required to activate or recover access.")),
         shiny::passwordInput("access_new_password", metadata_field_label("New passphrase (at least 15 characters)", "Mandatory", "Required to set your passphrase.")),
@@ -146,7 +160,7 @@ access_login_ui <- function(pond, configured, registry = read_connected_pond_reg
         value = pond),
       shiny::p("Choose a saved pond or enter an existing pond's folder path. You will sign in to that pond after opening it."),
       shiny::actionButton("access_open_pond", "Open pond", class = "btn-primary")),
-    access_console_help_ui(pond, configured, selected_person_id),
+    access_console_help_ui(pond, configured),
     shiny::actionButton("exit_datapond", "Exit DataPond")
   )
 }
@@ -190,12 +204,17 @@ access_server <- function(input, output, session, state, switch_pond, on_login =
   # Replace the complete screen in one output so Shiny unbinds the previous
   # controls and tables before inserting the new login or workspace.
   output$access_screen <- shiny::renderUI({
-    if (!auth$authenticated) return(access_login_ui(auth$pond, auth$configured,
-      selected_person_id = if (!auth$configured) input$access_setup_person else NULL))
+    if (!auth$authenticated) return(access_login_ui(auth$pond, auth$configured))
     shiny::tagList(ui, shiny::div(style = "display:none",
       shiny::textInput("access_workspace_ready", NULL, value = auth$workspace_nonce)))
   })
   shiny::outputOptions(output, "access_screen", suspendWhenHidden = FALSE)
+  output$access_console_command <- shiny::renderUI({
+    if (auth$authenticated) return(NULL)
+    access_console_command_ui(auth$pond, auth$configured,
+      input$access_console_username, input$access_setup_person)
+  })
+  shiny::outputOptions(output, "access_console_command", suspendWhenHidden = FALSE)
   shiny::observeEvent(input$access_workspace_ready, {
     if (isTRUE(auth$authenticated) && !isTRUE(auth$ready) &&
         identical(input$access_workspace_ready, auth$workspace_nonce)) {

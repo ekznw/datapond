@@ -46,7 +46,7 @@ The first administrator must be set up from the trusted R console outside a runn
 ```r
 code <- datapond::setup_pond_access(
   data_pond = "/path/to/your/pond",
-  username = "your.username",
+  username = readline("Login username: "),
   person_id = 18L  # Example only: replace with the verified ID in this pond.
 )
 code
@@ -61,7 +61,7 @@ For subsequent accounts:
 3. The administrator chooses **Approve pending request** and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.
 4. The colleague selects **Activate / recover access**, enters their username and code, sets a passphrase of at least 15 characters, then signs in.
 
-Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.
+Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use `datapond::recover_pond_access("/path/to/your/pond", readline("Account username: "))` in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.
 
 ::: {.guide-process role="region" aria-label="Onboard a colleague to a pond" tabindex="0"}
 

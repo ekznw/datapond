@@ -368,9 +368,15 @@ recover_pond_access <- function(data_pond, username) {
   if (!is.null(shiny::getDefaultReactiveDomain())) stop("Run recovery from the local R console, outside a Shiny session.")
   conn <- access_connect(data_pond); on.exit(DBI::dbDisconnect(conn))
   access_transaction(conn, {
-    row <- DBI::dbGetQuery(conn, "SELECT id FROM accounts WHERE username=? AND status IN ('active','invited')",
-      params = list(access_username(username)))
-    if (nrow(row) != 1L) stop("No active or invited account has that username.")
+    username <- access_username(username)
+    row <- DBI::dbGetQuery(conn, "SELECT id, status FROM accounts WHERE username=?",
+      params = list(username))
+    if (!nrow(row)) stop(paste0("No local account named '", username,
+      "' exists for this pond under this OS account. Recovery cannot create an account. ",
+      "Use Request access and have a pond administrator approve it, or check the pond path and the username used during first-administrator setup."), call. = FALSE)
+    if (!row$status[1] %in% c("active", "invited")) stop(paste0("Account '", username,
+      "' is ", row$status[1], ". Recovery requires an active or invited account. ",
+      "Ask a pond administrator to approve or restore this account."), call. = FALSE)
     access_audit(conn, "console_recovery", target = row$id[1])
     access_issue_token(conn, row$id[1])
   })

@@ -154,7 +154,8 @@ a pond, choose **Open existing pond** and select its folder or enter its path.
 
 After creating a pond, choose your name from the people dropdown if it is
 already in the pond. The dropdown shows each person's **person ID** and any
-existing **user ID**. The copyable first-administrator R command uses the
+existing **user ID**. Enter the exact login username you want; the copyable
+first-administrator R command uses that username and the selected
 person ID. If your name is absent, use the new-person command. Run the command
 in a separate local R terminal, refresh the page, activate the account with
 the printed code, and sign in. A seeded person record does not grant login

@@ -11,6 +11,7 @@ test_that("bootstrap, registration, activation and login preserve attribution", 
   pond <- f$pond
   code <- setup_pond_access(pond, "owner", first_name = "Pond", last_name = "Owner")
   expect_length(code, 1L)
+  expect_error(recover_pond_access(pond, "paul"), "Recovery cannot create an account")
   expect_error(setup_pond_access(pond, "other", first_name = "Other", last_name = "Owner"), "already configured")
   expect_error(datapond:::access_login(pond, "owner", "long enough password"), "Sign-in failed")
   datapond:::access_activate(pond, "owner", code, "a long unique pond passphrase")
@@ -313,7 +314,9 @@ test_that("every workspace observer, renderer and download has an access gate", 
   files <- list.files(file.path(root, "R"), "[.]R$", full.names = TRUE)
   files <- files[!basename(files) %in% "mod_access.R"]
   public_events <- c("input$retry_pond_startup", "input$recovery_known_pond",
-    "input$recovery_pond_folder", "input$open_recovery_pond", "input$exit_datapond")
+    "input$recovery_pond_folder", "input$open_recovery_pond", "input$exit_datapond",
+    "input$first_pond_parent_input", "input$first_pond_existing_input",
+    "input$first_pond_create", "input$first_pond_open")
   name <- function(x) {
     if (is.symbol(x)) return(as.character(x))
     if (is.call(x) && identical(x[[1]], as.name("::"))) return(as.character(x[[3]]))
@@ -333,7 +336,10 @@ test_that("every workspace observer, renderer and download has an access gate", 
         arg <- args[[if (kind == "observeEvent") 2L else 1L]]
         public <- kind == "observeEvent" && basename(file) == "zzz_app_main.R" &&
           paste(deparse(args[[1]]), collapse = "") %in% public_events
-        if (!public) {
+        public_renderer <- basename(file) == "zzz_app_main.R" && kind %in% c("renderUI", "renderText") &&
+          (grepl("first_pond_setup_ui", paste(deparse(x), collapse = ""), fixed = TRUE) ||
+            grepl("first_pond_parent", paste(deparse(x), collapse = ""), fixed = TRUE))
+        if (!public && !public_renderer) {
           expect_true(gated(arg), info = paste(basename(file), kind, substr(paste(deparse(x), collapse=" "), 1, 100)))
           checked <<- checked + 1L
         }

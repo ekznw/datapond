@@ -13,21 +13,27 @@ Create a practice pond first if you are learning. Creating a pond does not copy 
 
 The workspace requires a local account for this pond. Choose **Request access** if you do not have one. An administrator verifies the request, chooses a role, and gives you a single-use activation code. Use **Activate / recover access** to set a passphrase of at least 15 characters, then sign in.
 
-For the first administrator, run setup once in a separate local R console on the computer and OS account running DataPond. The sign-in screen lists people already in this pond, including those seeded into a new pond. Select your name if it appears; the copyable command fills in your **person ID**. The dropdown also shows a **user ID** where one exists, but the setup command needs the person ID. Being listed does not grant login access. If your name is absent, choose **I am not listed — create a new person**. The displayed command then creates your person record. For example:
+For the first administrator, run setup once in a separate local R console on the computer and OS account running DataPond. Enter the exact login username you want on the sign-in screen before copying the command. The screen lists people already in this pond, including those seeded into a new pond. Select your name if it appears; the copyable command fills in your **person ID**. The dropdown also shows a **user ID** where one exists, but the setup command needs the person ID. Being listed does not grant login access. If your name is absent, choose **I am not listed — create a new person**. The displayed command then creates your person record. For example:
 
 ```r
 code <- datapond::setup_pond_access(
-  "/path/to/your/pond", "your.username",
-  first_name = "Your", last_name = "Name"
+  "/path/to/your/pond",
+  username = readline("Login username: "),
+  first_name = readline("First name: "),
+  last_name = readline("Last name: ")
 )
 code
 ```
 
 Keep the code private. It expires after 24 hours. To link an existing metadata person, use their verified `person_id` instead of supplying a new name. Existing seeded names do not automatically grant access.
 
+When `setup_pond_access()` prints the code, return to DataPond, refresh the page, select **Activate / recover access**, enter the exact username used during setup and that code, and set a passphrase of at least 15 characters. You do not need to run `recover_pond_access()` to activate a new invitation. Recovery only issues another code for an existing active or invited account in the local account store for that pond and OS user. If recovery cannot find the username, check that the pond folder path matches the one used for setup and that you are using the same Windows account.
+
+On Windows, copy the full pond folder path from the sign-in screen or its generated command. R accepts paths such as `C:/Users/YourName/Documents/data_pond`. Use that same path in setup and recovery commands.
+
 **Viewers** browse metadata. **Editors** can edit and use dataset workflows. **Pond administrators** also approve accounts, manage shared reference data, and use Flow. Administrators open **Configuration → Manage accounts** to approve requests, change roles, disable accounts or issue recovery codes. File downloads require editor or administrator access. Sign out through Configuration when finished.
 
-If the administrator is locked out, the installation owner can run `datapond::recover_pond_access("/path/to/your/pond", "your.username")` in the trusted local R console. Application login does not prevent someone with direct filesystem or R-console access from changing the underlying data.
+If the administrator is locked out, the installation owner can run `datapond::recover_pond_access("/path/to/your/pond", readline("Account username: "))` in the trusted local R console. Application login does not prevent someone with direct filesystem or R-console access from changing the underlying data.
 
 For administrator procedures, SharePoint caches and future server hosting, see [Manage accounts and deployment](access-management.qmd). Local accounts are separate on each workstation; they do not synchronise through SharePoint.
 

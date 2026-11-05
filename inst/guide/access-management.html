@@ -423,7 +423,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The first administrator must be set up from the trusted R console outside a running Shiny session. For someone already in the metadata catalogue, verify their numeric person ID and use it:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>code <span class="ot">&lt;-</span> datapond<span class="sc">::</span><span class="fu">setup_pond_access</span>(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data_pond =</span> <span class="st">"/path/to/your/pond"</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">username =</span> <span class="st">"your.username"</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">username =</span> <span class="fu">readline</span>(<span class="st">"Login username: "</span>),</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">person_id =</span> <span class="dv">18</span>L  <span class="co"># Example only: replace with the verified ID in this pond.</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>code</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -435,7 +435,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The administrator chooses <strong>Approve pending request</strong> and gives the displayed code privately to the colleague. DataPond does not send email or verify email ownership automatically.</li>
 <li>The colleague selects <strong>Activate / recover access</strong>, enters their username and code, sets a passphrase of at least 15 characters, then signs in.</li>
 </ol>
-<p>Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use <code>datapond::recover_pond_access("/path/to/your/pond", "your.username")</code> in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.</p>
+<p>Activation and recovery codes work once and expire after 24 hours. Recovery replaces the password and revokes sessions; administrators cannot view passwords. An administrator recovering their own account must ask another administrator or use <code>datapond::recover_pond_access("/path/to/your/pond", readline("Account username: "))</code> in the trusted R console. Sign out when finished; sessions expire after 30 minutes without accepted activity or 12 hours overall, except that an active Flow job can finish and leaves five minutes to review its result.</p>
 <div class="guide-process" role="region" aria-label="Onboard a colleague to a pond" tabindex="0">
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">

@@ -9,6 +9,7 @@ test_that("sign-in keeps the pond controls inside a collapsed disclosure box", {
     expect_identical(xml2::xml_attr(xml2::xml_find_first(panel,
       ".//input[@id='access_pond_path']"), "value"), "/pond")
     expect_length(xml2::xml_find_all(panel, ".//button[@id='access_open_pond']"), 1L)
+    expect_identical(xml2::xml_text(xml2::xml_find_first(html, "//p[code='/pond']/code")), "/pond")
   }
 })
 
