@@ -167,6 +167,37 @@ test_that("movement tab exposes independent transfer and read-only cache workflo
   expect_match(html, "Choose local pond cache")
 })
 
+test_that("rclone discovery examples become selectable site and library choices", {
+  ns <- shiny::NS("flow")
+  option <- list(Name = "config_driveid", Required = TRUE, Exclusive = FALSE,
+    Default = "b!documents", Examples = list(
+      list(Value = "b!documents", Help = "Documents (documentLibrary)"),
+      list(Value = "b!archive", Help = "Archive (documentLibrary)")))
+  html <- as.character(movement_config_answer_input(option, ns))
+  expect_match(html, 'value="b!documents" selected', fixed = TRUE)
+  expect_match(html, 'value="b!archive"', fixed = TRUE)
+  expect_match(html, 'Documents (documentLibrary) \u2014 b!documents', fixed = TRUE)
+  expect_match(html, '"create":true', fixed = TRUE)
+
+  option$Name <- "config_site"
+  option$Examples <- list(list(Value = "tenant,site-id", Help = "Field site (https://example.sharepoint.com/sites/field)"))
+  html <- as.character(movement_config_answer_input(option, ns))
+  expect_match(html, 'value="tenant,site-id"', fixed = TRUE)
+  expect_match(html, 'Field site (https://example.sharepoint.com/sites/field)', fixed = TRUE)
+
+  option$Examples <- list(list(Value = "b!documents", Help = "Documents (documentLibrary)"))
+  option$Default <- "b!existing"
+  html <- as.character(movement_config_answer_input(option, ns))
+  expect_match(html, 'value="b!existing" selected', fixed = TRUE)
+
+  option$Exclusive <- TRUE
+  html <- as.character(movement_config_answer_input(option, ns))
+  expect_false(grepl('"create":true', html, fixed = TRUE))
+  option$Examples <- NULL
+  html <- as.character(movement_config_answer_input(option, ns))
+  expect_match(html, 'type="text"', fixed = TRUE)
+})
+
 test_that("Shiny previews are invalidated by edits and can execute asynchronously", {
   local_trusted_access_fixture()
 

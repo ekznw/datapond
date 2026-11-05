@@ -361,6 +361,10 @@ create_dataset_release <- function(dataset_id, base_path, user_id, notes, previe
   })
   registered <- TRUE
   if (close_working) release_close_working(conn, base_path, row, user_id, notes)
+  tryCatch(write_pond_bibliography(base_path, update_keys = FALSE), error = function(e) {
+    warning("The release was frozen, but its bibliography could not be refreshed: ",
+            conditionMessage(e), call. = FALSE)
+  })
   row
 }
 

@@ -393,7 +393,9 @@ normalise_biblatex_doi <- function(x) {
 format_biblatex_dataset <- function(
   record,
   authors_df = NULL,
-  org_df = NULL
+  org_df = NULL,
+  frozen_at = NULL,
+  release_id = NULL
 ) {
   if (
     is.null(record) ||
@@ -499,6 +501,11 @@ format_biblatex_dataset <- function(
       biblatex_field(
         "abstract",
         record$abstract
+      ),
+      if (!is.null(release_id)) biblatex_field(
+        "note",
+        paste0("Frozen ", substr(frozen_at, 1L, 10L),
+               "; release ID ", release_id)
       )
     )
   )
@@ -512,6 +519,63 @@ format_biblatex_dataset <- function(
       collapse = ",\n"
     ),
     "\n}"
+  )
+}
+
+
+release_biblatex_entry <- function(row, base_path) {
+  paths <- release_paths(base_path, row)
+  if (!file.exists(paths$snapshot) ||
+      !identical(release_sha(paths$snapshot), row$snapshot_sha256[1])) {
+    stop("Frozen bibliography metadata is missing or changed for release ",
+         row$release_id[1], ".")
+  }
+
+  payload <- release_read_payload(paths$snapshot)
+  record <- payload$entry_tbl
+  if (nrow(record) != 1L ||
+      !identical(as.character(record$uuid[1]), as.character(row$dataset_uuid[1]))) {
+    stop("Frozen bibliography metadata does not match release ", row$release_id[1], ".")
+  }
+  record$version <- row$version[1]
+  base_key <- citation_key_base(record$citation_key[1])
+  if (is.null(base_key) || !nzchar(base_key)) {
+    base_key <- paste0("dataset_", gsub("[^a-z0-9]", "",
+                                      tolower(row$dataset_uuid[1])))
+  }
+  record$citation_key <- paste0(
+    base_key, "_",
+    format_citation_key_version(row$version[1])
+  )
+  if (!nzchar(biblatex_scalar(record$citation_date))) {
+    record$citation_date <- substr(row$frozen_at[1], 1L, 10L)
+  }
+
+  authors <- payload$scoped$authority_tbl
+  people <- payload$persons_tbl
+  if (!is.null(authors) && nrow(authors)) {
+    people <- people[match(authors$person_id, people$id), , drop = FALSE]
+    authors <- data.frame(
+      name_first = people$name_first,
+      name_last = people$name_last,
+      author_order = authors$author_order
+    )
+    authors <- authors[order(authors$author_order, na.last = TRUE), , drop = FALSE]
+  }
+
+  organisations <- payload$scoped$dataset_organisation_tbl
+  org_refs <- payload$organisation_tbl
+  if (!is.null(organisations) && nrow(organisations)) {
+    org_refs <- org_refs[match(organisations$organisation_id, org_refs$id), , drop = FALSE]
+    organisations <- cbind(organisations, org_refs)
+  }
+
+  list(
+    key = record$citation_key[1],
+    entry = format_biblatex_dataset(
+      record, authors_df = authors, org_df = organisations,
+      frozen_at = row$frozen_at[1], release_id = row$release_id[1]
+    )
   )
 }
 
@@ -548,7 +612,7 @@ dataset_biblatex_entry <- function(
 }
 
 
-write_pond_bibliography <- function(base_path) {
+write_pond_bibliography <- function(base_path, update_keys = TRUE) {
   base_path <- normalizePath(
     path.expand(base_path),
     mustWork = FALSE,
@@ -585,12 +649,25 @@ write_pond_bibliography <- function(base_path) {
     add = TRUE
   )
 
+  releases <- if (DBI::dbExistsTable(conn, "dataset_release_tbl")) {
+    DBI::dbGetQuery(conn, "SELECT * FROM dataset_release_tbl ORDER BY dataset_id, frozen_at, release_id")
+  } else {
+    data.frame()
+  }
+
   if (nrow(datasets) > 0L) {
     for (i in seq_len(nrow(datasets))) {
       record <- datasets[i, , drop = FALSE]
       dataset_id <- as.integer(
         record$id[1]
       )
+      has_release <- nrow(releases) > 0L && dataset_id %in% releases$dataset_id
+      archived <- identical(as.character(record$lifecycle_status[1]), "archived")
+      release_matches_record <- has_release &&
+        isTRUE(citation_key_frozen_state(as.list(record))) &&
+        isTRUE(any(releases$dataset_id == dataset_id &
+                     releases$version == record$version[1], na.rm = TRUE))
+      if ((archived && has_release) || release_matches_record) next
 
       org_df <- get_dataset_org_links(
         dataset_id = dataset_id,
@@ -612,33 +689,27 @@ write_pond_bibliography <- function(base_path) {
 
       if (!identical(key, old_key)) {
         record$citation_key <- key
-        updated_keys <- updated_keys + 1L
-        updated_ids <- c(
-          updated_ids,
-          dataset_id
-        )
-        replacement_keys <- c(
-          replacement_keys,
-          key
-        )
+        if (isTRUE(update_keys)) {
+          updated_keys <- updated_keys + 1L
+          updated_ids <- c(updated_ids, dataset_id)
+          replacement_keys <- c(replacement_keys, key)
+        }
       }
 
-      keys <- c(
-        keys,
-        key
-      )
+      keys <- c(keys, key)
+      entries <- c(entries, format_biblatex_dataset(
+        record = record,
+        authors_df = get_dataset_authors(dataset_id, base_path),
+        org_df = org_df
+      ))
+    }
+  }
 
-      entries <- c(
-        entries,
-        format_biblatex_dataset(
-          record = record,
-          authors_df = get_dataset_authors(
-            dataset_id = dataset_id,
-            base_path = base_path
-          ),
-          org_df = org_df
-        )
-      )
+  if (nrow(releases)) {
+    for (i in seq_len(nrow(releases))) {
+      frozen <- release_biblatex_entry(releases[i, , drop = FALSE], base_path)
+      keys <- c(keys, frozen$key)
+      entries <- c(entries, frozen$entry)
     }
   }
 
@@ -700,7 +771,7 @@ write_pond_bibliography <- function(base_path) {
   )
 
   content <- c(
-    "% Generated by Data Pond from metadata.db.",
+    "% Generated by Data Pond from metadata.db and frozen release snapshots.",
     paste0(
       "% Refreshed: ",
       generated_at

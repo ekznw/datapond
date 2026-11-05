@@ -80,7 +80,7 @@ movement_run_errors <- function(paths, fallback = NULL) {
 }
 
 movement_run_status_label <- function(row) {
-  if (is.null(row)) return(c("Never", "No run"))
+  if (is.null(row)) return(c("No recorded run", "No run history"))
   c(format(as.POSIXct(row$started, origin = "1970-01-01"), "%Y-%m-%d %H:%M %Z"),
     paste0(switch(row$status, running = "Running", complete = "Completed", failed = "Failed",
       failed_known = "Failed on known document conversion errors", cancelled = "Interrupted", row$status),

@@ -8,6 +8,30 @@ movement_require_publication_pond <- function(pond) {
   invisible(TRUE)
 }
 
+movement_config_answer_input <- function(option, ns) {
+  default <- if (is.null(option$Default)) "" else if (is.logical(option$Default))
+    tolower(as.character(option$Default)) else as.character(option$Default)
+  label <- shiny::tagList(option$Name, " ",
+    flow_requirement_marker(if (isTRUE(option$Required)) "Mandatory" else "Optional"))
+  if (isTRUE(option$IsPassword) || isTRUE(option$Sensitive))
+    return(shiny::passwordInput(ns("answer"), label))
+  examples <- option$Examples
+  if (!length(examples)) return(shiny::textInput(ns("answer"), label, value = default))
+  values <- vapply(examples, function(x) as.character(x$Value), character(1))
+  labels <- vapply(examples, function(x) {
+    help <- trimws(as.character(x$Help %||% ""))
+    if (nzchar(help)) paste(help, x$Value, sep = " \u2014 ") else as.character(x$Value)
+  }, character(1))
+  choices <- stats::setNames(values, labels)
+  if (!isTRUE(option$Exclusive) && nzchar(default) && !default %in% values)
+    choices <- c(choices, stats::setNames(default, paste("Current value", default, sep = " \u2014 ")))
+  if (isTRUE(option$Exclusive))
+    return(shiny::selectInput(ns("answer"), label, choices, selected = default))
+  shiny::selectizeInput(ns("answer"), label, choices, selected = default,
+    options = list(create = TRUE, persist = FALSE,
+      placeholder = "Choose a listed option or type another value"))
+}
+
 mod_data_movement_ui <- function(id) {
   ns <- shiny::NS(id)
   field_label <- function(label, help, requirement = "Optional", when = NULL) {
@@ -111,6 +135,7 @@ mod_data_movement_ui <- function(id) {
       ),
       shiny::tabPanel("Run Flows", value = "run",
         shiny::h4("Select saved flows"),
+        shiny::p(class = "help-block", "The table records runs of saved flows only. Publish signed-in pond runs separately, even when a saved flow has the same source and destination. Its result appears under Last publication run below."),
         shiny::uiOutput(ns("routine_help")),
         DT::DTOutput(ns("routine_components")),
         shiny::uiOutput(ns("direct_run_summary")),
@@ -787,18 +812,10 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       question <- state$config
       if (is.null(question)) return(NULL)
       option <- question$Option
-      examples <- option$Examples
-      choices <- if (length(examples)) stats::setNames(vapply(examples, function(x) as.character(x$Value), character(1)),
-                         vapply(examples, function(x) paste(x$Value, x$Help, sep = " \u2014 "), character(1))) else character()
-      default <- if (is.null(option$Default)) "" else if (is.logical(option$Default)) tolower(as.character(option$Default)) else as.character(option$Default)
-      answer_label <- shiny::tagList(option$Name, " ",
-        flow_requirement_marker(if (isTRUE(option$Required)) "Mandatory" else "Optional"))
       shiny::tagList(
         shiny::p(question$Error),
         shiny::tags$pre(option$Help),
-        if (isTRUE(option$Exclusive) && length(choices)) shiny::selectInput(session$ns("answer"), answer_label, choices, selected = default)
-        else if (isTRUE(option$IsPassword) || isTRUE(option$Sensitive)) shiny::passwordInput(session$ns("answer"), answer_label)
-        else shiny::tagList(if (length(choices)) shiny::tags$pre(paste(names(choices), collapse = "\n")), shiny::textInput(session$ns("answer"), answer_label, value = default)),
+        movement_config_answer_input(option, session$ns),
         shiny::actionButton(session$ns("answer_config"), "Continue connection")
       )
     })
@@ -857,7 +874,7 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
       outcomes <- lapply(ids, function(id) movement_run_status_label(history[[id]]))
       rows <- data.frame(
         Flow = vapply(profiles, `[[`, character(1), "name"),
-        `Last run` = vapply(outcomes, `[[`, character(1), 1L),
+        `Last saved flow run` = vapply(outcomes, `[[`, character(1), 1L),
         `Result / errors` = vapply(outcomes, `[[`, character(1), 2L),
         Source = vapply(profiles, `[[`, character(1), "src"),
         Destination = vapply(profiles, `[[`, character(1), "dest"),

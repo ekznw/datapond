@@ -344,3 +344,83 @@ test_that("pond bibliography is rebuilt and tracks frozen keys", {
     )
   )
 })
+
+
+test_that("each frozen version keeps its own snapshot citation", {
+  pond <- tempfile("biblatex-releases-")
+  dir.create(pond)
+  datapond:::init_db(pond)
+  conn <- datapond:::get_conn(pond)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  datapond:::release_ensure_schema(conn)
+  dataset_path <- file.path(pond, "dev", "dataset")
+  dir.create(dataset_path, recursive = TRUE)
+
+  DBI::dbExecute(conn, "INSERT INTO entry_tbl
+    (uuid, title, citation_date, version, citation_key, lifecycle_status,
+     folder_locked, dataset_path, data_path)
+    VALUES ('dataset-uuid', 'First title', '2026-01-15', '1.0.0',
+            'org_202601_data_first_a2b3', 'draft', 0, ?, ?)",
+    params = list(dataset_path, dataset_path))
+  dataset_id <- DBI::dbGetQuery(conn, "SELECT id FROM entry_tbl")$id[1]
+  DBI::dbExecute(conn, "INSERT INTO organisation_tbl
+    (organisation_name_full, organisation_name_short, organisation_code)
+    VALUES ('First publisher', 'First', 'ORG')")
+  organisation_id <- DBI::dbGetQuery(conn, "SELECT id FROM organisation_tbl")$id[1]
+  DBI::dbExecute(conn, "INSERT INTO dataset_organisation_tbl
+    (dataset_id, organisation_id, role) VALUES (?, ?, 'owner')",
+    params = list(dataset_id, organisation_id))
+
+  save_release <- function(id, version, frozen_at) {
+    private <- datapond:::release_private(pond, id)
+    dir.create(private, recursive = TRUE)
+    snapshot <- file.path(private, "snapshot.sqlite")
+    payload <- datapond:::release_payload(conn, dataset_id, pond, 1L)
+    datapond:::write_dataset_transfer_database(payload, snapshot)
+    DBI::dbExecute(conn, "INSERT INTO dataset_release_tbl
+      (release_id, dataset_id, dataset_uuid, version, frozen_at,
+       frozen_by_user_id, notes, relative_path, zip_sha256,
+       manifest_sha256, snapshot_sha256, baseline_hash,
+       source_manifest_sha256, state)
+      VALUES (?, ?, 'dataset-uuid', ?, ?, 1, '', ?, '', '', ?, '', '', 'frozen')",
+      params = list(id, dataset_id, version, frozen_at,
+                    paste0("arc/releases/", id), datapond:::release_sha(snapshot)))
+  }
+
+  save_release("release-one", "1.0.0", "2026-02-01T10:00:00Z")
+  DBI::dbExecute(conn, "UPDATE organisation_tbl
+    SET organisation_name_full='Second publisher' WHERE id=?",
+    params = list(organisation_id))
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET title='Second title',
+    citation_date='2026-04-10', version='2.0.0' WHERE id=?",
+    params = list(dataset_id))
+  save_release("release-two", "2.0.0", "2026-04-20T10:00:00Z")
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET title='Draft title',
+    citation_date='2026-06-01', version='3.0.0' WHERE id=?",
+    params = list(dataset_id))
+
+  result <- datapond:::write_pond_bibliography(pond)
+  bibliography <- paste(readLines(result$path, warn = FALSE), collapse = "\n")
+  expect_identical(result$entries, 3L)
+  expect_identical(result$keys, c(
+    "org_202601_data_first_a2b3",
+    "org_202601_data_first_a2b3_v1_0_0",
+    "org_202601_data_first_a2b3_v2_0_0"
+  ))
+  expect_match(bibliography, "title = {{First title}}", fixed = TRUE)
+  expect_match(bibliography, "author = {{First publisher}}", fixed = TRUE)
+  expect_match(bibliography, "date = {2026-01-15}", fixed = TRUE)
+  expect_match(bibliography, "version = {1.0.0}", fixed = TRUE)
+  expect_match(bibliography, "title = {{Second title}}", fixed = TRUE)
+  expect_match(bibliography, "author = {{Second publisher}}", fixed = TRUE)
+  expect_match(bibliography, "date = {2026-04-10}", fixed = TRUE)
+  expect_match(bibliography, "version = {2.0.0}", fixed = TRUE)
+  expect_match(bibliography, "title = {{Draft title}}", fixed = TRUE)
+  expect_match(bibliography, "note = {Frozen 2026-02-01; release ID release-one}", fixed = TRUE)
+
+  DBI::dbExecute(conn, "UPDATE entry_tbl SET lifecycle_status='archived',
+    folder_locked=1 WHERE id=?", params = list(dataset_id))
+  archived <- datapond:::write_pond_bibliography(pond)
+  expect_identical(archived$entries, 2L)
+  expect_false(anyDuplicated(archived$keys) > 0L)
+})

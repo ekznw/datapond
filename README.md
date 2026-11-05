@@ -654,20 +654,29 @@ attributes, and spatial summaries.
 ### Pond bibliography and Quarto
 
 Data Pond can generate `datapond.bib` in the root of the active pond. The file
-is derived from the saved records in `metadata.db` and contains one BibLaTeX
-`@dataset` entry per dataset. Refreshing the bibliography rebuilds the complete
-file in citation-key order and retains the previous file as
-`datapond.bib.bak`.
+is derived from saved records in `metadata.db` and frozen release snapshots.
+It contains one BibLaTeX `@dataset` entry per working dataset and per frozen
+release. Frozen entries are
+built from the metadata snapshot captured at freeze time, so their title,
+creators, citation date and version do not change with later edits. If no
+citation date was saved, the freeze date is used. Each frozen entry has a
+version-suffixed key and a note with its freeze date and release ID. All frozen
+versions remain available as separate citations, including releases whose ZIP
+was later removed but whose metadata snapshot remains. Refreshing the
+bibliography rebuilds the complete file in citation-key order and retains the
+previous file as `datapond.bib.bak`.
 
 The Pond overview displays the selected dataset's key and generated BibLaTeX
 entry. It provides buttons to copy the key, copy Quarto citation markup such as
 `[@ekznw_202607_vegetation_a2b3]`, copy the complete entry, or refresh the pond
 bibliography. A successful dataset save also refreshes the bibliography.
 
-Citation keys are stable after creation. Unlocked working datasets omit the
-version suffix so evolving metadata and versions do not break citations in
-development reports. Locking a dataset adds its current version suffix; released
-and archived datasets are always locked.
+Citation keys are stable after creation. Unlocked working datasets in `src/` or
+`dev/` omit the version suffix so evolving metadata and versions do not break
+citations in development reports. Locking a dataset adds its current version
+suffix; released and archived datasets are always locked. An archived dataset's
+live record is omitted when its frozen release entries are available, avoiding
+a duplicate citation. Freezing refreshes the bibliography automatically.
 
 A Quarto document inside a managed dataset can refer to the pond bibliography
 using an appropriate relative path:
@@ -685,6 +694,9 @@ stored. Citations then use standard Quarto syntax:
 ```markdown
 The analysis uses the current vegetation dataset
 [@ekznw_202607_vegetation_a2b3].
+
+The detailed results use frozen version 1.2.3
+[@ekznw_202607_vegetation_a2b3_v1_2_3].
 ```
 
 Pond-specific configuration is stored in `.metadata_pond/`. The pointer to the
@@ -892,7 +904,9 @@ a location does not change existing flow paths or delete files.
 
 Use **Sign in and discover libraries** to configure OneDrive/SharePoint through
 rclone's Microsoft authentication flow. Choose a SharePoint site or site search,
-then a document library when prompted. Repeat for other libraries. Discovery is
+then a document library from the discovered dropdown when prompted. The list shows
+site or library names alongside their IDs; you can still type an ID if the needed
+option is absent. Repeat for other libraries. Discovery is
 limited to the signed-in account's permissions; it is not an organisation-wide
 inventory. Microsoft tenant policy can require administrator consent. See
 [rclone's SharePoint setup guide](https://rclone.org/onedrive/). Credentials remain
