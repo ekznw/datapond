@@ -56,17 +56,20 @@ access_console_help_ui <- function(pond, configured) {
         `data-copy-command` = id, "Copy R command"),
       shiny::tags$span(class = "datapond-copy-status", role = "status", `aria-live` = "polite"))
   }
-  metadata_optional_details("Administrator: R console commands",
-    shiny::p("Run these commands in a separate local R terminal on the computer and OS account running DataPond. Replace the example username and person details before running. The pond path is already filled in."),
-    if (!configured) shiny::tagList(
-      shiny::p("Set up the first administrator using one of these commands. For an existing metadata person, replace YOUR_PERSON_ID with their verified numeric person ID."),
-      command_box("setup_existing", "First administrator: existing metadata person"),
-      command_box("setup_new", "First administrator: new metadata person")
-    ) else shiny::tagList(
-      command_box("recover", "Issue a new activation or recovery code"),
-      shiny::p("This works for an existing active account or an account awaiting activation. For a pending access request, sign in as an administrator and use Manage accounts > Approve pending request.")
-    ),
-    shiny::p("The terminal prints a single-use code valid for 24 hours. Give it privately to the account holder, who enters it in Activate / recover access and chooses a passphrase. After first-time setup, refresh this page to show that tab.")
+  shiny::tags$details(class = "datapond-optional-details", open = if (!configured) "open" else NULL,
+    shiny::tags$summary(if (configured) "Administrator: R console commands" else "Set up the first administrator: R console command"),
+    shiny::tags$div(style = "padding-top:12px;",
+      shiny::p("Run these commands in a separate local R terminal on the computer and OS account running DataPond. Replace the example username and person details before running. The pond path is already filled in."),
+      if (!configured) shiny::tagList(
+        shiny::p("Set up the first administrator using one of these commands. For an existing metadata person, replace YOUR_PERSON_ID with their verified numeric person ID."),
+        command_box("setup_existing", "First administrator: existing metadata person"),
+        command_box("setup_new", "First administrator: new metadata person")
+      ) else shiny::tagList(
+        command_box("recover", "Issue a new activation or recovery code"),
+        shiny::p("This works for an existing active account or an account awaiting activation. For a pending access request, sign in as an administrator and use Manage accounts > Approve pending request.")
+      ),
+      shiny::p("The terminal prints a single-use code valid for 24 hours. Give it privately to the account holder, who enters it in Activate / recover access and chooses a passphrase. After first-time setup, refresh this page to show that tab.")
+    )
   )
 }
 
@@ -83,8 +86,8 @@ access_login_ui <- function(pond, configured, registry = read_connected_pond_reg
     metadata_requirement_legend(),
     shiny::p("Pond: ", shiny::strong(basename(pond))),
     if (!configured) shiny::div(class = "alert alert-info",
-      shiny::p("This pond needs its first administrator. Ask the person managing this installation to run setup_pond_access() in the local R console."),
-      shiny::p("Existing metadata and seeded people are preserved. A seeded name does not grant login access.")),
+      shiny::p("This pond needs its first administrator. Use the R command below in a separate local R terminal, then refresh this page, activate the account with the printed code, and sign in."),
+      shiny::p("If someone else manages this installation, ask them to run the command and give you the code privately.")),
     if (configured) shiny::tabsetPanel(id = "access_tab",
       shiny::tabPanel("Sign in",
         access_credentials_form("access_username", "access_password", "access_login",

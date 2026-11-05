@@ -2514,6 +2514,92 @@ ui <- fluidPage(
 
 
 # server ----
+first_pond_setup_needed <- function(requested_data_pond = NULL) {
+  if (!is.null(requested_data_pond) && length(requested_data_pond) &&
+      !is.na(requested_data_pond[1]) && nzchar(trimws(as.character(requested_data_pond[1])))) {
+    return(FALSE)
+  }
+  is.null(read_last_data_pond_path()) &&
+    !file.exists(file.path("data", "last_data_pond_path")) &&
+    !file.exists(file.path("data", "config.rds"))
+}
+
+first_pond_setup_ui <- function() {
+  documents <- normalizePath("~/Documents", mustWork = FALSE)
+  parent <- if (dir.exists(documents)) documents else normalizePath("~", mustWork = TRUE)
+  shiny::div(class = "datapond-login",
+    shiny::h2("Welcome to DataPond"),
+    shiny::p("A data pond is a folder that holds your dataset files and metadata catalogue. Choose how to begin."),
+    shiny::h3("Create a new pond"),
+    shiny::p("Choose an existing location on this computer, then enter the name of a new folder. DataPond will create the pond inside that location."),
+    shinyFiles::shinyDirButton("first_pond_parent_input", "Choose location", "Select the parent folder for your new pond"),
+    shiny::textInput("first_pond_parent", "Location (parent folder)", value = parent),
+    shiny::textInput("first_pond_name", "New pond name", placeholder = "For example: Wetland surveys"),
+    shiny::textOutput("first_pond_destination"),
+    shiny::actionButton("first_pond_create", "Create new pond", class = "btn-primary"),
+    shiny::p(class = "help-block", "After creation, set up the first administrator using the R command shown on the next screen. Then activate the account and sign in."),
+    shiny::tags$hr(),
+    shiny::h3("Open an existing pond"),
+    shiny::p("If someone has already given you a DataPond folder, select that folder or enter its path."),
+    shinyFiles::shinyDirButton("first_pond_existing_input", "Choose existing pond", "Select an existing DataPond folder"),
+    shiny::textInput("first_pond_existing", "Existing pond folder"),
+    shiny::actionButton("first_pond_open", "Open existing pond"),
+    shiny::tags$hr(),
+    shiny::actionButton("exit_datapond", "Exit DataPond")
+  )
+}
+
+`[[.datapond_first_pond_input` <- function(x, i, ...) {
+  shiny::req(isTRUE(x$active()))
+  x$input[[i]]
+}
+
+first_pond_setup_server <- function(input, output, session) {
+  roots <- data_pond_folder_roots()
+  active <- shiny::reactiveVal(TRUE)
+  guarded_input <- structure(list(input = input, active = active), class = "datapond_first_pond_input")
+  shinyFiles::shinyDirChoose(guarded_input, "first_pond_parent_input", roots = roots,
+    allowDirCreate = FALSE, session = session)
+  shinyFiles::shinyDirChoose(guarded_input, "first_pond_existing_input", roots = roots,
+    allowDirCreate = FALSE, session = session)
+  output$access_screen <- shiny::renderUI(first_pond_setup_ui())
+  shiny::observeEvent(input$first_pond_parent_input, {
+    path <- shinyFiles::parseDirPath(roots, input$first_pond_parent_input)
+    if (length(path) == 1L && nzchar(path))
+      shiny::updateTextInput(session, "first_pond_parent", value = path)
+  }, ignoreInit = TRUE)
+  shiny::observeEvent(input$first_pond_existing_input, {
+    path <- shinyFiles::parseDirPath(roots, input$first_pond_existing_input)
+    if (length(path) == 1L && nzchar(path))
+      shiny::updateTextInput(session, "first_pond_existing", value = path)
+  }, ignoreInit = TRUE)
+  output$first_pond_destination <- shiny::renderText({
+    tryCatch(paste("New pond folder:", new_data_pond_path(input$first_pond_parent, input$first_pond_name)),
+      error = function(e) conditionMessage(e))
+  })
+  opened_state <- shiny::reactiveVal(NULL)
+  observers <- list()
+  open_pond <- function(path) {
+    state <- server(input, output, session, startup_path = path, recovering = TRUE)
+    opened_state(state)
+    active(FALSE)
+    for (observer in observers) observer$destroy()
+  }
+  observers <- list(
+    shiny::observeEvent(input$first_pond_create, {
+      tryCatch({
+        path <- create_data_pond_folder(input$first_pond_parent, input$first_pond_name)
+        open_pond(path)
+      }, error = function(e) shiny::showNotification(conditionMessage(e), type = "error", duration = NULL, session = session))
+    }, ignoreInit = TRUE),
+    shiny::observeEvent(input$first_pond_open, {
+      tryCatch(open_pond(validate_existing_data_pond(input$first_pond_existing)),
+        error = function(e) shiny::showNotification(conditionMessage(e), type = "error", duration = NULL, session = session))
+    }, ignoreInit = TRUE)
+  )
+  list(opened_state = opened_state)
+}
+
 pond_startup_error_dialog <- function(message, registry = read_connected_pond_registry()) {
   choices <- if (nrow(registry)) stats::setNames(registry$data_pond_path, paste0(
     registry$pond_name, " - ", registry$data_pond_path,
@@ -2611,6 +2697,10 @@ server <- function(input, output, session, startup_path = NULL, recovering = FAL
 
   ## Resolve initial pond ----
   requested_data_pond <- startup_path %||% getOption("datapond.data_pond")
+  if (!isTRUE(recovering) && first_pond_setup_needed(requested_data_pond)) {
+    first_pond_setup <- first_pond_setup_server(input, output, session)
+    return(invisible(NULL))
+  }
   has_requested_data_pond <- (
     !is.null(requested_data_pond) &&
     length(requested_data_pond) > 0L &&

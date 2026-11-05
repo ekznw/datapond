@@ -146,7 +146,17 @@ datapond::run_data_pond()
 
 ### Open or create a Data Pond
 
-In **Configuration**, use **Open or create a data pond**:
+On a fresh installation, DataPond first shows **Welcome to DataPond**. Choose
+**Create new pond**, select an existing parent location and enter a new folder
+name. Check the displayed destination before creating it. If you already have
+a pond, choose **Open existing pond** and select its folder or enter its path.
+
+After creating a pond, use the displayed R command in a separate local R
+terminal to set up its first administrator. Refresh the page, activate the
+account with the printed code, and sign in.
+
+After signing in, **Configuration → Pond management → Open or create a data
+pond** offers the same actions for additional ponds:
 
 - **Open existing pond** selects an existing pond folder. You can also enter its
   path under **Open an existing pond by path**.
@@ -327,7 +337,8 @@ remotes::install_github("ekznw/ekznwr", upgrade = "never")
 
 ## Running the application
 
-Start Data Pond and reopen the last selected pond:
+Start Data Pond. On a fresh installation, the welcome screen asks you to create
+or open a pond; later launches reopen the last selected pond:
 
 ```r
 datapond::run_data_pond()

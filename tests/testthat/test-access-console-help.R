@@ -28,7 +28,7 @@ test_that("administrator help offers copyable commands appropriate to pond setup
   pond <- "/pond/<script>not executable</script>"
   for (configured in c(FALSE, TRUE)) {
     html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, configured)))
-    expect_length(xml2::xml_find_all(html, "//details[not(@open)]"), 1L)
+    expect_length(xml2::xml_find_all(html, if (configured) "//details[not(@open)]" else "//details[@open]"), 1L)
     expect_length(xml2::xml_find_all(html, "//script"), 0L)
     keys <- if (configured) "recover" else c("setup_existing", "setup_new")
     buttons <- xml2::xml_find_all(html, "//button[@data-copy-command]")

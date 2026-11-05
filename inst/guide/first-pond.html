@@ -308,7 +308,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="open-or-create-a-pond" class="level2">
 <h2 class="anchored" data-anchor-id="open-or-create-a-pond">Open or create a pond</h2>
-<p>Open <strong>Configuration</strong> with the gear button. Under <strong>Pond management → Open or create a data pond</strong>, choose:</p>
+<p>On a fresh installation, the first screen offers <strong>Create new pond</strong> and <strong>Open existing pond</strong>. To create a pond, choose an existing parent location, enter a new folder name, check the displayed destination, then select <strong>Create new pond</strong>. To open a pond, select an existing DataPond folder or enter its path. DataPond does not create a pond until you choose <strong>Create new pond</strong>.</p>
+<p>After signing in, open <strong>Configuration</strong> with the gear button. Under <strong>Pond management → Open or create a data pond</strong>, choose:</p>
 <ul>
 <li><strong>Open existing pond</strong> for a folder that already contains a DataPond catalogue. You can also enter its path under <strong>Open an existing pond by path</strong>.</li>
 <li><strong>Create new pond</strong> for a new workspace. Choose its parent location and a new folder name, check the destination, then choose <strong>Create and open pond</strong>.</li>
@@ -318,7 +319,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sign-in-or-request-access" class="level2">
 <h2 class="anchored" data-anchor-id="sign-in-or-request-access">Sign in or request access</h2>
 <p>The workspace requires a local account for this pond. Choose <strong>Request access</strong> if you do not have one. An administrator verifies the request, chooses a role, and gives you a single-use activation code. Use <strong>Activate / recover access</strong> to set a passphrase of at least 15 characters, then sign in.</p>
-<p>For the first administrator, stop the app and run this once in the local R console:</p>
+<p>For the first administrator, run this once in a separate local R console on the computer and OS account running DataPond. The sign-in screen shows a copyable command with the pond path already filled in:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>code <span class="ot">&lt;-</span> datapond<span class="sc">::</span><span class="fu">setup_pond_access</span>(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"/path/to/your/pond"</span>, <span class="st">"your.username"</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">first_name =</span> <span class="st">"Your"</span>, <span class="at">last_name =</span> <span class="st">"Name"</span></span>
