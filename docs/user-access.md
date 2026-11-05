@@ -70,6 +70,13 @@ permission engine. Grant pond access only to people allowed to see its metadata.
 Browser-side table copy/export features can reproduce metadata already visible
 to a viewer; viewer access is not a prohibition on copying visible information.
 
+Published catalogues downloaded through **Flow ? Read remote pond** are browsed
+using administrator access to the current local working pond. Choose the cache
+under **Saved remote pond**; no account is created in the downloaded cache.
+**Configuration ? Connected data ponds** is for other working pond folders. If
+one has no local accounts, switch to it and follow first-administrator setup on
+its sign-in screen. Copying a catalogue does not copy login accounts.
+
 Connected ponds must be opened and authenticated separately. Signing in to one
 pond does not unlock another. There is no anonymous workspace browsing.
 

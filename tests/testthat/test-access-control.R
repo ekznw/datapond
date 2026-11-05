@@ -301,7 +301,7 @@ test_that("the full app starts locked and authenticates only through login", {
     switch_data_pond(other)
     expect_identical(unname(tools::md5sum(datapond:::get_db_path(other))), before)
     expect_false(auth$authenticated)
-    expect_identical(state$data_pond, other)
+    expect_identical(state$data_pond, normalizePath(other, winslash = "/", mustWork = TRUE))
     expect_null(state$data_pond_id)
     expect_error(federated_pond_catalogue(), class = "shiny.silent.error")
     expect_error(overview_inventory_data(), class = "shiny.silent.error")

@@ -126,7 +126,9 @@ mod_data_movement_ui <- function(id) {
         ),
         shiny::actionButton(ns("refresh_cache"), "Connect / refresh metadata only"),
         shiny::helpText("The owner first uses Publish pond. Connecting downloads the catalogue and metadata exports only. Cached metadata works offline. This connection never uploads to the remote pond."),
+        shiny::helpText("Stay signed in as an administrator of your local working pond. Published caches have no separate login: browse them here, rather than signing in through Configuration > Connected data ponds. After a successful refresh, or after choosing a saved remote pond, the available datasets appear below."),
         shiny::textOutput(ns("cache_status")),
+        shiny::h4("Available datasets"),
         DT::DTOutput(ns("catalogue")),
         shiny::actionButton(ns("download"), "Download / update selected dataset", class = "btn-primary"),
         shiny::actionButton(ns("evict"), "Remove selected download from local pond cache"),
@@ -1170,7 +1172,11 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     inventory <- shiny::reactive({
       state$cache_tick
       if (is.null(state$cache)) return(data.frame())
-      tryCatch(movement_cache_inventory(state$cache), error = function(e) data.frame())
+      tryCatch(movement_cache_inventory(state$cache), error = function(e) {
+        if (inherits(e, "shiny.silent.error")) stop(e)
+        shiny::validate(shiny::need(FALSE, paste("Could not read the cached catalogue:",
+          conditionMessage(e), "Check the local cache folder, then use Connect / refresh metadata only.")))
+      })
     })
     output$cache_status <- shiny::renderText({
       access_require("admin")
@@ -1183,7 +1189,9 @@ mod_data_movement_server <- function(id, pond, dataset_path, state_directory = a
     output$catalogue <- DT::renderDT({
       access_require("admin")
       rows <- inventory()
-      if (!nrow(rows)) return(datapond_datatable(data.frame(Message = "Connect a pond or select an offline cache."), rownames = FALSE))
+      if (!nrow(rows)) return(datapond_datatable(data.frame(Message = if (is.null(state$cache))
+        "Connect a pond or select a saved remote pond to show its available datasets."
+        else "No visible datasets in this cache. Check that metadata refresh completed and the published pond contains visible records."), rownames = FALSE))
       datapond_datatable(rows[, c("title", "citation_date", "stage", "cached"), drop = FALSE], rownames = FALSE, selection = "single", options = list(pageLength = 10))
     })
     selected <- shiny::reactive({

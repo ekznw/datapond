@@ -280,6 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul class="collapse">
   <li><a href="#decide-where-access-is-managed" id="toc-decide-where-access-is-managed" class="nav-link active" data-scroll-target="#decide-where-access-is-managed">Decide where access is managed</a></li>
+  <li><a href="#choose-the-right-connection-workflow" id="toc-choose-the-right-connection-workflow" class="nav-link" data-scroll-target="#choose-the-right-connection-workflow">Choose the right connection workflow</a></li>
   <li><a href="#find-administrators-and-change-access" id="toc-find-administrators-and-change-access" class="nav-link" data-scroll-target="#find-administrators-and-change-access">Find administrators and change access</a></li>
   <li><a href="#set-up-and-onboard-people" id="toc-set-up-and-onboard-people" class="nav-link" data-scroll-target="#set-up-and-onboard-people">Set up and onboard people</a></li>
   <li><a href="#scenario-1-local-use-with-sharepoint-and-caching" id="toc-scenario-1-local-use-with-sharepoint-and-caching" class="nav-link" data-scroll-target="#scenario-1-local-use-with-sharepoint-and-caching">Scenario 1: local use with SharePoint and caching</a></li>
@@ -340,6 +341,38 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p><strong>The first release has no central account synchronisation across workstations.</strong> Approving a colleague on your computer does not approve them on theirs. Disabling their account in your installation does not revoke their other installations or erase downloaded data. People who own the local R process and files can use trusted R functions directly; local app roles are not an organisational security boundary against those people.</p>
+</section>
+<section id="choose-the-right-connection-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="choose-the-right-connection-workflow">Choose the right connection workflow</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>What you have</th>
+<th>Where to browse it</th>
+<th>Account setup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A published catalogue downloaded through Flow</td>
+<td><strong>Flow → Read remote pond → Saved remote pond</strong></td>
+<td>Stay signed in as an administrator of your local working pond. The cache has no separate login.</td>
+</tr>
+<tr class="even">
+<td>Another working pond folder with its own <code>metadata.db</code></td>
+<td><strong>Configuration → Pond management → Connected data ponds</strong></td>
+<td>Sign in to an account set up for that exact folder under the OS account running DataPond.</td>
+</tr>
+</tbody>
+</table>
+<p>Owning or signing in to the master pond does not transfer login accounts to a downloaded catalogue, another folder or another computer. Remote storage permissions allow catalogue/file transfers; local DataPond accounts control the app.</p>
+<p>For another <strong>working pond</strong>, if <strong>Sign in to selected catalogue</strong> reports that access has not been set up, choose <strong>Switch to selected pond</strong>. On its sign-in screen, follow <strong>Set up the first administrator</strong> in a separate local R console, activate the account using the returned code, then sign in. Use the exact pond path shown on that screen. Existing local account stores require activation, recovery or administrator approval instead of first-time setup.</p>
+<p>For a <strong>published cache</strong>, keep your local working pond active and use Flow. Do not set up an account in the cache or add its <code>catalogue-*</code> folder as a working pond.</p>
 </section>
 <section id="find-administrators-and-change-access" class="level2">
 <h2 class="anchored" data-anchor-id="find-administrators-and-change-access">Find administrators and change access</h2>
@@ -504,9 +537,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The master custodian switches to the pond being published and signs in there as an administrator. Open <strong>Flow → Run Flows → Publish signed-in pond</strong> and check the source shown on the page. Selecting a connected dataset or a saved flow does not change the publication source. Enter <strong>Publication destination</strong> and select <strong>Also upload registered dataset folders (data, documents and scripts)</strong> if the files should accompany the catalogue. Confirm the signed-in pond before previewing or running the publication. <strong>Save publication settings</strong> remembers the destination and upload choice for this pond; <strong>Preview / retry pond publication</strong> saves them too. Review the plan and log, then choose <strong>Run flow</strong>. The snapshot uses SQLite’s backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.</li>
 <li>On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in <strong>Flow → Define connections</strong>. Cloud credentials belong to the operating-system account running the app.</li>
 <li>In <strong>Flow → Read remote pond</strong>, enter the configured remote pond folder and an empty <strong>Local pond cache</strong> folder. Use <strong>Connect / refresh metadata only</strong>. A SharePoint web URL is not a configured remote path.</li>
-<li>Browse the cached catalogue offline. Select a dataset and choose <strong>Download / update selected dataset</strong> when its files are needed; fetching new content requires connectivity and remote permission.</li>
+<li>Keep the local working pond active and stay signed in there as an administrator. After the refresh completes, the <strong>Available datasets</strong> table appears in <strong>Flow → Read remote pond</strong>. There is no separate sign-in or account setup for the downloaded cache.</li>
+<li>To reopen it later, choose its name in <strong>Saved remote pond (available offline)</strong>. Browse the cached catalogue offline, select a dataset, and choose <strong>Download / update selected dataset</strong> when its files are needed; fetching new content requires connectivity and remote permission.</li>
 <li>Use <strong>Remove selected download from local pond cache</strong> to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.</li>
 </ol>
+<p>If the table is empty, check that you selected the saved remote pond and that the metadata refresh completed. A catalogue with no visible records has no rows to display; hidden/deleted records are excluded. If reading the cache fails, the table displays an error with refresh instructions. A missing account store in Configuration is a different workflow: return to Flow rather than trying to sign in to the cache.</p>
 <p>If SharePoint rejects Office or HTML files because their size or checksum changes during upload, select <strong>SharePoint file compatibility</strong> before previewing the publication. DataPond copies <code>.doc</code>, <code>.docx</code>, <code>.xls</code>, <code>.xlsx</code>, <code>.ppt</code>, <code>.pptx</code>, <code>.htm</code> and <code>.html</code> files in a separate pass that skips rclone’s post-upload size and checksum checks; other dataset files and the catalogue retain their normal checks. This option applies only when dataset folders are uploaded. SharePoint may change the affected files, so download and inspect an example before sharing the pond. Publication still uses copy, not mirror sync.</p>
 <p>The remote cache is read-only in DataPond and does not upload edits. It is authorised by the cloud connection and the local Flow role, not by logging in to the publisher’s DataPond account store. For changes, use a separate working pond and the <a href="./review.html">dataset transfer or metadata review workflow</a>, then have the custodian accept and republish the result. This differs from the <a href="./releases.html">frozen-release cache helper</a>, which currently reads release packages from a local pond.</p>
 <p>Administrator access on a colleague’s computer permits Flow use for that local pond; it does not grant authority over the original master. The downloaded Flow cache cannot be opened as an editable pond or used to issue a metadata review request. An editor in the original master pond must issue the registered request ZIP, which the colleague imports into a separate local working pond. A request issued from a manually copied catalogue is registered only in that copy, so its return cannot be accepted by the original master. Only an administrator of the original master pond can accept a matching return.</p>

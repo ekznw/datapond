@@ -253,7 +253,10 @@ config_panel_ui <- function() {
         ),
         access_credentials_form("connected_login_username", "connected_login_password", "connected_login",
           "Selected pond username", "Selected pond password", "Sign in to selected catalogue"),
-        shiny::p(class = "help-block", "Sign in to each connected pond to show its datasets here. Access lasts for this session; editing still requires switching ponds."),
+        shiny::p(class = "help-block", "Use these controls for another working pond on this computer. Sign in to that pond to show its datasets here. Access lasts for this session; editing still requires switching ponds."),
+        shiny::p(class = "help-block", "If access has not been set up for that folder on this computer, choose Switch to selected pond and follow Set up the first administrator on its sign-in screen. Accounts are separate for each Windows/OS account and pond folder; copying a catalogue does not copy login accounts."),
+        shiny::p(class = "help-block", "Downloaded a published catalogue? Browse it in Flow > Read remote pond by choosing its Saved remote pond. Published caches have no separate login and cannot be switched to as working ponds."),
+        shiny::p(shiny::a("Guide: accounts, connected ponds and remote caches", href = "datapond-guide/access-management.html", target = "_blank", rel = "noopener")),
         shiny::tags$div(
           class = "config-action-stack",
           shiny::actionButton("switch_connected_pond", "Switch to selected pond"),

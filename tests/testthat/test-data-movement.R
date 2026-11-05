@@ -30,7 +30,7 @@ test_that("transfer endpoints preserve Windows, remote and spaced paths safely",
   expect_true(movement_remote("sharepoint:Shared Documents"))
   expect_false(movement_remote("E:/data"))
   expect_false(movement_remote("E:\\data"))
-  expect_equal(movement_endpoint("/"), "/")
+  expect_equal(movement_endpoint("/"), normalizePath("/", winslash = "/", mustWork = TRUE))
   expect_error(movement_endpoint("--delete-excluded"), "Enter a folder")
   expect_error(movement_endpoint("https://org.sharepoint.com/site"), "configured")
   expect_error(movement_relative("src/../../metadata.db"), "Invalid")
@@ -234,7 +234,7 @@ test_that("Shiny previews are invalidated by edits and can execute asynchronousl
     expect_match(state$status, "completed successfully")
     expect_false(state$report$preview)
     expect_identical(state$report$status, "complete")
-    expect_identical(state$report$destination, dest)
+    expect_identical(state$report$destination, normalizePath(dest, winslash = "/", mustWork = TRUE))
     expect_true(file.exists(file.path(dest, "data.txt")))
     session$setInputs(browse_path = source, browse = 1)
     finish()
@@ -328,5 +328,25 @@ test_that("Flow offers installation help when rclone is missing and can recheck"
     session$setInputs(check_rclone = 1L)
     expect_match(output$rclone_status$html, "rclone is available", fixed = TRUE)
     expect_false(grepl("https://rclone.org/install/", output$rclone_status$html, fixed = TRUE))
+  })
+})
+
+test_that("Flow displays cache read failures instead of an empty dataset table", {
+  local_trusted_access_fixture()
+  root <- tempfile("cache-error-ui-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  local_mocked_bindings(
+    movement_cache_inventory = function(...) stop("Broken catalogue database"),
+    movement_cache_current = function(...) list(state = list(remote = "team:pond", refreshed = "today")),
+    movement_rclone_status = function() list(available = TRUE, version = "rclone test"),
+    .package = "datapond"
+  )
+  shiny::testServer(mod_data_movement_server, args = list(
+    pond = function() root, dataset_path = function() "", state_directory = root
+  ), {
+    state$cache <- file.path(root, "cache")
+    session$flushReact()
+    expect_error(output$catalogue, "Could not read the cached catalogue: Broken catalogue database.*Connect / refresh metadata only")
   })
 })

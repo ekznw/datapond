@@ -9,6 +9,19 @@ DataPond login controls actions through the app. SharePoint permissions control 
 
 **The first release has no central account synchronisation across workstations.** Approving a colleague on your computer does not approve them on theirs. Disabling their account in your installation does not revoke their other installations or erase downloaded data. People who own the local R process and files can use trusted R functions directly; local app roles are not an organisational security boundary against those people.
 
+## Choose the right connection workflow
+
+| What you have | Where to browse it | Account setup |
+|---|---|---|
+| A published catalogue downloaded through Flow | **Flow → Read remote pond → Saved remote pond** | Stay signed in as an administrator of your local working pond. The cache has no separate login. |
+| Another working pond folder with its own `metadata.db` | **Configuration → Pond management → Connected data ponds** | Sign in to an account set up for that exact folder under the OS account running DataPond. |
+
+Owning or signing in to the master pond does not transfer login accounts to a downloaded catalogue, another folder or another computer. Remote storage permissions allow catalogue/file transfers; local DataPond accounts control the app.
+
+For another **working pond**, if **Sign in to selected catalogue** reports that access has not been set up, choose **Switch to selected pond**. On its sign-in screen, follow **Set up the first administrator** in a separate local R console, activate the account using the returned code, then sign in. Use the exact pond path shown on that screen. Existing local account stores require activation, recovery or administrator approval instead of first-time setup.
+
+For a **published cache**, keep your local working pond active and use Flow. Do not set up an account in the cache or add its `catalogue-*` folder as a working pond.
+
 ## Find administrators and change access
 
 Sign in to the relevant pond and open **Configuration → Manage accounts**. The **Pond accounts** table lists login accounts, roles and statuses. Rows with role `admin` are administrators; `active` means activated, while `invited` means awaiting activation. Seeded metadata people without login accounts do not appear as approved users merely because they exist in **Parties**.
@@ -106,8 +119,11 @@ To publish and consume a pond:
 1. The master custodian switches to the pond being published and signs in there as an administrator. Open **Flow → Run Flows → Publish signed-in pond** and check the source shown on the page. Selecting a connected dataset or a saved flow does not change the publication source. Enter **Publication destination** and select **Also upload registered dataset folders (data, documents and scripts)** if the files should accompany the catalogue. Confirm the signed-in pond before previewing or running the publication. **Save publication settings** remembers the destination and upload choice for this pond; **Preview / retry pond publication** saves them too. Review the plan and log, then choose **Run flow**. The snapshot uses SQLite's backup API. Treat the published catalogue as a copy of the metadata database: publish only to readers authorised to receive that metadata.
 2. On the consumer workstation, set up a separate local working pond and its local account. Configure the authorised SharePoint connection in **Flow → Define connections**. Cloud credentials belong to the operating-system account running the app.
 3. In **Flow → Read remote pond**, enter the configured remote pond folder and an empty **Local pond cache** folder. Use **Connect / refresh metadata only**. A SharePoint web URL is not a configured remote path.
-4. Browse the cached catalogue offline. Select a dataset and choose **Download / update selected dataset** when its files are needed; fetching new content requires connectivity and remote permission.
-5. Use **Remove selected download from local pond cache** to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.
+4. Keep the local working pond active and stay signed in there as an administrator. After the refresh completes, the **Available datasets** table appears in **Flow → Read remote pond**. There is no separate sign-in or account setup for the downloaded cache.
+5. To reopen it later, choose its name in **Saved remote pond (available offline)**. Browse the cached catalogue offline, select a dataset, and choose **Download / update selected dataset** when its files are needed; fetching new content requires connectivity and remote permission.
+6. Use **Remove selected download from local pond cache** to reclaim space. This removes that local download while retaining cached metadata and the remote dataset.
+
+If the table is empty, check that you selected the saved remote pond and that the metadata refresh completed. A catalogue with no visible records has no rows to display; hidden/deleted records are excluded. If reading the cache fails, the table displays an error with refresh instructions. A missing account store in Configuration is a different workflow: return to Flow rather than trying to sign in to the cache.
 
 If SharePoint rejects Office or HTML files because their size or checksum changes during upload, select **SharePoint file compatibility** before previewing the publication. DataPond copies `.doc`, `.docx`, `.xls`, `.xlsx`, `.ppt`, `.pptx`, `.htm` and `.html` files in a separate pass that skips rclone's post-upload size and checksum checks; other dataset files and the catalogue retain their normal checks. This option applies only when dataset folders are uploaded. SharePoint may change the affected files, so download and inspect an example before sharing the pond. Publication still uses copy, not mirror sync.
 

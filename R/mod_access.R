@@ -64,7 +64,7 @@ access_console_help_ui <- function(pond, configured) {
   people <- if (configured) data.frame() else access_setup_people(pond)
   people_choices <- if (nrow(people)) {
     labels <- paste0(people$name_first, " ", people$name_last,
-      " — person ID ", people$id,
+      " - person ID ", people$id,
       ifelse(is.na(people$user_id), " (no user ID yet)", paste0("; user ID ", people$user_id)))
     stats::setNames(as.character(people$id), labels)
   } else character()
@@ -72,11 +72,11 @@ access_console_help_ui <- function(pond, configured) {
     shiny::tags$summary(if (configured) "Administrator: R console commands" else "Set up the first administrator: R console command"),
     shiny::tags$div(style = "padding-top:12px;",
       shiny::p("Run the generated command in a separate local R terminal on the computer and OS account running DataPond. The pond path is already filled in."),
-      shiny::textInput("access_console_username", "Account username", placeholder = "For example: paul"),
+      shiny::textInput("access_console_username", "Account username", placeholder = "For example: luke"),
       if (!configured) shiny::tagList(
         shiny::p("Choose your name if it is already in this pond. New ponds include seeded people; being listed does not grant a login. The setup command uses the person ID, not the user ID."),
         shiny::selectInput("access_setup_person", "Person already in this pond",
-          choices = c("I am not listed — create a new person" = "", people_choices),
+          choices = c("I am not listed - create a new person" = "", people_choices),
           selected = "", selectize = FALSE)
       ) else shiny::tagList(
         shiny::p("Use recovery only if an existing account's code expired or its passphrase was lost. If setup_pond_access() just printed a code, enter that code in Activate / recover access; no recovery call is needed. A new account must be approved by a pond administrator.")

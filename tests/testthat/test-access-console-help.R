@@ -98,3 +98,29 @@ test_that("sign-in loads theme preferences and copy support before authenticatio
   expect_true(any(grepl("display-theme.js", sources, fixed = TRUE)))
   expect_true(any(grepl("access-help.js", sources, fixed = TRUE)))
 })
+
+test_that("compiled sign-in screens survive a Windows locale change", {
+  skip_if(.Platform$OS.type != "windows")
+  original_locale <- Sys.getlocale("LC_CTYPE")
+  on.exit(Sys.setlocale("LC_CTYPE", original_locale), add = TRUE)
+  utf8_locale <- suppressWarnings(Sys.setlocale("LC_CTYPE", ".UTF-8"))
+  skip_if(!nzchar(utf8_locale), "A Windows UTF-8 locale is required")
+  Sys.setlocale("LC_CTYPE", "C")
+  env <- new.env(parent = asNamespace("datapond"))
+  source(file.path(datapond_test_source_root(), "R", "mod_access.R"),
+    local = env, encoding = "UTF-8")
+  env$access_setup_people <- function(...) data.frame(
+    id = 1L, name_first = "Test", name_last = "Owner", user_id = 2L)
+  serialized_screen <- serialize(compiler::cmpfun(env$access_login_ui), NULL)
+  Sys.setlocale("LC_CTYPE", utf8_locale)
+  screen <- unserialize(serialized_screen)
+  for (configured in c(FALSE, TRUE)) {
+    html <- htmltools::renderTags(screen("/unused", configured,
+      registry = datapond:::empty_connected_pond_registry()))$html
+    expect_match(html, "Sign in to DataPond", fixed = TRUE)
+    if (!configured) {
+      expect_match(html, "- person ID 1", fixed = TRUE)
+      expect_match(html, "I am not listed - create a new person", fixed = TRUE)
+    }
+  }
+})

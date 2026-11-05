@@ -483,9 +483,10 @@ movement_cache_current <- function(cache) {
 }
 
 movement_cache_inventory <- function(cache, include_hidden = FALSE) {
+  access_require("admin")
   current <- movement_cache_current(cache)
   if (is.null(current)) return(data.frame())
-  rows <- as.data.frame(read_connected_pond_inventory(current$directory, include_hidden = include_hidden))
+  rows <- as.data.frame(read_pond_inventory_read_only(current$directory, include_hidden = include_hidden))
   rows$relative_path <- vapply(rows$id, function(id) {
     match <- Filter(function(x) identical(as.character(x$id), as.character(id)), current$manifest$datasets)
     if (!length(match) || is.null(match[[1]]$path)) return(NA_character_)

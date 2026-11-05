@@ -240,6 +240,12 @@ connected_pond_stage <- function(dataset_path, pond_path) {
 
 read_connected_pond_inventory <- function(path, include_hidden = FALSE) {
   connected_pond_require_read(path)
+  read_pond_inventory_read_only(path, include_hidden = include_hidden)
+}
+
+# The caller supplies authorization: connected ponds require their own sign-in;
+# published caches require administrator access to the current local pond.
+read_pond_inventory_read_only <- function(path, include_hidden = FALSE) {
   identity <- read_data_pond_identity_read_only(path)
   conn <- DBI::dbConnect(
     RSQLite::SQLite(),
@@ -463,6 +469,12 @@ connected_pond_sign_in <- function(path, username, password) {
   auth <- access_context()
   stopifnot(!is.null(auth))
   path <- access_path(path)
+  movement_assert_writable(path)
+  if (!file.exists(access_db_path(path)))
+    stop(paste("Access has not been set up for this local pond on this computer.",
+      "Choose Switch to selected pond, then follow Set up the first administrator on its sign-in screen.",
+      "Accounts from another folder or computer are not copied with a catalogue.",
+      "For a downloaded published catalogue, use Flow > Read remote pond and select its saved cache instead."), call. = FALSE)
   token <- access_login(path, username, password)
   old <- auth$connected_tokens[[path]]
   if (!is.null(old)) access_logout(path, old)
