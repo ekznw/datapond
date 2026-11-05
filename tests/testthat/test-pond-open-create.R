@@ -82,6 +82,8 @@ test_that("a clean installation offers pond creation before writing a default po
   ui <- xml2::read_html(as.character(datapond:::first_pond_setup_ui()))
   expect_match(xml2::xml_text(ui), "Create a new pond", fixed = TRUE)
   expect_match(xml2::xml_text(ui), "Open an existing pond", fixed = TRUE)
+  expect_match(xml2::xml_text(ui), "folder browser can make a new parent folder", fixed = TRUE)
+  expect_identical(xml2::xml_attr(xml2::xml_find_first(ui, "//input[@id='first_pond_name']"), "value"), "data_pond")
   expect_match(xml2::xml_text(ui), "set up the first administrator", fixed = TRUE)
   for (id in c("first_pond_create", "first_pond_open", "first_pond_parent_input")) {
     expect_false(is.na(xml2::xml_name(xml2::xml_find_first(ui, paste0("//*[@id='", id, "']")))))
@@ -106,6 +108,9 @@ test_that("a clean installation offers pond creation before writing a default po
     expect_true(file.exists(file.path(created, "metadata.db")))
     expect_identical(first_pond_setup$opened_state()$data_pond, created)
     expect_identical(datapond:::read_last_data_pond_path(), created)
+    sign_in <- xml2::read_html(output$access_screen$html)
+    expect_gt(length(xml2::xml_find_all(sign_in,
+      "//select[@id='access_setup_person']/option")), 1L)
   })
 })
 

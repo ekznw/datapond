@@ -1,6 +1,6 @@
 ## Open or create a pond
 
-On a fresh installation, the first screen offers **Create new pond** and **Open existing pond**. To create a pond, choose an existing parent location, enter a new folder name, check the displayed destination, then select **Create new pond**. To open a pond, select an existing DataPond folder or enter its path. DataPond does not create a pond until you choose **Create new pond**.
+On a fresh installation, the first screen offers **Create new pond** and **Open existing pond**. To create a pond, choose a parent location (the folder browser can create one), use the suggested `data_pond` name or enter a new folder name, check the displayed destination, then select **Create new pond**. To open a pond, select an existing DataPond folder or enter its path. DataPond does not create a pond until you choose **Create new pond**.
 
 After signing in, open **Configuration** with the gear button. Under **Pond management → Open or create a data pond**, choose:
 
@@ -13,7 +13,7 @@ Create a practice pond first if you are learning. Creating a pond does not copy 
 
 The workspace requires a local account for this pond. Choose **Request access** if you do not have one. An administrator verifies the request, chooses a role, and gives you a single-use activation code. Use **Activate / recover access** to set a passphrase of at least 15 characters, then sign in.
 
-For the first administrator, run this once in a separate local R console on the computer and OS account running DataPond. The sign-in screen shows a copyable command with the pond path already filled in:
+For the first administrator, run setup once in a separate local R console on the computer and OS account running DataPond. The sign-in screen lists people already in this pond, including those seeded into a new pond. Select your name if it appears; the copyable command fills in your **person ID**. The dropdown also shows a **user ID** where one exists, but the setup command needs the person ID. Being listed does not grant login access. If your name is absent, choose **I am not listed — create a new person**. The displayed command then creates your person record. For example:
 
 ```r
 code <- datapond::setup_pond_access(

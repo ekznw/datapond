@@ -30,7 +30,7 @@ test_that("administrator help offers copyable commands appropriate to pond setup
     html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, configured)))
     expect_length(xml2::xml_find_all(html, if (configured) "//details[not(@open)]" else "//details[@open]"), 1L)
     expect_length(xml2::xml_find_all(html, "//script"), 0L)
-    keys <- if (configured) "recover" else c("setup_existing", "setup_new")
+    keys <- if (configured) "recover" else "setup_new"
     buttons <- xml2::xml_find_all(html, "//button[@data-copy-command]")
     expect_identical(xml2::xml_attr(buttons, "data-copy-command"), paste0("access_", keys, "_command"))
     expect_true(all(xml2::xml_attr(buttons, "type") == "button"))
@@ -39,6 +39,51 @@ test_that("administrator help offers copyable commands appropriate to pond setup
       expect_identical(command, datapond:::access_console_commands(pond)[[key]])
     }
   }
+})
+
+test_that("first administrator selector shows pond people and fills their person ID", {
+  pond <- tempfile("setup-persons-")
+  on.exit(unlink(pond, recursive = TRUE), add = TRUE)
+  datapond:::init_db(pond)
+  datapond:::seed_pond_parties(pond)
+  people <- datapond:::get_persons(pond)
+  users <- datapond:::get_users(pond)
+  expect_gt(nrow(people), 0L)
+  person <- people[people$id %in% users$person_id, , drop = FALSE][1, ]
+  user <- users[users$person_id == person$id, , drop = FALSE]
+
+  html <- xml2::read_html(as.character(datapond:::access_console_help_ui(pond, FALSE, person$id)))
+  options <- xml2::xml_find_all(html, "//select[@id='access_setup_person']/option")
+  expect_identical(xml2::xml_attr(options[1], "value"), "")
+  selected <- options[xml2::xml_attr(options, "value") == as.character(person$id)]
+  expect_length(selected, 1L)
+  expect_match(xml2::xml_text(selected), paste("person ID", person$id), fixed = TRUE)
+  expect_match(xml2::xml_text(selected), paste("user ID", user$id), fixed = TRUE)
+  expect_match(xml2::xml_attr(selected, "selected"), "selected", fixed = TRUE)
+  command <- xml2::xml_text(xml2::xml_find_first(html, "//pre[@id='access_setup_existing_command']"))
+  expect_match(command, paste0("person_id = ", person$id, "L"), fixed = TRUE)
+  expect_false(grepl("YOUR_PERSON_ID", command, fixed = TRUE))
+  expect_length(xml2::xml_find_all(html, "//pre[@id='access_setup_new_command']"), 0L)
+})
+
+test_that("selecting a pond person updates the command on the sign-in screen", {
+  pond <- tempfile("setup-person-screen-")
+  on.exit(unlink(pond, recursive = TRUE), add = TRUE)
+  datapond:::init_db(pond)
+  datapond:::seed_pond_parties(pond)
+  person_id <- datapond:::get_persons(pond)$id[1]
+  shiny::testServer(function(input, output, session) {
+    state <- shiny::reactiveValues(data_pond = pond, active_user_id = NULL)
+    datapond:::access_server(input, output, session, state,
+      switch_pond = function(path) NULL)
+  }, {
+    before <- xml2::read_html(output$access_screen$html)
+    expect_length(xml2::xml_find_all(before, "//pre[@id='access_setup_new_command']"), 1L)
+    session$setInputs(access_setup_person = as.character(person_id))
+    after <- xml2::read_html(output$access_screen$html)
+    command <- xml2::xml_text(xml2::xml_find_first(after, "//pre[@id='access_setup_existing_command']"))
+    expect_match(command, paste0("person_id = ", person_id, "L"), fixed = TRUE)
+  })
 })
 
 test_that("sign-in loads theme preferences and copy support before authentication", {

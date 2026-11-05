@@ -148,12 +148,17 @@ datapond::run_data_pond()
 
 On a fresh installation, DataPond first shows **Welcome to DataPond**. Choose
 **Create new pond**, select an existing parent location and enter a new folder
-name. Check the displayed destination before creating it. If you already have
+name (initially `data_pond`). The location browser can create a parent folder.
+Check the displayed destination before creating it. If you already have
 a pond, choose **Open existing pond** and select its folder or enter its path.
 
-After creating a pond, use the displayed R command in a separate local R
-terminal to set up its first administrator. Refresh the page, activate the
-account with the printed code, and sign in.
+After creating a pond, choose your name from the people dropdown if it is
+already in the pond. The dropdown shows each person's **person ID** and any
+existing **user ID**. The copyable first-administrator R command uses the
+person ID. If your name is absent, use the new-person command. Run the command
+in a separate local R terminal, refresh the page, activate the account with
+the printed code, and sign in. A seeded person record does not grant login
+access by itself.
 
 After signing in, **Configuration → Pond management → Open or create a data
 pond** offers the same actions for additional ponds:

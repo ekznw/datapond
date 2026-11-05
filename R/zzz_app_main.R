@@ -342,6 +342,7 @@ new_data_pond_dialog <- function(parent_path = "") {
     shinyFiles::shinyDirButton(
       "new_pond_parent_input", "Choose location", "Select the parent folder for your new pond"
     ),
+    shiny::helpText("The folder browser can create a new parent location. Your pond will be created inside the selected folder."),
     shiny::textInput("new_pond_parent", metadata_field_label("Location (parent folder)", "Mandatory", "Choose the parent folder in which to create the new pond."), value = parent_path),
     shiny::textInput("new_pond_name", metadata_field_label("New pond name", "Mandatory", "Required when creating a pond."), placeholder = "For example: Wetland surveys"),
     shiny::textOutput("new_pond_destination"),
@@ -2531,10 +2532,10 @@ first_pond_setup_ui <- function() {
     shiny::h2("Welcome to DataPond"),
     shiny::p("A data pond is a folder that holds your dataset files and metadata catalogue. Choose how to begin."),
     shiny::h3("Create a new pond"),
-    shiny::p("Choose an existing location on this computer, then enter the name of a new folder. DataPond will create the pond inside that location."),
+    shiny::p("Choose where to create the pond. The folder browser can make a new parent folder; DataPond creates the pond inside the location you select."),
     shinyFiles::shinyDirButton("first_pond_parent_input", "Choose location", "Select the parent folder for your new pond"),
     shiny::textInput("first_pond_parent", "Location (parent folder)", value = parent),
-    shiny::textInput("first_pond_name", "New pond name", placeholder = "For example: Wetland surveys"),
+    shiny::textInput("first_pond_name", "New pond folder name", value = "data_pond", placeholder = "For example: Wetland surveys"),
     shiny::textOutput("first_pond_destination"),
     shiny::actionButton("first_pond_create", "Create new pond", class = "btn-primary"),
     shiny::p(class = "help-block", "After creation, set up the first administrator using the R command shown on the next screen. Then activate the account and sign in."),
@@ -2559,7 +2560,7 @@ first_pond_setup_server <- function(input, output, session) {
   active <- shiny::reactiveVal(TRUE)
   guarded_input <- structure(list(input = input, active = active), class = "datapond_first_pond_input")
   shinyFiles::shinyDirChoose(guarded_input, "first_pond_parent_input", roots = roots,
-    allowDirCreate = FALSE, session = session)
+    allowDirCreate = TRUE, session = session)
   shinyFiles::shinyDirChoose(guarded_input, "first_pond_existing_input", roots = roots,
     allowDirCreate = FALSE, session = session)
   output$access_screen <- shiny::renderUI(first_pond_setup_ui())
@@ -4844,7 +4845,7 @@ metadata_review_context_data <-
     allowDirCreate = FALSE, session = session
   )
   shinyFiles::shinyDirChoose(
-    access_directory_input(input), "new_pond_parent_input", roots = roots, allowDirCreate = FALSE, session = session
+    access_directory_input(input), "new_pond_parent_input", roots = roots, allowDirCreate = TRUE, session = session
   )
 
   observeEvent(input$new_pond, {
